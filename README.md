@@ -82,9 +82,21 @@ curl -sL -o ~/.claude/skills/youtube-lesson/schema.md \
 Now `/youtube-lesson <url>` works in any project. Lessons are written to whatever
 directory you're in, so run it wherever you want the files.
 
+**Requires pip 21.3 or newer.** Older pip cannot read this project's metadata and
+installs a broken, empty package named `UNKNOWN` — with no error. If you see that,
+upgrade first:
+
+```bash
+python3 -m pip install --user --upgrade pip
+```
+
 **Note:** installing globally means using your system Python. If you prefer to
 keep it isolated, install into a virtual environment and add that environment's
 `bin/` to your PATH, or stay with the project-scoped setup.
+
+If pip warns that scripts were installed somewhere not on your PATH, you can
+ignore it — the skill falls back to `python3 -m ytlesson`, which works regardless.
+To use the bare `ytlesson` command as well, add that directory to your PATH.
 
 **Verify it's loaded** — start Claude Code anywhere and type `/`. If
 `youtube-lesson` isn't listed, the skill file isn't where Claude Code is looking.
