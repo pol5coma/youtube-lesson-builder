@@ -15,23 +15,51 @@ fetch transcript  →  YOU design the lesson  →  render HTML
 
 Neither script calls an API. Everything runs on the user's Claude Code session.
 
-## Before you start
+## Before you start — find the command
 
-Work from the repository root (the directory containing `ytlesson/`). If a
-virtual environment exists at `.venv/`, use `.venv/bin/python`; otherwise use
-`python3` and install the dependency first:
+This skill may be installed per-project or globally, so do not assume a path.
+Work out which form is available, in this order, and use the first that works:
 
 ```bash
-python3 -m pip install --quiet youtube-transcript-api
+# 1. installed on PATH (global install)
+command -v ytlesson
+
+# 2. repo-local virtual environment
+ls .venv/bin/python
+
+# 3. importable from the current directory
+python3 -c "import ytlesson" 2>/dev/null && echo ok
+```
+
+That gives you one of:
+
+| Found | Use |
+|---|---|
+| `ytlesson` on PATH | `ytlesson ...` |
+| `.venv/bin/python` | `.venv/bin/python -m ytlesson ...` |
+| importable | `python3 -m ytlesson ...` |
+
+Every command below is written as `<CMD>` — substitute whichever you found.
+
+**If none work,** the package is not installed. Tell the user, and offer the
+one-line fix rather than guessing at a path:
+
+```bash
+pip install git+https://github.com/pol5coma/youtube-lesson-builder.git
 ```
 
 Only `youtube-transcript-api` and `pydantic` are needed for this path. The
 `anthropic` package is used solely by the API fallback and is not required here.
 
+**Where to write files:** put the transcript, the JSON, and the HTML in the
+user's current working directory, not in the package's install location. When
+running globally that directory is wherever the user happens to be, which is
+what they will expect.
+
 ## Step 1 — Fetch the transcript
 
 ```bash
-.venv/bin/python -m ytlesson "<URL_OR_VIDEO_ID>" --transcript-only > transcript.txt
+<CMD> "<URL_OR_VIDEO_ID>" --transcript-only > transcript.txt
 ```
 
 The output is timestamped paragraphs, roughly forty seconds each:
@@ -85,7 +113,7 @@ Write the result to a JSON file, for example `lesson-<topic>.json`.
 ## Step 3 — Render
 
 ```bash
-.venv/bin/python -m ytlesson --from-json lesson-<topic>.json -o <topic>-lesson.html --open
+<CMD> --from-json lesson-<topic>.json -o <topic>-lesson.html --open
 ```
 
 This produces a self-contained HTML page and opens it in the browser. Drop
@@ -102,7 +130,7 @@ examples, and questions. Mention that the JSON was kept, so the page can be
 re-rendered for free at any time:
 
 ```bash
-.venv/bin/python -m ytlesson --from-json lesson-<topic>.json -o out.html
+<CMD> --from-json lesson-<topic>.json -o out.html
 ```
 
 If you estimated the timestamps rather than verifying them against the video,

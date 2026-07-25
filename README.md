@@ -41,6 +41,57 @@ for beginners: <url>"* — and the skill picks itself up.
 
 <br>
 
+## Two ways to install it
+
+The quick start above is **project-scoped**: the skill works when you run Claude
+Code inside this folder. If you'd rather have it everywhere, install it globally.
+
+|  | Project-scoped | Global |
+|---|---|---|
+| Works in | this repo only | any directory |
+| Setup | clone, done | one extra command |
+| Skill lives in | `<repo>/.claude/skills/` | `~/.claude/skills/` |
+| Updating | `git pull` | `git pull` + re-copy the skill |
+| Best for | trying it out, or per-project tweaks | using it as a normal part of your workflow |
+
+### Global install
+
+Install the package so the `ytlesson` command is on your PATH, then copy the
+skill into your user-level skills directory:
+
+```bash
+# from the cloned repo
+pip install .
+
+mkdir -p ~/.claude/skills
+cp -r .claude/skills/youtube-lesson ~/.claude/skills/
+```
+
+Or skip the clone entirely:
+
+```bash
+pip install git+https://github.com/pol5coma/youtube-lesson-builder.git
+
+mkdir -p ~/.claude/skills/youtube-lesson
+curl -sL -o ~/.claude/skills/youtube-lesson/SKILL.md \
+  https://raw.githubusercontent.com/pol5coma/youtube-lesson-builder/main/.claude/skills/youtube-lesson/SKILL.md
+curl -sL -o ~/.claude/skills/youtube-lesson/schema.md \
+  https://raw.githubusercontent.com/pol5coma/youtube-lesson-builder/main/.claude/skills/youtube-lesson/schema.md
+```
+
+Now `/youtube-lesson <url>` works in any project. Lessons are written to whatever
+directory you're in, so run it wherever you want the files.
+
+**Note:** installing globally means using your system Python. If you prefer to
+keep it isolated, install into a virtual environment and add that environment's
+`bin/` to your PATH, or stay with the project-scoped setup.
+
+**Verify it's loaded** — start Claude Code anywhere and type `/`. If
+`youtube-lesson` isn't listed, the skill file isn't where Claude Code is looking.
+Skills are read at session start, so restart after installing.
+
+<br>
+
 ## How it works
 
 Three stages. Only the middle one needs intelligence, and your Claude Code
@@ -178,7 +229,13 @@ ytlesson/
 │   ├── SKILL.md    the procedure Claude follows
 │   └── schema.md   the lesson shape it writes against
 └── settings.json   pre-approves the scripts, so there are no permission prompts
+
+pyproject.toml      packaging, so `pip install .` puts `ytlesson` on your PATH
 ```
+
+The skill resolves the command at run time — `ytlesson` on PATH, a repo-local
+`.venv`, or an importable package — so the same skill file works whether it is
+installed per-project or globally.
 
 The lesson shape is defined once as Pydantic models and enforced when rendering,
 so the renderer never parses prose or guards against missing fields. Change the

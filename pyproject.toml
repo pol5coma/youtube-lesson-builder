@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "youtube-lesson-builder"
+version = "0.1.0"
+description = "Turn any YouTube video into a structured, self-contained HTML lesson"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["youtube", "transcript", "learning", "claude", "education"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Education",
+]
+
+# `anthropic` is deliberately optional: it is only needed by the API fallback.
+# The Claude Code skill path needs neither the package nor an API key.
+dependencies = [
+    "youtube-transcript-api>=1.0",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+api = ["anthropic>=0.69"]
+
+[project.scripts]
+ytlesson = "ytlesson.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/pol5coma/youtube-lesson-builder"
+
+[tool.setuptools]
+packages = ["ytlesson"]
