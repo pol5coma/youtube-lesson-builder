@@ -1,0 +1,116 @@
+---
+name: youtube-lesson
+description: Turn a YouTube video into a structured HTML lesson. Use when the user gives a YouTube URL or video ID and wants a lesson, study guide, breakdown, notes, summary, or explainer built from it. Runs on the user's Claude Code session, so no Anthropic API key or credits are needed.
+---
+
+# Building a lesson from a YouTube video
+
+You are the reasoning step in a three-stage pipeline. Two bundled scripts handle
+the deterministic work; you do the part that needs judgement.
+
+```
+fetch transcript  →  YOU design the lesson  →  render HTML
+   (script)              (this skill)            (script)
+```
+
+Neither script calls an API. Everything runs on the user's Claude Code session.
+
+## Before you start
+
+Work from the repository root (the directory containing `ytlesson/`). If a
+virtual environment exists at `.venv/`, use `.venv/bin/python`; otherwise use
+`python3` and install the dependency first:
+
+```bash
+python3 -m pip install --quiet youtube-transcript-api
+```
+
+Only `youtube-transcript-api` and `pydantic` are needed for this path. The
+`anthropic` package is used solely by the API fallback and is not required here.
+
+## Step 1 — Fetch the transcript
+
+```bash
+.venv/bin/python -m ytlesson "<URL_OR_VIDEO_ID>" --transcript-only > transcript.txt
+```
+
+The output is timestamped paragraphs, roughly forty seconds each:
+
+```
+[2:48] text of that stretch of the video...
+```
+
+Then read the file.
+
+**If this step fails**, stop and tell the user plainly. The usual cause is a
+video with captions disabled, which cannot be turned into a lesson — there is
+nothing to fall back on. Do not invent content for a video you could not read.
+
+**On length:** most talks are 40–90 KB of text and fit comfortably. If a
+transcript is very large, read it in parts and keep notes as you go rather than
+skimming — a lesson built from a skim is obvious and not worth shipping.
+
+## Step 2 — Design the lesson
+
+Read `schema.md` in this skill's directory for the exact JSON shape, then write
+the file. This is the part that determines whether the output is worth reading.
+
+**Teach the subject, not the video.** Write "a hash table stores…", never "the
+speaker explains that…". Someone should be able to learn the topic from your
+page without watching anything. This is also what keeps the output an original
+explanation rather than a repackaged transcript.
+
+Hold to these while writing:
+
+- **Explain in your own words.** Do not reproduce stretches of the transcript. A
+  short quoted phrase is fine when the exact wording carries weight.
+- **Every abstract point needs something concrete.** Use the video's examples
+  where they exist; supply your own where it was vague. Runnable code beats
+  described code.
+- **Define jargon on first use,** and again in the glossary.
+- **Never invent facts.** You may fill small reasoning gaps the speaker skipped.
+  You may not add figures, claims, or attributions the video does not support.
+- **Timestamps are for navigation.** Take them from the `[M:SS]` markers near
+  where each topic begins. Approximate is fine; fabricated precision is not.
+- **Write plainly.** Short sentences, no filler, no "in conclusion".
+- **Quiz questions should test understanding, not recall.** "Why does X work?"
+  rather than "What did the speaker call X?"
+
+Transcripts of speech are messy — no punctuation, filler words, mangled
+technical terms. Read through that. If a term is clearly garbled, use the
+correct one.
+
+Write the result to a JSON file, for example `lesson-<topic>.json`.
+
+## Step 3 — Render
+
+```bash
+.venv/bin/python -m ytlesson --from-json lesson-<topic>.json -o <topic>-lesson.html --open
+```
+
+This produces a self-contained HTML page and opens it in the browser. Drop
+`--open` if the user did not ask for it.
+
+If the command reports a validation error, your JSON does not match the schema —
+read the error, fix the file, and run it again. Do not hand-write HTML as a
+workaround; the renderer is what guarantees a consistent page.
+
+## Step 4 — Report back
+
+Tell the user where the file is and what it contains — how many sections,
+examples, and questions. Mention that the JSON was kept, so the page can be
+re-rendered for free at any time:
+
+```bash
+.venv/bin/python -m ytlesson --from-json lesson-<topic>.json -o out.html
+```
+
+If you estimated the timestamps rather than verifying them against the video,
+say so.
+
+## Adjusting to what the user asked for
+
+If they specified an audience, depth, or angle — "for beginners", "focus on the
+maths", "keep it short" — apply it throughout: to the difficulty field, the
+explanations, and which examples you choose. A request for a beginner lesson
+changes the whole page, not just one field.

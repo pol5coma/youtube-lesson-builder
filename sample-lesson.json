@@ -1,0 +1,90 @@
+{
+  "video_url": "",
+  "channel": "Demo",
+  "lesson": {
+    "title": "How Hash Tables Actually Work",
+    "subtitle": "Understand the data structure behind dictionaries, sets, and database indexes.",
+    "topic": "Data structures",
+    "difficulty": "Beginner",
+    "audience": "programmers who use dictionaries daily but have never looked inside one",
+    "overview": "A hash table turns a key into an array position, so looking something up costs the same whether the table holds ten items or ten million.\n\nThat single trick is why dictionary lookups feel instant. The cost is that the trick only works when collisions are rare, which is what most of the design of a hash table is really about.",
+    "key_takeaways": [
+      "A hash function converts a key into an array index in constant time.",
+      "Two keys landing on the same index is a collision, and every implementation needs a plan for it.",
+      "Chaining stores colliding entries in a list; open addressing probes for the next free slot.",
+      "Load factor is the ratio of entries to slots; above roughly 0.75, performance degrades.",
+      "Resizing rehashes every key, which is why an occasional insert is much slower than the rest."
+    ],
+    "prerequisites": [
+      "Arrays and how indexing into one works",
+      "Big-O notation at a basic level"
+    ],
+    "sections": [
+      {
+        "title": "From key to index",
+        "timestamp": "1:20",
+        "summary": "A hash function maps arbitrary keys onto a fixed range of array positions.",
+        "explanation": "An array gives you instant access if you already know the position. A hash table's job is to compute that position from the key itself.\n\nThe hash function takes the key, produces a large integer, and reduces it modulo the array size. The result is a slot number. Because this is pure arithmetic, it takes the same time regardless of how much data the table holds.",
+        "key_points": [
+          "Hashing is arithmetic, so it costs the same at any table size.",
+          "The modulo step confines the hash to the array's bounds.",
+          "A good hash spreads keys evenly; a poor one clusters them."
+        ],
+        "examples": [
+          {
+            "title": "Hashing a short string",
+            "description": "Sum the character codes and take the remainder against the table size. Crude, but it shows the shape of the idea.",
+            "code": "def slot(key, size):\n    return sum(ord(c) for c in key) % size\n\nslot(\"cat\", 8)  # -> 4"
+          }
+        ]
+      },
+      {
+        "title": "Collisions and chaining",
+        "timestamp": "6:45",
+        "summary": "When two keys hash to the same slot, the table stores both and searches within.",
+        "explanation": "Any function mapping unlimited keys onto limited slots must sometimes produce the same slot twice. This is a collision, and it is unavoidable rather than a bug.\n\nChaining handles it by storing a list at each slot. Lookup finds the slot, then walks that short list comparing keys. As long as lists stay short, the walk is negligible.",
+        "key_points": [
+          "Collisions are guaranteed by the pigeonhole principle.",
+          "Chaining keeps a list per slot and scans it on lookup.",
+          "Performance holds only while those lists stay short."
+        ],
+        "examples": [
+          {
+            "title": "Why lookup still needs the key",
+            "description": "The slot narrows candidates; the key comparison confirms the match. Skipping that comparison would return whatever happened to collide.",
+            "code": ""
+          }
+        ]
+      }
+    ],
+    "glossary": [
+      {
+        "term": "Hash function",
+        "definition": "A function that converts a key into an integer used to pick an array slot."
+      },
+      {
+        "term": "Collision",
+        "definition": "Two different keys producing the same slot."
+      },
+      {
+        "term": "Load factor",
+        "definition": "Entries divided by slots. Higher means fuller, and slower."
+      }
+    ],
+    "quiz": [
+      {
+        "question": "Why is a hash table lookup O(1) rather than O(n)?",
+        "answer": "The slot is computed arithmetically from the key, so no scanning is needed. It degrades toward O(n) only if collisions make the per-slot lists long."
+      },
+      {
+        "question": "Why must lookup compare the key after finding the slot?",
+        "answer": "The slot narrows candidates but does not identify one. Colliding keys share a slot, so the comparison is what confirms the right entry."
+      }
+    ],
+    "further_exploration": [
+      "Read your language's dictionary implementation to see which collision strategy it uses.",
+      "Measure lookup time as load factor climbs past 0.75.",
+      "Look into consistent hashing, which distributes keys across servers."
+    ]
+  }
+}

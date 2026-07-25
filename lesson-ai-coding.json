@@ -1,0 +1,281 @@
+{
+  "video_url": "https://www.youtube.com/watch?v=LvLdNkgO-N0",
+  "channel": "How I AI",
+  "lesson": {
+    "title": "Getting Real Work Out of AI Coding Tools",
+    "subtitle": "Preload context, automate the checks, and stop babysitting the model.",
+    "topic": "AI-assisted software engineering",
+    "difficulty": "Intermediate",
+    "audience": "working developers who already use an AI coding assistant and want it to produce production-quality output",
+    "overview": "Most people use an AI coding assistant the same way they'd use a chat window: open it, describe a problem, hope for the best. That works for isolated snippets and falls apart on real codebases, because the assistant starts every session knowing nothing about your system.\n\nThe techniques here all attack that one problem from different angles. Some load knowledge into the model before you ask anything. Some remove the manual steps you repeat after every response. Some restructure what you delegate in the first place. None of them are about writing better prompts.\n\nThe common thread is investment. Each takes a few minutes to set up once and pays back on every subsequent task. That's also why developers who try these tools casually often conclude they don't help — the casual path is genuinely mediocre.",
+    "key_takeaways": [
+      "An AI assistant starts every session with zero knowledge of your codebase, and rediscovering it is the single biggest source of wasted time and bad edits.",
+      "Architecture diagrams in text form compress a system into something a model reads instantly but a human finds hard to skim.",
+      "Loading context costs tokens up front and saves far more in exploration the model no longer has to do.",
+      "Shell aliases turn a long configured launch command into one or two keystrokes, which is what makes you actually use it.",
+      "Lifecycle hooks let you run type checks, linters, and commits automatically when the model finishes, instead of remembering to do it.",
+      "Feeding an error back to the model is more effective than asking it to be careful in advance.",
+      "The highest-value delegation is often investigation and documentation, not writing code.",
+      "When a session goes wrong, restarting with a better prompt beats steering a model that has already drifted."
+    ],
+    "prerequisites": [
+      "Comfort with a terminal and a shell config file such as .zshrc or .bashrc",
+      "Familiarity with an AI coding assistant that runs in your terminal or editor",
+      "Basic git: branches, commits, and history"
+    ],
+    "sections": [
+      {
+        "title": "Why the assistant keeps getting your codebase wrong",
+        "timestamp": "3:40",
+        "summary": "A model with no architectural knowledge makes locally reasonable edits that break things elsewhere.",
+        "explanation": "When you ask an assistant to change something, it needs to know how that piece connects to the rest of the system. Without that knowledge it does the only thing it can: read files, guess at relationships, and make a change that looks correct in isolation.\n\nThat's the origin of a familiar failure. You ask for a change to one module, the model makes it, and something unrelated breaks — because it never knew the two were connected. It wasn't careless; it was uninformed.\n\nThe usual response is to write rules and instructions. Those help with style and preferences, but they don't answer the structural question: what talks to what, and what happens if I change this? The fix is to supply that map before the model needs it.",
+        "key_points": [
+          "Every new session begins with no memory of your system.",
+          "Without a structural map, the model explores files and infers relationships, which is slow and error-prone.",
+          "Bad edits usually come from missing context, not from a weak model.",
+          "Style rules and coding conventions do not substitute for architectural knowledge."
+        ],
+        "examples": [
+          {
+            "title": "The shape of the failure",
+            "description": "Ask for a change to an authentication helper. The model edits it correctly. A billing route that depended on a side effect of that helper now breaks. Nothing in the conversation ever told the model those two were related, so it had no way to check.",
+            "code": ""
+          }
+        ]
+      },
+      {
+        "title": "Diagrams as machine-readable architecture",
+        "timestamp": "4:30",
+        "summary": "Text-based diagram formats compress system structure into something a model consumes in one pass.",
+        "explanation": "Mermaid is a diagramming syntax written as plain text inside Markdown. You describe nodes and the relationships between them, and a renderer draws the picture. Because the source is text, it goes into a prompt like any other content.\n\nThis inverts the usual readability tradeoff. A rendered diagram of a large system is genuinely hard for a person to absorb — too many boxes, too many arrows. But the underlying text is compact and completely explicit, which is exactly what a language model handles well. Structure that overwhelms a human eye is dense, unambiguous signal to a model.\n\nThe practical move is to keep a directory of these files describing the flows that matter: authentication, data access, the request lifecycle, whatever your system's load-bearing paths are. They become a reusable description of your architecture that any session can be handed.",
+        "key_points": [
+          "Mermaid is plain text, so it can be pasted into a prompt without conversion.",
+          "One file per meaningful flow keeps each description focused.",
+          "Diagram text is dense for a model precisely where it is hard for a person.",
+          "The same files double as documentation for new team members."
+        ],
+        "examples": [
+          {
+            "title": "A login flow as Mermaid",
+            "description": "This is roughly the amount of detail a useful diagram carries. A model reading it knows which components participate, in what order, and where the branches are — without opening a single file.",
+            "code": "sequenceDiagram\n    Browser->>API: POST /login (email, password)\n    API->>UserStore: findByEmail(email)\n    UserStore-->>API: user record\n    API->>Hasher: verify(password, user.hash)\n    alt password valid\n        API->>SessionStore: create(user.id)\n        API-->>Browser: 200 + session cookie\n    else invalid\n        API-->>Browser: 401\n    end"
+          },
+          {
+            "title": "Where to keep them",
+            "description": "A dedicated directory makes the whole set easy to load at once with a single glob pattern.",
+            "code": "your-project/\n└── ai/\n    └── diagrams/\n        ├── authentication.md\n        ├── data-access.md\n        └── request-lifecycle.md"
+          }
+        ]
+      },
+      {
+        "title": "Loading context before the first question",
+        "timestamp": "6:00",
+        "summary": "Injecting the diagrams at startup removes the exploration phase entirely.",
+        "explanation": "Most assistants accept extra instructions appended to their system prompt at launch. That is the right place for your architecture, because it lands before any conversation begins — the model is already informed when you type your first message.\n\nThe mechanics are simple: concatenate your diagram files and pass the result in at startup. Everything the model would otherwise discover by reading files is already present.\n\nThe difference is visible in the transcript of your own session. Without preloading, a question about authentication produces a burst of file reads and searches before any answer. With it, the answer comes immediately, and it accounts for parts of the system the model would probably never have found on its own.",
+        "key_points": [
+          "System-prompt content applies before the first user message.",
+          "Concatenating a directory of files is enough — no special tooling required.",
+          "You can tell it worked because the model stops opening files to orient itself.",
+          "On a large codebase, load only the diagrams relevant to the work at hand."
+        ],
+        "examples": [
+          {
+            "title": "Loading every diagram at launch",
+            "description": "The exact flag differs between tools; the pattern is the same. Read the files, pass the text in as appended system-prompt content.",
+            "code": "claude --append-system-prompt \"$(cat ai/diagrams/*.md)\""
+          },
+          {
+            "title": "The tradeoff, stated plainly",
+            "description": "You pay for those tokens on every session, whether or not the model needed them. You save the exploration turns, and you avoid edits made without knowing what they'd affect. On any task longer than a few minutes, the second outweighs the first — but on a one-line fix it genuinely doesn't, which is why selective loading matters on big projects.",
+            "code": ""
+          }
+        ]
+      },
+      {
+        "title": "Aliases: making the good setup the easy one",
+        "timestamp": "17:00",
+        "summary": "A configured launch command only gets used if it is shorter than the unconfigured one.",
+        "explanation": "Once you have a preload command, you face an ergonomic problem. Typing a long command with quoting and globbing is enough friction that you will skip it when you're in a hurry — and skipping it is exactly when you most need the context.\n\nShell aliases remove the friction. You define the long form once in your shell config, give it a one- or two-character name, and from then on the configured mode is the path of least resistance.\n\nKeep the names genuinely short. This is not the place for descriptive naming: these are commands you'll type dozens of times a day, and every extra character makes the shortcut a little less likely to be used.",
+        "key_points": [
+          "Friction determines whether a good practice survives contact with a deadline.",
+          "Aliases live in ~/.zshrc or ~/.bashrc and need a shell reload to take effect.",
+          "Separate aliases for separate modes: full context, fast and cheap, relaxed permissions.",
+          "In a monorepo, per-project aliases keep the loaded context relevant."
+        ],
+        "examples": [
+          {
+            "title": "A small set of launch modes",
+            "description": "Three modes covering most work: full architectural context, a faster and cheaper model for routine edits, and a permissive mode for throwaway experiments. Reload with `source ~/.zshrc` after editing.",
+            "code": "# ~/.zshrc\n\n# full architectural context\nalias cdi='claude --append-system-prompt \"$(cat ai/diagrams/*.md)\"'\n\n# faster, cheaper model for routine work\nalias h='claude --model haiku'\n\n# relaxed permissions, for scratch projects only\nalias x='claude --dangerously-skip-permissions'"
+          }
+        ]
+      },
+      {
+        "title": "Small CLIs for the workflows you repeat",
+        "timestamp": "19:00",
+        "summary": "Wrapping a repeated prompt in a tiny command-line script makes it reusable and improvable.",
+        "explanation": "Some prompts you write again and again with small variations. Each time you rebuild the wording from memory, and each time it's slightly worse than the version you'd refined last month.\n\nA short script fixes that. It asks for the handful of things that vary, fills them into a prompt you have already tuned, and calls the assistant. The prompt stops being something you remember and becomes something you maintain.\n\nA terminal interface is a genuine advantage here rather than a compromise. Its constraints keep you focused on the few inputs that matter, instead of drifting into building a web form. And these scripts are quick to build precisely because you can have the assistant write them.",
+        "key_points": [
+          "A refined prompt is an asset; keeping it in a script stops it decaying.",
+          "The narrow interface of a terminal prompt discourages scope creep.",
+          "These tools are small enough that the assistant can build them for you.",
+          "Improving the tool later means editing one file, not re-remembering."
+        ],
+        "examples": [
+          {
+            "title": "Sketch of a wrapper script",
+            "description": "Collect what varies, inject it into a stored prompt, hand off to the assistant. Under twenty lines, and it means the good version of the prompt is the one that always runs.",
+            "code": "#!/usr/bin/env bash\nset -euo pipefail\n\nread -rp \"Component name: \" name\nread -rp \"What should it do? \" purpose\n\nclaude -p \"Create a $name component that $purpose.\nFollow the conventions in the existing components directory.\nInclude tests. Do not add abstractions beyond what is needed.\""
+          }
+        ]
+      },
+      {
+        "title": "Hooks: automating what you do after every response",
+        "timestamp": "24:00",
+        "summary": "Lifecycle hooks run your quality checks automatically and feed failures back to the model.",
+        "explanation": "There is a routine you repeat after every AI-generated change: run the type checker, run the linter, look at the diff, commit. It's mechanical, and forgetting a step is how broken code slips through.\n\nHooks are scripts an assistant runs at defined moments in its lifecycle. The useful one here fires when the model finishes and is about to hand control back to you. At that point your script can run whatever checks you'd have run by hand.\n\nWhat makes this more than a convenience is the return path. Your script's output goes back to the model as input. So a failing type check doesn't just stop the commit — it tells the model exactly what broke, and the model fixes it and finishes. Errors get corrected by the system that caused them, without you in the loop.",
+        "key_points": [
+          "A stop hook runs when the model finishes its turn.",
+          "The script's output is fed back to the model, which is what enables self-correction.",
+          "Run the same checks you would run manually: types, lint, format, tests.",
+          "Only commit once the checks pass, so a broken state never lands in history.",
+          "Reacting to a real error works better than asking the model to be careful in advance."
+        ],
+        "examples": [
+          {
+            "title": "Check, report failures, commit on success",
+            "description": "The logic is deliberately plain. If nothing changed, do nothing. If checks fail, print the failure so the model can read and fix it. If they pass, commit.",
+            "code": "#!/usr/bin/env bash\n# .hooks/on-stop.sh\n\ngit diff --quiet && exit 0        # nothing changed, nothing to do\n\nif ! output=$(npm run typecheck 2>&1); then\n  echo \"Type check failed. Fix these errors:\"\n  echo \"$output\"\n  exit 1                          # non-zero: the model sees this and continues\nfi\n\ngit add -A\ngit commit -m \"Apply changes\" --no-verify"
+          },
+          {
+            "title": "Keep stray output off the return channel",
+            "description": "Because the hook's output is what the model reads, casual logging becomes accidental instruction. Send anything meant for you to stderr instead, so the model only receives what you intend it to act on.",
+            "code": "echo \"starting checks...\" >&2   # for you\necho \"Fix these type errors: ...\"  # for the model"
+          }
+        ]
+      },
+      {
+        "title": "Making it work for a team",
+        "timestamp": "33:00",
+        "summary": "Committed configuration gives every developer the same baseline without asking them to set it up.",
+        "explanation": "Everything so far is a personal setup. The version that changes an organisation is the one committed to the repository, because it applies to everyone who clones it and requires no individual effort.\n\nMost assistants distinguish shared configuration from personal configuration. Shared settings belong in version control; personal ones go in a file listed in .gitignore. Put the quality checks in the shared file and let individuals keep their own preferences separate.\n\nThe organisational implication is worth stating directly: one person spending an afternoon on hooks for an important repository raises the floor for every developer who touches it, permanently. That's a better return than training people individually and hoping the habit sticks.",
+        "key_points": [
+          "Committed configuration applies automatically on clone.",
+          "Keep personal preferences in a separate, ignored file.",
+          "Quality gates belong in the shared file; model and key preferences don't.",
+          "One person's setup work benefits everyone on the repository."
+        ],
+        "examples": [
+          {
+            "title": "Splitting shared from personal",
+            "description": "The team file carries the checks everyone should run. The local file carries individual preferences and is never committed.",
+            "code": ".claude/settings.json         # committed — shared hooks and checks\n.claude/settings.local.json   # gitignored — personal preferences"
+          }
+        ]
+      },
+      {
+        "title": "Delegating the investigation, not just the typing",
+        "timestamp": "44:00",
+        "summary": "The slowest part of an unfamiliar task is orientation, and that is delegable.",
+        "explanation": "Picking up a ticket in code you didn't write starts with a long, unglamorous phase: finding the relevant files, reading the history, working out why decisions were made, and guessing what a change might break. That phase often takes longer than the fix.\n\nIt is also almost entirely mechanical, which makes it a strong candidate for delegation. An assistant can trace the history, summarise who changed what and when, and flag the risky paths — especially if you've already given it the architecture.\n\nA useful way to decide what to delegate: imagine you had unlimited time and no meetings. You'd trace the history properly, write a short technical plan, list the risks, and get it reviewed before touching anything. You skip those steps because they're expensive. They stop being expensive when you delegate them.",
+        "key_points": [
+          "Orientation frequently costs more than the change itself.",
+          "History tracing and impact analysis are mechanical and delegable.",
+          "This matters most for newcomers, who don't know what they don't know.",
+          "Design workflows around what you'd do with unlimited time, then automate those steps."
+        ],
+        "examples": [
+          {
+            "title": "An orientation prompt",
+            "description": "Run this before starting on unfamiliar code. It replaces an afternoon of archaeology with something you can read in a few minutes.",
+            "code": "Before I change anything in this module, tell me:\n- which parts of the system depend on it\n- what its change history suggests about past problems\n- which behaviour looks deliberate rather than accidental\n- what could break that tests would not catch"
+          },
+          {
+            "title": "Closing the loop",
+            "description": "Have the findings written down as part of the work. The next person to touch the module — quite possibly you in six months — starts from documentation instead of repeating the same investigation.",
+            "code": ""
+          }
+        ]
+      },
+      {
+        "title": "Recovering when a session goes wrong",
+        "timestamp": "50:00",
+        "summary": "Restart from a better prompt rather than steering a model that has already drifted.",
+        "explanation": "Sometimes a session heads in a direction you don't want and won't come back. You correct it, it agrees, and then it drifts the same way again. Each correction adds to a conversation that is already pulling against you.\n\nStarting over is usually faster than steering. Revert to the last good commit and rewrite your opening prompt, using what you just learned about where the ambiguity was. You keep the insight and drop the accumulated confusion.\n\nWhen you genuinely can't tell what went wrong, a second opinion helps. Export the conversation and show it to a different model. It has no investment in the approach and will often name the wrong turn immediately — the same reason a colleague spots the bug you've been staring at.\n\nBest of all is preventing the drift. Planning modes — where the model proposes an approach and waits for your approval before acting — catch misunderstandings while they're still cheap. Worth using for anything beyond a small, obvious change.",
+        "key_points": [
+          "Corrections accumulate; a fresh start discards the confusion but keeps what you learned.",
+          "Revert to a known-good commit so you are not fixing on top of a mess.",
+          "A second model reviewing the transcript is not invested in the failing approach.",
+          "Approving a plan before execution prevents most drift in the first place."
+        ],
+        "examples": [
+          {
+            "title": "The restart, concretely",
+            "description": "Three steps. The rewritten prompt is the important one — it should name the constraint the model kept violating.",
+            "code": "git reset --hard HEAD       # discard the drifted work\n# start a fresh session\n# rewrite the prompt, stating explicitly what went wrong last time"
+          }
+        ]
+      }
+    ],
+    "glossary": [
+      {
+        "term": "Context window",
+        "definition": "The total amount of text a model can consider at once, including instructions, conversation, and any files loaded. Everything competes for the same finite space."
+      },
+      {
+        "term": "System prompt",
+        "definition": "Instructions supplied before the conversation starts, which shape behaviour for the whole session rather than a single message."
+      },
+      {
+        "term": "Mermaid",
+        "definition": "A text syntax for describing diagrams inside Markdown. Because the source is plain text, it can be read by a model as easily as any other content."
+      },
+      {
+        "term": "Hook",
+        "definition": "A script an assistant runs automatically at a defined moment, such as when it finishes responding. Its output is fed back to the model."
+      },
+      {
+        "term": "Stop hook",
+        "definition": "The hook that fires when the model finishes its turn — the natural place to run quality checks and commit."
+      },
+      {
+        "term": "Shell alias",
+        "definition": "A short name for a longer command, defined in your shell configuration file."
+      },
+      {
+        "term": "Planning mode",
+        "definition": "A mode in which the model proposes its approach and waits for approval before making changes."
+      }
+    ],
+    "quiz": [
+      {
+        "question": "Why does preloading architecture diagrams reduce total token usage, when it obviously adds tokens to the prompt?",
+        "answer": "Because it removes the exploration that would otherwise happen. Without the map, the model reads files, searches, and often re-reads across turns — each of those consuming context too. The diagrams are a fixed cost that replaces a larger and more variable one. On a very short task the arithmetic can go the other way, which is the case for loading selectively on large projects."
+      },
+      {
+        "question": "A hook prints \"Running checks...\" before running them, and the model starts behaving strangely. What is happening?",
+        "answer": "Hook output is the channel back to the model, so that line is read as input rather than as a log message. Anything printed becomes something the model tries to interpret. Diagnostic output should go to stderr; only text intended to instruct the model should go to stdout."
+      },
+      {
+        "question": "Why is feeding a type error back to the model more effective than instructing it up front to write type-safe code?",
+        "answer": "An instruction is a general intention applied before the code exists. An error is specific, concrete evidence about code that does exist — it names the file, the line, and the mismatch. The model can act on that directly. This is why the return path is the part of a hook that matters, not the check itself."
+      },
+      {
+        "question": "You've corrected the same misunderstanding three times and the model keeps reverting. What should you do?",
+        "answer": "Stop correcting and restart. Revert to the last good commit and write a fresh prompt that states the constraint explicitly. The accumulated conversation is now part of the problem, and each correction adds to it rather than resolving it. If it's unclear what the misunderstanding even was, show the transcript to a different model first."
+      },
+      {
+        "question": "Why do these techniques change outcomes for a team more than for an individual?",
+        "answer": "Because the configuration is committed to the repository. Personal setup helps one person and disappears when they switch machines. Shared hooks and diagrams apply to everyone who clones the repository, with no individual effort and no training required — one person's afternoon raises the floor permanently."
+      }
+    ],
+    "further_exploration": [
+      "Ask your assistant to generate Mermaid diagrams for one flow you already understand well, and check how accurate they are before trusting them elsewhere.",
+      "Add a stop hook that runs only your type checker. Get that working before adding lint, tests, or commits.",
+      "Look at what you do manually after each AI response, and pick the one you forget most often to automate first.",
+      "Try the orientation prompt on a module you have been avoiding, and compare the result to how long that investigation usually takes.",
+      "Set up an alias for whatever launch configuration you keep meaning to use and keep skipping.",
+      "Read your team's most-changed file's git history with the assistant and have it write the summary into the repository."
+    ]
+  }
+}

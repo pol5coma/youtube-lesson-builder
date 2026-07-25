@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+
+# Generated output
+lessons/
+*.html
+!docs/**/*.html
+transcript.txt
+
+# Environment
+.env
+
+# macOS
+.DS_Store
