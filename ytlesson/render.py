@@ -41,33 +41,78 @@ def _seconds(timestamp: str) -> Optional[int]:
     return nums[0] * 60 + nums[1] if len(nums) == 2 else nums[0] * 3600 + nums[1] * 60 + nums[2]
 
 
-def render(lesson: Lesson, video_url: str = "", channel: str = "") -> str:
+PAPER_SIZES = {"a4": "A4", "letter": "Letter"}
+
+
+LEVELS = ("full", "summary", "highlights")
+
+_LEVEL_SUFFIX = {"summary": " — Condensed", "highlights": " — Highlights"}
+
+
+def render(
+    lesson: Lesson,
+    video_url: str = "",
+    channel: str = "",
+    paper: str = "a4",
+    *,
+    level: str = "full",
+    links=(),
+) -> str:
+    """Renders one of three depths of the same lesson.
+
+    `full` is everything. `summary` is the same page with the explanations and
+    surplus examples removed by the caller. `highlights` is a different, much
+    shorter page — takeaways, a one-line map of the sections, and the glossary
+    — meant to fit on one or two sheets.
+
+    `links` is a sequence of (label, href) pairs pointing at the other versions
+    that were produced, so the pages can link to one another.
+    """
     generated = datetime.now(timezone.utc).strftime("%d %B %Y")
     section_ids = [
         _slug(section.title, f"section-{i}") + f"-{i}"
         for i, section in enumerate(lesson.sections, 1)
     ]
+    # Paper size lives in CSS rather than in a browser flag, so printing by
+    # hand with Cmd+P gives the same page geometry as the command line.
+    page_rule = f"@page{{size:{PAPER_SIZES.get(paper, 'A4')};margin:16mm 14mm}}"
+    title = lesson.title + _LEVEL_SUFFIX.get(level, "")
+
+    if level == "highlights":
+        # No sidebar and no contents page: at two sheets, navigation costs
+        # more room than it saves.
+        sidebar = ""
+        body = "\n".join([
+            _takeaways(lesson),
+            _section_map(lesson),
+            _glossary(lesson),
+        ])
+    else:
+        sidebar = _sidebar(lesson, section_ids)
+        body = "\n".join([
+            _overview(lesson),
+            _sections(lesson, section_ids),
+            _glossary(lesson),
+            _quiz(lesson),
+            _next_steps(lesson),
+        ])
 
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{_esc(lesson.title)}</title>
+<title>{_esc(title)}</title>
 <meta name="description" content="{_esc(lesson.subtitle)}">
-<style>{_CSS}</style>
+<style>{page_rule}{_CSS}</style>
 </head>
-<body>
+<body class="level-{level}">
 <a class="skip" href="#content">Skip to content</a>
 <div class="layout">
-{_sidebar(lesson, section_ids)}
+{sidebar}
 <main id="content">
-{_header(lesson, video_url, channel, generated)}
-{_overview(lesson)}
-{_sections(lesson, section_ids)}
-{_glossary(lesson)}
-{_quiz(lesson)}
-{_next_steps(lesson)}
+{_header(lesson, video_url, channel, generated, level, links)}
+{body}
 <footer class="footer">
   <p>Lesson generated from a YouTube transcript with
      <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
@@ -79,6 +124,33 @@ def render(lesson: Lesson, video_url: str = "", channel: str = "") -> str:
 </body>
 </html>
 """
+
+
+def _takeaways(lesson: Lesson) -> str:
+    if not lesson.key_takeaways:
+        return ""
+    items = "".join(f"<li>{_esc(t)}</li>" for t in lesson.key_takeaways)
+    return f"""<section class="block">
+  <h2>What matters</h2>
+  <ul class="checks">{items}</ul>
+</section>"""
+
+
+def _section_map(lesson: Lesson) -> str:
+    """The topics as a one-line-each index, rather than as full sections."""
+    if not lesson.sections:
+        return ""
+    rows = "".join(
+        f'<div class="map-row"><span class="n">{i:02d}</span>'
+        f'<div><strong>{_esc(s.title)}</strong>'
+        f'{f" <span class=chip>{_esc(s.timestamp)}</span>" if s.timestamp else ""}'
+        f'<p>{_esc(s.summary)}</p></div></div>'
+        for i, s in enumerate(lesson.sections, 1)
+    )
+    return f"""<section class="block">
+  <h2>What it covers</h2>
+  <div class="map">{rows}</div>
+</section>"""
 
 
 def _sidebar(lesson: Lesson, section_ids) -> str:
@@ -106,18 +178,51 @@ def _sidebar(lesson: Lesson, section_ids) -> str:
 </aside>"""
 
 
-def _header(lesson: Lesson, video_url: str, channel: str, generated: str) -> str:
+_LEVEL_PILL = {"summary": "Condensed", "highlights": "Highlights"}
+
+_LEVEL_NOTE = {
+    "summary": "Every section, key point, term and question from the full lesson "
+               "is here. The extended explanations and the additional examples "
+               "are not.",
+    "highlights": "The one- or two-page version: what matters, the topics it "
+                  "covers, and every term defined. Read the full lesson for the "
+                  "explanations and worked examples.",
+}
+
+
+def _header(
+    lesson: Lesson,
+    video_url: str,
+    channel: str,
+    generated: str,
+    level: str = "full",
+    links=(),
+) -> str:
     meta = [f'<span class="pill">{_esc(lesson.difficulty)}</span>',
             f'<span class="pill ghost">{_esc(lesson.topic)}</span>']
+    if level in _LEVEL_PILL:
+        meta.append(f'<span class="pill ghost">{_LEVEL_PILL[level]}</span>')
     if channel:
         meta.append(f'<span class="muted">{_esc(channel)}</span>')
 
-    source = (
-        f'<a class="source" href="{_esc(video_url)}" target="_blank" rel="noopener">'
-        f'Watch the source video</a>' if video_url else ""
+    anchors = []
+    if video_url:
+        anchors.append(
+            f'<a class="source" href="{_esc(video_url)}" target="_blank" rel="noopener">'
+            f'Watch the source video</a>'
+        )
+    for label, href in links:
+        anchors.append(f'<a class="source" href="{_esc(href)}">{_esc(label)}</a>')
+    source = f'<p class="links">{" ".join(anchors)}</p>' if anchors else ""
+
+    note = (
+        f'<p class="muted small">{_LEVEL_NOTE[level]}</p>'
+        if level in _LEVEL_NOTE else ""
     )
     prereqs = ""
-    if lesson.prerequisites:
+    # Prerequisites are worth a box on a long page and cost too much room on
+    # a two-sheet one.
+    if lesson.prerequisites and level != "highlights":
         items = "".join(f"<li>{_esc(p)}</li>" for p in lesson.prerequisites)
         prereqs = f"""<div class="callout">
   <p class="callout-label">Before you start</p><ul>{items}</ul></div>"""
@@ -127,6 +232,7 @@ def _header(lesson: Lesson, video_url: str, channel: str, generated: str) -> str
   <h1>{_esc(lesson.title)}</h1>
   <p class="lede">{_esc(lesson.subtitle)}</p>
   <p class="muted small">For {_esc(lesson.audience)} · {generated}</p>
+  {note}
   {source}
   {prereqs}
 </header>"""
@@ -276,7 +382,8 @@ h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
 .lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
 .muted{color:var(--muted)}
 .small{font-size:14px}
-.source{display:inline-block;margin-top:.4rem;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
 
 /* blocks */
 .block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
@@ -324,11 +431,29 @@ pre{
 }
 code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
 /* glossary */
 .glossary{display:grid;gap:.9rem;margin:0}
 .term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
 dt{font-size:1.02rem;margin-bottom:.25rem}
 dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
 
 /* quiz */
 .q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
@@ -343,13 +468,90 @@ dd{margin:0;color:var(--muted)}
 .footer p{margin:0 0 .4rem}
 
 @media print{
-  .sidebar,.skip,.source{display:none}
-  .layout{display:block;max-width:none;padding:0}
-  main{max-width:none;padding:0}
-  body{background:#fff;font-size:11pt}
-  .block{page-break-inside:avoid}
-  .q[open] .answer,.q .answer{display:block}
-  details{page-break-inside:avoid}
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
 }
 """
 
@@ -373,6 +575,21 @@ _JS = """
     }, { rootMargin: '-10% 0px -80% 0px' });
     targets.forEach(function (t) { observer.observe(t); });
   }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
 
   var source = document.querySelector('.source');
   document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {

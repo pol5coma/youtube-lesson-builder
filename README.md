@@ -125,7 +125,24 @@ faster, needs no ffmpeg, and sidesteps the bot checks that block video downloads
 
 ## What you get
 
-A single `.html` file — no server, no dependencies, no internet needed to read it:
+Six files by default — three depths of the same lesson, each as a
+self-contained `.html` page and a print-quality `.pdf`:
+
+| | Contents | Typical length |
+|---|---|---|
+| `lesson` | everything | 20–25 pages |
+| `lesson-summary` | every section, key point, term, question and next step, plus one example each — only the extended explanations and extra examples removed | 13–17 pages |
+| `lesson-highlights` | what matters, a one-line map of every section, and every term defined | **2 pages** |
+
+The three pages link to each other. All are derived from the same JSON rather
+than summarised separately, so they cannot drift apart and the shorter two cost
+nothing extra to produce.
+
+Reach for **highlights** when you want the terms explained and the shape of the
+topic on a sheet you can print; **summary** when you want the full coverage
+without the prose; **lesson** when you want to learn the subject.
+
+The full page contains:
 
 | | |
 |---|---|
@@ -138,7 +155,39 @@ A single `.html` file — no server, no dependencies, no internet needed to read
 | **Where to go next** | Concrete follow-ups |
 
 Sticky table of contents, works on phones, follows your system's light or dark
-theme, prints cleanly.
+theme.
+
+The PDF is A4 by default, opens with a contents page, forces the light palette
+so a dark-mode machine does not print pale text onto white paper, expands every
+quiz answer, and sizes code so lines up to 88 columns fit without wrapping —
+ASCII diagrams stay intact.
+
+### Choosing what gets written
+
+Two independent switches. `--versions` takes one or more values:
+
+```bash
+--versions full|summary|highlights|all   which lessons (default: all)
+--formats  html|pdf|both                 which files   (default: both)
+```
+
+```bash
+python -m ytlesson URL --versions highlights --formats pdf   # one 2-page PDF
+python -m ytlesson URL --versions summary highlights         # the two short ones
+python -m ytlesson URL --versions full --formats html        # one page, everything
+python -m ytlesson URL --formats pdf                         # all three, PDF only
+```
+
+```bash
+--paper letter     US paper instead of A4
+--browser PATH     use a specific browser
+--no-pdf           alias for --formats html
+--versions both    alias for: full summary
+```
+
+PDF generation goes through a Chromium-family browser — Chrome, Chromium, Brave
+or Edge — found automatically. There is nothing extra to install if you already
+have one. If you don't, the command says so, still writes the HTML, and exits 0.
 
 **It teaches the subject rather than summarising the video.** You get "a hash
 table stores…", not "the speaker explains that…". Explanations are written from
@@ -179,10 +228,13 @@ python -m ytlesson "VIDEO_ID" --transcript-only
 python -m ytlesson "VIDEO_ID" --transcript-only > transcript.txt
 ```
 
-**Re-render a lesson** you already have, as often as you like:
+**Re-render a lesson** you already have, as often as you like. This rebuilds the
+HTML and the PDF together, so it is also how you switch paper size or pick up a
+change to the stylesheet:
 
 ```bash
 python -m ytlesson --from-json lesson.json -o restyled.html --open
+python -m ytlesson --from-json lesson.json -o restyled.html --paper letter
 ```
 
 URLs work in any common form: full watch links, `youtu.be`, `/shorts/`,
@@ -232,8 +284,9 @@ you publish one, credit the original.
 ```
 ytlesson/
 ├── transcript.py   caption fetching, URL parsing, paragraph merging
-├── lesson.py       lesson schema (Pydantic) + the optional API call
+├── lesson.py       lesson schema (Pydantic), condense(), the optional API call
 ├── render.py       HTML rendering, all CSS and JS inlined
+├── pdf.py          browser detection and HTML → PDF conversion
 └── __main__.py     command-line interface
 
 .claude/

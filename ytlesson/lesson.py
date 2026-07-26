@@ -93,6 +93,25 @@ class Lesson(_Strict):
     )
 
 
+def condense(lesson: Lesson, examples_per_section: int = 1) -> Lesson:
+    """A shorter lesson that still covers every topic.
+
+    Only the explanatory prose and the surplus examples are dropped. Every
+    section, key point, glossary term and quiz question survives, so nothing
+    that names a topic or states a fact is lost — which is what makes this
+    safe to derive mechanically instead of asking a model to summarise and
+    hoping it kept the right half. It also stays in step with the full lesson
+    for free, since both are built from the same JSON.
+
+    In practice this lands at roughly half the length of the full version.
+    """
+    brief = lesson.model_copy(deep=True)
+    for section in brief.sections:
+        section.explanation = ""
+        section.examples = section.examples[:examples_per_section]
+    return brief
+
+
 SYSTEM_PROMPT = """\
 You are an instructional designer. You turn talks, tutorials, and interviews \
 into clear written lessons that teach the subject to someone who has not seen \

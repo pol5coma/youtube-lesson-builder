@@ -116,8 +116,34 @@ Write the result to a JSON file, for example `lesson-<topic>.json`.
 <CMD> --from-json lesson-<topic>.json -o <topic>-lesson.html --open
 ```
 
-This produces a self-contained HTML page and opens it in the browser. Drop
-`--open` if the user did not ask for it.
+This produces **six** files by default — three depths of the same lesson, each
+as HTML and as a print-quality PDF:
+
+| File | Contents | Length |
+|---|---|---|
+| `<topic>-lesson` | everything | 20–25 pages |
+| `<topic>-lesson-summary` | every section, key point, term, question and next step, plus one example each | 13–17 pages |
+| `<topic>-lesson-highlights` | key takeaways, a one-line map of every section, and every term defined | 2 pages |
+
+All three come from the same JSON, so you write none of them and they cannot
+drift. Drop `--open` if the user did not ask for it.
+
+**If the user asked for only some of them**, pass the matching switch rather
+than deleting files afterwards. `--versions` takes several values:
+
+| They asked for | Use |
+|---|---|
+| a short summary / cheat sheet / one-pager | `--versions highlights` |
+| the condensed lesson | `--versions summary` |
+| just the full lesson | `--versions full` |
+| the two short ones | `--versions summary highlights` |
+| only PDFs | `--formats pdf` |
+| only web pages | `--formats html` |
+
+The PDF needs a Chromium-family browser (Chrome, Chromium, Brave or Edge) and is
+found automatically. If none is installed the command prints a note, still writes
+the HTML, and succeeds — so a missing PDF is never a reason to stop or retry.
+`--paper letter` switches to US paper instead of A4.
 
 If the command reports a validation error, your JSON does not match the schema —
 read the error, fix the file, and run it again. Do not hand-write HTML as a
@@ -125,9 +151,11 @@ workaround; the renderer is what guarantees a consistent page.
 
 ## Step 4 — Report back
 
-Tell the user where the file is and what it contains — how many sections,
-examples, and questions. Mention that the JSON was kept, so the page can be
-re-rendered for free at any time:
+Tell the user where the files are and what they contain — how many sections,
+examples, and questions. Name every file written, or say plainly which were
+skipped and why. When you produced more than one depth, say in a line each what
+they are for, so the user knows which to open. Mention that the JSON was kept,
+so all of them can be re-rendered for free at any time:
 
 ```bash
 <CMD> --from-json lesson-<topic>.json -o out.html

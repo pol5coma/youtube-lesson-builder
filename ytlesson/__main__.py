@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
+import tempfile
 import webbrowser
 from pathlib import Path
+from typing import Optional
 
-from .lesson import DEFAULT_MODEL, Lesson, build_lesson
-from .render import render
+from .lesson import DEFAULT_MODEL, Lesson, build_lesson, condense
+from .pdf import PdfError, find_browser, html_to_pdf
+from .render import LEVELS, PAPER_SIZES, render
 from .transcript import TranscriptError, fetch_transcript
 
 
@@ -31,6 +35,8 @@ def build_parser() -> argparse.ArgumentParser:
             "  python -m ytlesson URL --lang es --focus 'emphasise the maths'\n"
             "  python -m ytlesson URL --transcript-only > transcript.txt\n"
             "  python -m ytlesson --from-json sample-lesson.json -o demo.html\n"
+            "  python -m ytlesson URL --versions highlights --formats pdf\n"
+            "  python -m ytlesson URL --versions full --formats html\n"
         ),
     )
     parser.add_argument(
@@ -52,6 +58,29 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--from-json", metavar="PATH",
         help="Re-render a previously saved --json file without calling the API",
+    )
+    parser.add_argument(
+        "--versions", nargs="+", default=["all"],
+        choices=("full", "summary", "highlights", "all", "both"),
+        metavar="{full,summary,highlights,all}",
+        help="Which lessons to write. Repeatable, e.g. --versions summary "
+             "highlights (default: all three). 'both' means full + summary.",
+    )
+    parser.add_argument(
+        "--formats", choices=("html", "pdf", "both"), default="both",
+        help="Which files to write for each version (default: both)",
+    )
+    parser.add_argument(
+        "--no-pdf", action="store_true",
+        help="Alias for --formats html",
+    )
+    parser.add_argument(
+        "--paper", choices=sorted(PAPER_SIZES), default="a4",
+        help="Page size for the PDF (default: a4)",
+    )
+    parser.add_argument(
+        "--browser", metavar="PATH",
+        help="Browser to render the PDF with (default: autodetect Chrome/Chromium)",
     )
     return parser
 
@@ -127,12 +156,96 @@ def _write(lesson: Lesson, video_url: str, channel: str, args) -> int:
         lesson.title, "lesson"
     )
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(render(lesson, video_url, channel), encoding="utf-8")
 
-    print(f"\nLesson → {output}", file=sys.stderr)
-    if args.open:
-        webbrowser.open(output.resolve().as_uri())
+    formats = "html" if args.no_pdf else args.formats
+    want_html, want_pdf = formats in ("html", "both"), formats in ("pdf", "both")
+
+    chosen = set()
+    for name in args.versions:
+        chosen.update(LEVELS if name == "all"
+                      else ("full", "summary") if name == "both"
+                      else (name,))
+
+    paths = {
+        "full": output,
+        "summary": output.with_name(f"{output.stem}-summary{output.suffix}"),
+        "highlights": output.with_name(f"{output.stem}-highlights{output.suffix}"),
+    }
+    bodies = {
+        "full": lesson,
+        "summary": condense(lesson),
+        "highlights": lesson,      # render picks what it needs
+    }
+    plan = [(lvl, paths[lvl], bodies[lvl]) for lvl in LEVELS if lvl in chosen]
+
+    # Each page links to the others that were actually written, pointing at
+    # whichever form exists so a link never lands on a missing file.
+    suffix = ".html" if want_html else ".pdf"
+    labels = {"full": "Read the full lesson",
+              "summary": "Read the condensed version",
+              "highlights": "Read the highlights"}
+
+    print("", file=sys.stderr)
+    opened = None
+    for level, path, body in plan:
+        links = [(labels[other], paths[other].with_suffix(suffix).name)
+                 for other, _, _ in plan if other != level]
+        page = render(body, video_url, channel, args.paper, level=level, links=links)
+
+        if want_html:
+            path.write_text(page, encoding="utf-8")
+            print(f"{level:<11}→ {path}", file=sys.stderr)
+            opened = opened or path
+        if want_pdf:
+            pdf = _write_pdf(path, page, args, keep_html=want_html)
+            opened = opened or pdf
+
+    if args.open and opened:
+        webbrowser.open(opened.resolve().as_uri())
     return 0
+
+
+def _write_pdf(html_path: Path, page: str, args, keep_html: bool) -> Optional[Path]:
+    """Converts the page to PDF, or explains why it could not, without failing.
+
+    A missing browser is a note rather than an error: it should not fail a run
+    for someone who has just cloned the repo.
+    """
+    browser = find_browser(args.browser)
+    if not browser:
+        where = args.browser or "Chrome, Chromium, Brave or Edge"
+        print(
+            f"  no PDF: could not find {where}. "
+            f"Pass --browser PATH, or --formats html to stop asking.",
+            file=sys.stderr,
+        )
+        return None
+
+    pdf_path = html_path.with_suffix(".pdf")
+    scratch = None
+    try:
+        if keep_html:
+            source = html_path
+        else:
+            # The converter needs a file on disk. Put it beside the output so
+            # it lands on the same volume, and take it away again afterwards.
+            handle, name = tempfile.mkstemp(suffix=".html", dir=str(html_path.parent))
+            os.close(handle)
+            scratch = Path(name)
+            scratch.write_text(page, encoding="utf-8")
+            source = scratch
+
+        html_to_pdf(source, pdf_path, browser=browser)
+    except PdfError as exc:
+        print(f"  no PDF: {exc}", file=sys.stderr)
+        return None
+    finally:
+        if scratch and scratch.exists():
+            scratch.unlink()
+
+    size = pdf_path.stat().st_size / 1024
+    print(f"{'pdf':<8}→ {pdf_path} ({size:,.0f} KB, {args.paper.upper()})", file=sys.stderr)
+    return pdf_path
 
 
 if __name__ == "__main__":
