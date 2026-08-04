@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What is an AI Code Generator? LLM Coding, Productivity, &amp; Risk — Condensed</title>
+<meta name="description" content="Understand how LLM-based coding tools translate natural language into code, what that mechanism gets you and costs you, and how to tell a consumer-grade assistant from one you can trust in production.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-summary">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#coding-as-a-translation-problem-1"><span class="n">1</span>Coding as a translation problem</a></li>
+<li><a href="#the-engine-inside-prediction-not-understanding-2"><span class="n">2</span>The engine inside: prediction, not understanding</a></li>
+<li><a href="#individual-productivity-where-the-time-savings-come-from-3"><span class="n">3</span>Individual productivity: where the time savings come from</a></li>
+<li><a href="#team-level-impact-leverage-not-just-speed-4"><span class="n">4</span>Team-level impact: leverage, not just speed</a></li>
+<li><a href="#the-illusion-of-correctness-why-ai-code-fails-silently-5"><span class="n">5</span>The illusion of correctness: why AI code fails silently</a></li>
+<li><a href="#choosing-a-translator-you-can-trust-6"><span class="n">6</span>Choosing a translator you can trust</a></li>
+<li><a href="#the-four-pillars-of-enterprise-grade-trust-7"><span class="n">7</span>The four pillars of enterprise-grade trust</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">AI Code Generation</span><span class="pill ghost">Condensed</span></div>
+  <h1>What is an AI Code Generator? LLM Coding, Productivity, &amp; Risk</h1>
+  <p class="lede">Understand how LLM-based coding tools translate natural language into code, what that mechanism gets you and costs you, and how to tell a consumer-grade assistant from one you can trust in production.</p>
+  <p class="muted small">For software engineers and engineering leaders deciding how to adopt or govern AI coding tools · 27 July 2026</p>
+  <p class="muted small">Every section, key point, term and question from the full lesson is here. The extended explanations and the additional examples are not.</p>
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=oanQrXEiCy4" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson.html">Read the full lesson</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Basic familiarity with the software development lifecycle (writing, reviewing, and shipping code)</li><li>A rough idea of what a large language model (LLM) is</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Software development has always been a translation problem: you start with what you want, turn it into formal logic, then into code, then a machine translates that code into instructions it can run. Compilers, high-level languages, and IDE autocomplete each automated another link in that chain, and each drew the same objection at the time: it will make programmers lazy, it isn&#x27;t &quot;real&quot; programming. AI code generators are simply the next link in that chain, translating directly from natural language into working code.</p>
+<p>Under the hood, an AI code generator is a large language model (LLM) trained on enormous amounts of existing code, mostly from open-source repositories. It does not understand code the way a person does; it predicts the statistically most likely continuation of a prompt based on billions of similar examples it has seen. That single fact — predicts, not knows — explains why the same engine can generate code from a description, explain code back to you, port code between languages, and fix bugs, and also why it can produce code that looks clean while being deeply wrong.</p>
+<p>The productivity gains from this are large and measured: roughly a third more output per developer, faster onboarding onto unfamiliar code, and code reviews that shift from style nitpicks to design discussions. But the same mechanism that makes the tool fast also makes it reproduce insecure patterns confidently, because insecure code was common in its training data too. The practical decision facing a team isn&#x27;t whether to use an AI code generator — adoption is already near-universal — but which category of tool to trust with which kind of work, and what to check before you do.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Software development is a chain of translations — intent to formal logic to code to machine instructions — and every generation of tooling (compilers, high-level languages, IDEs, AI code generators) automates one more link in that chain.</li><li>An AI code generator is a large language model that predicts the statistically likely code for a prompt based on patterns learned from billions of code examples; it does not verify correctness or security.</li><li>The same engine runs in both directions: it can generate code from a description, explain existing code in plain language, port code between languages, and fix bugs — all as the same underlying prediction task.</li><li>Reported productivity gains are large: roughly 35% more output and about 3.5 hours saved per developer per week, mostly from eliminating boilerplate and speeding up unfamiliar-codebase onboarding.</li><li>AI-generated code frequently contains real vulnerabilities, such as SQL injection or plaintext credential storage, while still passing tests and looking clean — an &quot;illusion of correctness&quot; that makes human review mandatory, not optional.</li><li>General-purpose AI coding chat assistants and production-grade AI code generators differ mainly in trust: where the training data came from, where your code goes when you use the tool, and whether the process can be audited.</li><li>Enterprise-grade tools typically add four things consumer tools lack: provenance tracking, policy governance with audit trails, on-prem or hybrid deployment, and curated (permissively licensed) training data.</li></ul>
+  </div>
+</section>
+<section id="coding-as-a-translation-problem-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Coding as a translation problem</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">Every generation of programming tools has automated one more step in the chain from intent to running code, and each was accused of making programmers lazy.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Software development is a chain of translations: intent, then formal logic, then code, then machine instructions.</li><li>Compilers (1952), high-level languages, and IDE autocomplete each automated one more layer of that chain, and each was accused of making programmers lazy.</li><li>AI code generators automate the newest layer: translating natural language directly into source code.</li><li>Treating AI coding tools as translators, not oracles, predicts both their strengths and their failure modes.</li></ul></div>
+  <figure class="example">
+  <figcaption>From a sentence to a query</figcaption>
+  <p>A request like &quot;return a paginated list of users matching this filter, sorted by created_at desc&quot; is exactly the kind of natural-language intent an AI code generator translates directly into runnable code, skipping the step of a person hand-writing the SQL.</p>
+  <pre><code>-- Natural language: &quot;return a paginated list of users matching this
+-- filter, sorted by created_at desc&quot;
+SELECT id, name, email, created_at
+FROM users
+WHERE status = :filter_status
+ORDER BY created_at DESC
+LIMIT :page_size OFFSET :page_size * (:page_number - 1);</code></pre>
+</figure>
+</section>
+<section id="the-engine-inside-prediction-not-understanding-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>The engine inside: prediction, not understanding</h2>
+      <a class="stamp" href="#" data-t="169">2:49</a>
+    </div>
+  </div>
+  <p class="summary">An AI code generator is a large language model that predicts the statistically likely code for a prompt, and the same mechanism runs in every translation direction.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The model is trained on very large code corpora, mostly open source, and learns statistical patterns rather than semantics.</li><li>Given a prompt, it predicts the most statistically likely continuation; it does not verify or &quot;understand&quot; correctness.</li><li>The same model works bidirectionally: code-to-English, language-to-language, and buggy-code-to-fixed-code are all the same prediction task with a different prompt.</li><li>&quot;Predicts, not knows&quot; is the root cause of the reliability gap covered in later sections.</li></ul></div>
+  <figure class="example">
+  <figcaption>Natural language in, working function out</figcaption>
+  <p>A one-sentence spec is enough for the model to predict a complete, idiomatic function, because it has seen thousands of near-identical requests during training.</p>
+  <pre><code>import requests
+
+def get_weather_forecast(city: str) -&gt; dict:
+    &quot;&quot;&quot;Return today&#x27;s weather forecast for the given city.&quot;&quot;&quot;
+    response = requests.get(
+        &quot;https://api.weatherprovider.com/v1/forecast&quot;,
+        params={&quot;q&quot;: city, &quot;days&quot;: 1},
+    )
+    response.raise_for_status()
+    return response.json()</code></pre>
+</figure>
+</section>
+<section id="individual-productivity-where-the-time-savings-come-from-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Individual productivity: where the time savings come from</h2>
+      <a class="stamp" href="#" data-t="254">4:14</a>
+    </div>
+  </div>
+  <p class="summary">Reported gains cluster around 35% more output and 3.5 hours saved per week, mostly by collapsing two specific time sinks: reading unfamiliar code and writing boilerplate.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Reported productivity gain: roughly 35% more output, about 3.5 hours saved per developer per week.</li><li>Biggest time savings come from two sources: understanding unfamiliar or legacy code faster, and eliminating boilerplate.</li><li>Boilerplate (parsers, common regexes, config syntax) is exactly what LLMs predict most reliably, since it&#x27;s heavily repeated in training data.</li><li>Freed time shifts toward architecture and design decisions the model can&#x27;t make, correlating with higher reported job satisfaction.</li></ul></div>
+  <figure class="example">
+  <figcaption>Boilerplate that used to cost an hour</figcaption>
+  <p>A correct email-validation regex is the kind of small, well-defined utility developers used to spend real time hunting for or hand-tuning; a code generator predicts it near-instantly because the pattern is extremely common in its training data.</p>
+  <pre><code>import re
+
+EMAIL_RE = re.compile(r&quot;^[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}$&quot;)
+
+def is_valid_email(email: str) -&gt; bool:
+    return bool(EMAIL_RE.match(email))</code></pre>
+</figure>
+</section>
+<section id="team-level-impact-leverage-not-just-speed-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Team-level impact: leverage, not just speed</h2>
+      <a class="stamp" href="#" data-t="337">5:37</a>
+    </div>
+  </div>
+  <p class="summary">The productivity effect compounds at the team level: juniors ramp up faster, smaller teams cover more scope, and code review shifts from style nitpicks to design questions.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>An AI code generator acts like an always-available, infinitely patient pairing partner, accelerating junior developers&#x27; ramp-up.</li><li>Smaller teams can cover more scope: a 4-person team credibly doing work that used to take an 8-person team.</li><li>Code review shifts from stylistic nitpicking toward design-level questions, cutting pedantic review comments substantially.</li><li>This shift concentrates human attention on the judgment calls the model can&#x27;t make, which is where review effort should already have been going.</li></ul></div>
+  <figure class="example">
+  <figcaption>How a review comment changes</figcaption>
+  <p>The same pull request draws a different kind of comment once syntax-level mistakes are no longer the bottleneck: reviewers move from formatting nits to questioning the design itself.</p>
+  <pre><code># Old-style review comment (style nit)
+- if (x == True):
++ if x:
+    do_something()
+
+# New-style review comment (design question)
+# &quot;This makes a synchronous DB call inside the request loop -
+#  should this be batched or cached instead?&quot;</code></pre>
+</figure>
+</section>
+<section id="the-illusion-of-correctness-why-ai-code-fails-silently-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>The illusion of correctness: why AI code fails silently</h2>
+      <a class="stamp" href="#" data-t="422">7:02</a>
+    </div>
+  </div>
+  <p class="summary">AI-generated code frequently looks clean and passes tests while containing real vulnerabilities, because the model predicts common patterns rather than verifying safety.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>AI models reproduce insecure patterns common in training data (e.g., string-concatenated SQL) as confidently as secure ones.</li><li>Veracode (2025): 55% of AI-generated code contains a security vulnerability; AI code is about 1.88x more likely to introduce one than human-written code.</li><li>Only about 30% of AI suggestions are accepted as-is; developers reject the large majority of what the tool proposes.</li><li>&quot;Illusion of correctness&quot;: code that looks clean and passes tests can still be deeply insecure, so human review must specifically target known failure classes, not just check that the code runs.</li></ul></div>
+  <figure class="example">
+  <figcaption>SQL injection: looks right, isn&#x27;t</figcaption>
+  <p>String-concatenated SQL passes normal-input tests but lets an attacker alter the query&#x27;s meaning; a parameterized query closes the hole without changing the function&#x27;s behavior for legitimate input.</p>
+  <pre><code># Vulnerable: AI-generated, passes functional tests
+def get_account(user_id):
+    query = &quot;SELECT * FROM accounts WHERE user_id = &#x27;&quot; + user_id + &quot;&#x27;&quot;
+    return db.execute(query)  # user_id = &quot;1&#x27; OR &#x27;1&#x27;=&#x27;1&quot; leaks every account
+
+# Fixed: parameterized query
+def get_account(user_id):
+    query = &quot;SELECT * FROM accounts WHERE user_id = ?&quot;
+    return db.execute(query, (user_id,))</code></pre>
+</figure>
+</section>
+<section id="choosing-a-translator-you-can-trust-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Choosing a translator you can trust</h2>
+      <a class="stamp" href="#" data-t="514">8:34</a>
+    </div>
+  </div>
+  <p class="summary">General-purpose AI coding chat assistants and production-grade AI code generators split along the same line as a free translation app versus a certified professional translator: trust.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Match the tool to the stakes: low-stakes, exploratory work tolerates a general-purpose assistant; production code calls for a tool you can hold accountable.</li><li>General-purpose assistants: fast to adopt, trained on public internet data, no provenance visibility, code may leave your environment.</li><li>Production-grade tools: curated and customizable training data, workflow integration, code can stay inside your infrastructure.</li><li>Trust reduces to three questions: where the training data came from, where your code goes, and whether the process is auditable.</li></ul></div>
+  <figure class="example">
+  <figcaption>A three-question trust check</figcaption>
+  <p>Before relying on a coding tool for anything beyond low-stakes exploration, these three questions separate tools you can hold accountable from ones you can&#x27;t.</p>
+  <pre><code>Three questions to ask before trusting an AI code tool:
+1. Where did the training data come from? (public scrape vs. curated/licensed)
+2. Where does my code go when I use it? (leaves your environment vs. stays in your infrastructure)
+3. Can I audit what happened? (no record vs. full audit trail)</code></pre>
+</figure>
+</section>
+<section id="the-four-pillars-of-enterprise-grade-trust-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>The four pillars of enterprise-grade trust</h2>
+      <a class="stamp" href="#" data-t="639">10:39</a>
+    </div>
+  </div>
+  <p class="summary">Enterprise-grade coding tools are defined by four concrete capabilities: provenance, governance, on-prem or hybrid deployment, and curated training data.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Provenance: trace a generated snippet back to its origin, for IP and licensing accountability.</li><li>Governance: policy enforcement on tool behavior plus audit trails for compliance reviews.</li><li>On-prem or hybrid deployment: required when regulations such as HIPAA, SOX, or the EU AI Act prohibit sending code or prompts to external services.</li><li>Curated training data: permissively licensed sources reduce both legal risk and, often, the insecure-pattern risk seen in general-purpose tools.</li><li>Adoption is projected to reach 90% of enterprise developers by 2028 — the strategic question is which tool to trust, not whether to adopt one.</li></ul></div>
+  <figure class="example">
+  <figcaption>A provenance record attached to a suggestion</figcaption>
+  <p>An enterprise-grade tool can attach a record like this to every accepted suggestion, so when legal later asks whether a snippet is GPL-tainted, there&#x27;s a paper trail instead of a guess.</p>
+  <pre><code>{
+  &quot;snippet_id&quot;: &quot;gen-88213&quot;,
+  &quot;source_license&quot;: &quot;MIT&quot;,
+  &quot;training_corpus&quot;: &quot;curated-internal-v3&quot;,
+  &quot;suggested_at&quot;: &quot;2026-03-14T02:11:00Z&quot;,
+  &quot;accepted_by&quot;: &quot;jdoe&quot;,
+  &quot;audit_trail_id&quot;: &quot;AUD-556212&quot;
+}</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Large language model (LLM)</dt><dd>A machine learning model trained on huge amounts of text or code that generates output by predicting the most statistically likely continuation of a given input.</dd></div><div class="term"><dt>Next-token prediction</dt><dd>The core mechanism by which an LLM generates output: choosing the most probable next unit of text, one step at a time, based on patterns learned during training.</dd></div><div class="term"><dt>Boilerplate</dt><dd>Code that follows a well-known, repetitive pattern, such as input validation or a common parser, and doesn&#x27;t vary much between projects.</dd></div><div class="term"><dt>SQL injection</dt><dd>A vulnerability where untrusted input is inserted directly into a database query string, letting an attacker alter the query&#x27;s meaning, for example to bypass authentication or read unauthorized data.</dd></div><div class="term"><dt>Illusion of correctness</dt><dd>Code that appears clean, passes tests, and reads as well-written, while containing a real defect, often a security flaw, that only manifests under specific or adversarial conditions.</dd></div><div class="term"><dt>Provenance (in code generation)</dt><dd>The ability to trace a piece of generated code back to the training data or process that produced it, used to assess licensing and intellectual-property risk.</dd></div><div class="term"><dt>GPL taint</dt><dd>The risk that code derived from GPL-licensed source is subject to the GPL&#x27;s copyleft terms, which can force a project to open-source code that was meant to stay proprietary.</dd></div><div class="term"><dt>On-prem / hybrid deployment</dt><dd>Running a tool or model inside an organization&#x27;s own infrastructure rather than sending data to an external cloud service, so sensitive code and prompts never leave the organization&#x27;s control.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>An AI code generator can explain unfamiliar code, translate COBOL to Java, and fix broken Python, all with the same underlying model. Why does one mechanism support all three tasks?</summary>
+  <div class="answer"><p>Because the model isn&#x27;t doing three different things; it&#x27;s running the same next-token-prediction engine on different inputs. Explaining, translating, and fixing are all instances of &quot;predict the most likely continuation of this prompt,&quot; just with a different prompt each time — the direction of translation is a property of the prompt, not the model.</p></div>
+</details><details class="q">
+  <summary>AI-generated code can pass all of your tests and still contain a SQL injection vulnerability. Why doesn&#x27;t passing tests catch this?</summary>
+  <div class="answer"><p>Tests only check the behaviors you thought to write assertions for, typically the happy path. A model that reproduces a string-concatenated query generates code that behaves correctly for normal input; the vulnerability only appears with adversarial input, such as a value containing SQL syntax, that the test suite never exercised. The model optimizes for a plausible-looking pattern, not for adversarial robustness.</p></div>
+</details><details class="q">
+  <summary>Why would a hospital&#x27;s engineering team need an on-prem or hybrid deployment of a code generation tool instead of just using a general-purpose AI coding chat assistant?</summary>
+  <div class="answer"><p>Regulations like HIPAA restrict where patient-related data, and code or prompts that might reference it, can be sent. A general-purpose SaaS chat assistant processes prompts on a third-party server outside the organization&#x27;s control, which can itself be a compliance violation regardless of how accurate the generated code is. On-prem or hybrid deployment keeps that data inside the organization&#x27;s own infrastructure.</p></div>
+</details><details class="q">
+  <summary>Code reviews reportedly shift from style nitpicks to design questions once a team adopts AI code generators. Why does that shift happen rather than review effort simply dropping?</summary>
+  <div class="answer"><p>The kinds of errors AI code generators are good at eliminating, such as inconsistent formatting, boilerplate mistakes, and syntax slips, are exactly what style-focused review comments used to catch. Removing that source of errors doesn&#x27;t remove the need for review; it reallocates reviewer attention to the thing the model still can&#x27;t judge: whether the chosen design and trade-offs are actually right for the problem.</p></div>
+</details><details class="q">
+  <summary>Provenance sounds like a legal concern more than a technical one. Why does it belong on a checklist of things engineering teams should evaluate before adopting a coding tool?</summary>
+  <div class="answer"><p>A model trained on scraped public code can reproduce sequences derived from copyleft-licensed (e.g., GPL) source without any signal that it did so. If that code ends up in a proprietary codebase, the company may be legally obligated to open-source code it intended to keep closed. Provenance tracking is what lets an engineering organization detect and answer that question before it becomes a legal incident rather than after.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Read the Veracode 2025 State of Software Security report to see the full breakdown of vulnerability classes found in AI-generated code, beyond the headline 55% figure.</li><li>Cross-reference the SQL injection and plaintext-password examples in this lesson against the OWASP Top 10 to see how many other common AI-code failure patterns map to that list.</li><li>Take one real prompt you&#x27;d normally send to a general-purpose AI coding assistant and run it through a production-grade tool your organization already licenses, if any, and compare the outputs for provenance and audit metadata.</li><li>Look up your jurisdiction&#x27;s relevant regulation (HIPAA, SOX, or the EU AI Act) to check whether it has specific language covering AI-generated code or AI tool data handling, since most teams haven&#x27;t checked this yet.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

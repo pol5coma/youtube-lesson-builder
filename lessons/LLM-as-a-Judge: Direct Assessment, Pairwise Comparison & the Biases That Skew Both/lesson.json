@@ -1,0 +1,219 @@
+{
+  "video_url": "https://www.youtube.com/watch?v=trfUBIDeI1Y",
+  "channel": "IBM Technology",
+  "lesson": {
+    "title": "LLM-as-a-Judge: Direct Assessment, Pairwise Comparison & the Biases That Skew Both",
+    "subtitle": "Choose the right judging strategy for your task, and recognise the three biases that make a judge quietly wrong.",
+    "topic": "AI evaluation",
+    "difficulty": "Intermediate",
+    "audience": "engineers and researchers who need to evaluate large volumes of generated text without labelling every output by hand",
+    "overview": "You have a thousand model outputs — chatbot replies, summaries, generated answers — and you need to know which are good. Labelling them by hand is accurate and impossibly slow. Traditional metrics like BLEU and ROUGE are fast but measure word overlap against a reference answer, which you often do not have and which says little about whether a summary is actually clear.\n\nLLM-as-a-judge fills that gap: a language model evaluates other models' outputs. This lesson covers the two strategies for doing it — direct assessment against a rubric, and pairwise comparison between two candidates — along with what each is good for and how real users choose between them.\n\nIt then covers the part that decides whether your judge is trustworthy: the biases. Like human reviewers, LLM judges have systematic blind spots. They can favour whichever answer appeared first, prefer longer answers regardless of content, and rate their own output more highly than others'. None of these makes the approach unusable, but each one produces plausible-looking scores that are wrong in a consistent direction, so you need to know how to detect and correct for them.",
+    "key_takeaways": [
+      "LLM-as-a-judge enables reference-free evaluation: judging quality without a gold-standard answer to compare against.",
+      "Direct assessment scores each output independently against a rubric you design; pairwise comparison asks which of two outputs is better.",
+      "With multiple candidates, pairwise judgements can be combined by a ranking algorithm to produce an overall ordering.",
+      "In IBM's user research on the open-source EvalAssist framework, about half preferred direct assessment for its clarity and control, a quarter preferred pairwise for subjective tasks, and the rest combined both.",
+      "The three advantages over traditional metrics are scale, flexibility as your criteria evolve, and the ability to judge nuanced qualities like whether text sounds natural.",
+      "Positional bias: the judge favours an output because of where it appeared, not because it is better.",
+      "Verbosity bias: the judge treats length as a proxy for quality and prefers longer answers even when they ramble.",
+      "Self-enhancement bias: the judge favours output it recognises as its own.",
+      "Positional swaps — running the same comparison with the order reversed — detect positional bias directly. Bias means stay vigilant, not that the system is broken."
+    ],
+    "prerequisites": [
+      "Familiarity with prompting a language model",
+      "A rough sense of why evaluating generated text is harder than evaluating a classifier"
+    ],
+    "sections": [
+      {
+        "title": "Why traditional metrics run out",
+        "timestamp": "0:00",
+        "summary": "Manual labelling does not scale and word-overlap metrics need a reference answer they cannot always have.",
+        "explanation": "Evaluating generated text has always been awkward. If you have manually labelled hundreds of chatbot replies or summaries, you know the cost: it is slow, it is tiring, and it does not scale to the volume a real system produces.\n\nThe automated alternatives have their own limit. Metrics such as BLEU and ROUGE score an output by how much its wording overlaps with a reference answer. That works when a correct answer exists and is written down — machine translation being the classic case. It breaks down in two common situations: when you have no reference at all, and when the quality you care about is not about word choice.\n\nConsider asking 'is this output natural? Does it sound human?' No reference answer helps you here, and no amount of n-gram overlap captures it. A summary can share most of its vocabulary with the reference and still be incoherent, or share little and be excellent. This is the gap that reference-free evaluation fills, and it is what makes an LLM judge useful rather than merely convenient.",
+        "key_points": [
+          "Manual labelling of hundreds of outputs is accurate but does not scale.",
+          "BLEU and ROUGE measure word overlap against a reference answer, which is often unavailable.",
+          "Overlap metrics cannot capture qualities like naturalness, coherence, or whether text sounds human.",
+          "Reference-free evaluation judges an output on its own merits, with no gold answer required."
+        ],
+        "examples": [
+          {
+            "title": "Where word overlap misleads",
+            "description": "Two summaries of the same article. One reuses most of the reference's vocabulary but scrambles the causal order into something incoherent; the other paraphrases cleanly and reads well. Overlap metrics score the first higher. A human — or a judge model — scores the second higher, because the question was never about vocabulary.",
+            "code": ""
+          }
+        ]
+      },
+      {
+        "title": "Strategy one: direct assessment",
+        "timestamp": "0:42",
+        "summary": "Design a rubric and score each output against it independently, one at a time.",
+        "explanation": "Direct assessment is the more intuitive of the two strategies. You design a rubric — the criterion you care about and the options the judge may choose — and every output is evaluated against it on its own.\n\nSuppose you are evaluating a batch of summaries for coherence and clarity. Your rubric asks: is this summary clear and coherent? With two options: yes, the summary is clear; no, it is not. Each output is then judged against that rubric independently of the others, producing a standalone label.\n\nThe strength here is control and interpretability. You wrote the criterion, so you know exactly what is being measured, and the resulting label means something on its own without reference to any other output. That makes direct assessment a natural fit for compliance-style questions, where the requirement is fixed and external: does this meet the standard, yes or no? It also makes results easy to aggregate — a pass rate across a thousand outputs is immediately meaningful.",
+        "key_points": [
+          "Design a rubric: the criterion, plus the options the judge may return.",
+          "Each output is scored independently, producing a standalone label.",
+          "The strength is clarity and control — you define exactly what is measured.",
+          "Well suited to compliance-style checks where the standard is fixed and external.",
+          "Standalone labels aggregate naturally into pass rates across a large batch."
+        ],
+        "examples": [
+          {
+            "title": "A direct assessment rubric",
+            "description": "The rubric is short by design. One criterion, explicit options, and the output judged on its own terms.",
+            "code": "Criterion: Is this summary clear and coherent?\n\nOptions:\n  yes - the summary is clear\n  no  - the summary is not clear\n\n<summary>{output}</summary>\n\nReturn one option and explain your reasoning."
+          }
+        ]
+      },
+      {
+        "title": "Strategy two: pairwise comparison",
+        "timestamp": "1:23",
+        "summary": "Instead of a standalone label, ask which of two outputs is better — then rank many outputs from the accumulated comparisons.",
+        "explanation": "Pairwise comparison changes the question. Rather than assigning an absolute label, you show the judge two outputs and ask which is better: option A or option B?\n\nThis suits subjective qualities, where an absolute standard is hard to write down but a relative judgement is easy. Asking 'is this summary clear?' forces the judge to locate a threshold that may not exist; asking 'which of these two is clearer?' requires only a comparison, which both humans and models find considerably easier and more consistent.\n\nWhen you have more than two candidates, you do not need every possible pair judged in isolation. Run comparisons across the set and feed the results to a ranking algorithm, which converts the accumulated pairwise verdicts into an overall ordering of all the outputs. That is how you get from 'A beat B' to a ranked list of twenty candidate responses.\n\nThe trade-off is that a pairwise result is inherently relative. Knowing A beat B tells you nothing about whether either was acceptable — both may be poor. If you need an absolute standard met, direct assessment is the right tool.",
+        "key_points": [
+          "The judge is asked which of two outputs is better rather than for a standalone label.",
+          "Relative judgements are easier and more consistent than absolute ones for subjective qualities.",
+          "A ranking algorithm converts many pairwise verdicts into an overall ordering of all candidates.",
+          "The limitation: a pairwise win is relative and says nothing about whether either output met your bar."
+        ],
+        "examples": [
+          {
+            "title": "A pairwise comparison prompt",
+            "description": "The judge sees both candidates and picks one. Note that the ordering of A and B is itself a variable you will need to control for.",
+            "code": "Criterion: clarity\n\nWhich of these outputs is clearer?\n\n<option_A>{output_a}</option_A>\n<option_B>{output_b}</option_B>\n\nReturn A or B, and explain your reasoning."
+          },
+          {
+            "title": "From comparisons to a ranking",
+            "description": "Pairwise results accumulate into an ordering. This is the same idea behind rating systems in competitive games: individual head-to-head outcomes produce a global ranking.",
+            "code": "comparisons = [\n    (\"resp_1\", \"resp_2\", \"resp_1\"),   # A vs B -> winner\n    (\"resp_2\", \"resp_3\", \"resp_3\"),\n    (\"resp_1\", \"resp_3\", \"resp_1\"),\n]\n\nwins = {}\nfor a, b, winner in comparisons:\n    wins[winner] = wins.get(winner, 0) + 1\n    loser = b if winner == a else a\n    wins.setdefault(loser, 0)\n\nranking = sorted(wins, key=wins.get, reverse=True)\n# ['resp_1', 'resp_3', 'resp_2']"
+          }
+        ]
+      },
+      {
+        "title": "Which strategy do people actually choose?",
+        "timestamp": "2:06",
+        "summary": "User research on the open-source EvalAssist framework found the split was roughly half direct assessment, a quarter pairwise, and the rest a combination — with the choice depending on both task and user.",
+        "explanation": "Rather than argue the question in the abstract, IBM ran user research on EvalAssist, its newly open-sourced evaluation framework, and looked at what participants actually preferred.\n\nAbout half chose direct assessment, valuing its clarity and the control it gave them over their own rubric. Roughly a quarter preferred pairwise comparison, and notably they reached for it on subjective tasks — exactly where writing an absolute standard is hardest. The remaining participants combined the two: direct assessment to check compliance, then the ranking algorithm from pairwise comparison to select the best output from those that passed.\n\nThat combined pattern is worth noting, because it resolves the trade-off rather than picking a side. Direct assessment answers 'is this acceptable?' and pairwise answers 'which of the acceptable ones is best?' Used in sequence, you get an absolute quality floor and a relative ordering above it.\n\nThe overall conclusion was that the choice is both task-dependent and user-dependent. There is no universally correct strategy — it depends on what you are measuring and who is doing the measuring.",
+        "key_points": [
+          "About half of participants preferred direct assessment for its clarity and rubric control.",
+          "About a quarter preferred pairwise comparison, particularly for subjective tasks.",
+          "The remainder combined both: direct assessment for compliance, then pairwise ranking to pick the best.",
+          "The combined approach gives an absolute quality floor plus a relative ordering above it.",
+          "The conclusion was that the choice is task- and user-dependent, not universal."
+        ],
+        "examples": [
+          {
+            "title": "The two-stage combined pipeline",
+            "description": "Filter on an absolute standard first, then rank what survives. This is how the combined-approach participants used the two strategies together.",
+            "code": "# Stage 1 - direct assessment as a compliance gate\npassing = [o for o in outputs\n           if judge_direct(o, criterion=\"meets policy\") == \"yes\"]\n\n# Stage 2 - pairwise ranking to select the best survivor\nbest = rank_pairwise(passing, criterion=\"clarity\")[0]"
+          }
+        ]
+      },
+      {
+        "title": "Why use an LLM judge: scale, flexibility, nuance",
+        "timestamp": "2:47",
+        "summary": "It handles volume, it adapts as your criteria shift, and it can evaluate qualities no overlap metric reaches.",
+        "explanation": "Three properties make this approach worth adopting.\n\nScale is the obvious one. If you are generating hundreds or thousands of outputs across a variety of models and prompts, hand-evaluation is simply not an option. An LLM judge handles that volume and returns structured, quick feedback.\n\nFlexibility is the one people underestimate. Traditional evaluation is rigid: the metric is fixed and your criteria must bend to fit it. In reality, criteria shift as you see more data — you build a rubric, start evaluating, and discover that what you actually care about is slightly different from what you wrote down. An LLM judge supports that refinement directly, because changing the criterion means editing a prompt rather than reimplementing a metric.\n\nNuance is the capability that has no alternative. Questions like 'does this sound human?' or 'is this natural?' are inherently subjective, have no reference answer, and cannot be reduced to word overlap. A judge model can evaluate them, which opens up an entire class of quality dimensions that were previously accessible only through human review.",
+        "key_points": [
+          "Scale: handles hundreds or thousands of outputs across many models and prompts, returning structured feedback quickly.",
+          "Flexibility: criteria naturally shift as you see more data, and refining a prompt is far cheaper than reimplementing a metric.",
+          "Nuance: subjective, reference-free questions like 'does this sound human?' become measurable.",
+          "Criteria refinement is an expected part of the process, not a sign you got the rubric wrong."
+        ],
+        "examples": [
+          {
+            "title": "Criteria refinement in practice",
+            "description": "Your first rubric asks whether a summary is clear. After reading eighty judged outputs you notice that the failures are nearly all about ordering — the facts are right but the sequence is confusing. You refine the criterion to name that explicitly, which no fixed metric would have let you do.",
+            "code": "# v1\nCriterion: Is this summary clear and coherent?\n\n# v2, after seeing where it actually failed\nCriterion: Does this summary present events in an order a reader\ncan follow, with each claim's context established before it is used?"
+          }
+        ]
+      },
+      {
+        "title": "The three biases that skew a judge",
+        "timestamp": "3:29",
+        "summary": "Positional, verbosity, and self-enhancement bias each make a judge favour outputs for reasons unrelated to quality.",
+        "explanation": "Like human reviewers, LLM judges have blind spots, and they show up as systematic biases — errors that lean consistently in one direction rather than averaging out.\n\nPositional bias is a preference tied to where an output appears. In a pairwise comparison, a judge exhibiting positional bias keeps choosing option A regardless of what is actually in option A. The judgement is being driven by slot rather than substance.\n\nVerbosity bias is the judge treating length as a proxy for quality. It consistently favours the longer output even when that output is repetitive or wanders off track. The model reads length as thoroughness, which is exactly the failure mode you do not want in a system that is supposed to reward clarity.\n\nSelf-enhancement bias is a judge favouring output it recognises as its own. Given responses from several different models, it rates its own generations more highly without their content being better.\n\nThe crucial framing is the last point: bias in LLMs does not mean the system is broken. It means you need to stay vigilant. These are known, named, detectable failure modes, and good evaluation frameworks are built to catch them.",
+        "key_points": [
+          "Positional bias: favouring an output because of its position, e.g. always choosing option A regardless of content.",
+          "Verbosity bias: favouring longer output regardless of quality, because length reads as thoroughness.",
+          "Self-enhancement bias: favouring output the model recognises as its own.",
+          "These biases skew results systematically rather than adding random noise, so they do not average out across a large sample.",
+          "Bias does not mean the system is broken — it means you stay vigilant and design checks for it."
+        ],
+        "examples": [
+          {
+            "title": "Verbosity bias in a rubric",
+            "description": "If your judge keeps approving rambling answers, the fix is often to name the failure in the rubric rather than to abandon the judge. Say explicitly that length is not quality.",
+            "code": "Criterion: helpfulness\n\nJudge only whether the customer's question was answered.\nDo NOT reward length. A short, complete answer is better than\na long one that repeats itself or adds unrequested detail.\nAn answer over 120 words that could have been given in 40\nshould be marked down for verbosity."
+          }
+        ]
+      },
+      {
+        "title": "Catching bias with positional swaps",
+        "timestamp": "4:54",
+        "summary": "Run the same comparison twice with the options in reverse order; if the verdict flips, the judgement was driven by position rather than content.",
+        "explanation": "Positional bias has a clean, cheap test, and it is the technique good frameworks build in.\n\nRun the comparison, then run it again with the two options swapped — what was in position A now sits in position B. If the judge is evaluating content, it will pick the same output both times, and the recorded winner simply moves slots. If the judge is exhibiting positional bias, it will keep choosing whichever output happens to be in its preferred slot, and the verdict will flip.\n\nThis gives you two things. First, a per-comparison consistency check: any pair whose verdict flips is unreliable and should be discarded or escalated to a human. Second, an aggregate diagnostic: measure the flip rate across many comparisons and you have a direct measurement of how positionally biased your judge is on this task. A judge whose verdicts flip half the time is producing coin tosses dressed as judgements.\n\nThe general principle extends beyond position. For any suspected bias, construct a variation that changes only the suspect factor and leaves the content identical — swap order to test position, pad an answer with harmless filler to test verbosity, strip model identifiers to test self-enhancement — then see whether the verdict moves. If it does, the judge is responding to something other than quality.",
+        "key_points": [
+          "Run each comparison twice with the options in reversed order.",
+          "A consistent judge picks the same output both times; a positionally biased one keeps picking the same slot, flipping the verdict.",
+          "Per-pair, a flipped verdict marks that comparison as unreliable.",
+          "In aggregate, the flip rate quantifies how positionally biased the judge is on your task.",
+          "The general method: vary only the suspected factor, hold content constant, and check whether the verdict moves."
+        ],
+        "examples": [
+          {
+            "title": "Implementing a positional swap check",
+            "description": "Both orderings are judged and only agreeing verdicts are kept. The disagreement rate is itself a useful metric to track.",
+            "code": "def robust_compare(judge, x, y, criterion):\n    \"\"\"Judge both orderings; return a winner only if they agree.\"\"\"\n    first  = judge(a=x, b=y, criterion=criterion)   # x in slot A\n    second = judge(a=y, b=x, criterion=criterion)   # x in slot B\n\n    winner_1 = x if first == \"A\" else y\n    winner_2 = y if second == \"A\" else x\n\n    if winner_1 is winner_2:\n        return winner_1          # consistent - trust it\n    return None                  # flipped - positional bias\n\nresults = [robust_compare(judge, a, b, \"clarity\") for a, b in pairs]\nflip_rate = results.count(None) / len(results)\nprint(f\"positional bias flip rate: {flip_rate:.0%}\")"
+          },
+          {
+            "title": "A verbosity probe",
+            "description": "The same idea applied to length. Pad a response with content that adds no information; if the judge's score rises, it is rewarding length rather than quality.",
+            "code": "original = \"Your order ships tomorrow.\"\npadded   = (\"Thank you so much for reaching out to us today. \"\n            \"I completely understand your concern. \"\n            \"Your order ships tomorrow. \"\n            \"Please do not hesitate to contact us with any \"\n            \"further questions at all.\")\n\n# Same information content. If padded scores higher\n# on helpfulness, the judge has verbosity bias."
+          }
+        ]
+      }
+    ],
+    "glossary": [
+      {"term": "LLM-as-a-judge", "definition": "Using a language model to evaluate the outputs of another model, applying a criterion you specify."},
+      {"term": "Reference-free evaluation", "definition": "Judging an output on its own merits, without needing a gold-standard answer to compare it against."},
+      {"term": "Direct assessment", "definition": "A judging strategy where each output is scored independently against a rubric you designed."},
+      {"term": "Pairwise comparison", "definition": "A judging strategy where two outputs are shown together and the judge picks which is better."},
+      {"term": "Rubric", "definition": "The criterion being evaluated plus the set of options the judge may return."},
+      {"term": "Ranking algorithm", "definition": "A method for converting many individual pairwise verdicts into an overall ordering of all candidates."},
+      {"term": "BLEU / ROUGE", "definition": "Traditional text metrics that score an output by how much its wording overlaps with a reference answer."},
+      {"term": "Positional bias", "definition": "A judge favouring an output because of the position it appeared in rather than its content."},
+      {"term": "Verbosity bias", "definition": "A judge favouring longer outputs regardless of quality, treating length as a signal of thoroughness."},
+      {"term": "Self-enhancement bias", "definition": "A judge rating its own generated output more highly than others', independent of actual quality."},
+      {"term": "Positional swap", "definition": "Re-running a pairwise comparison with the two options in reverse order to test whether the verdict was driven by position."},
+      {"term": "EvalAssist", "definition": "IBM's open-sourced evaluation framework, used in the user research on how people choose between judging strategies."}
+    ],
+    "quiz": [
+      {
+        "question": "You need to check whether a thousand generated replies each meet a fixed regulatory standard. Which strategy fits, and why?",
+        "answer": "Direct assessment. The standard is absolute and external, so each output must be judged on its own against a written rubric. Pairwise comparison would only tell you which reply is better than another, which is useless here — both could fail the standard and one would still win the comparison."
+      },
+      {
+        "question": "Why does positional bias not average out if you simply run a large number of comparisons?",
+        "answer": "Because it is systematic rather than random. A judge that consistently prefers slot A pushes every comparison in the same direction, so more samples produce a more confident wrong answer rather than converging on the truth. Random noise averages out; a consistent lean does not."
+      },
+      {
+        "question": "How does a positional swap distinguish a genuine quality judgement from a positional artefact?",
+        "answer": "Because it holds content constant and changes only position. A judge responding to content will select the same output in both orderings — the winner just moves slot. A judge responding to position keeps picking the same slot, so the winner changes. Disagreement between the two runs isolates position as the cause."
+      },
+      {
+        "question": "Why is the flexibility of an LLM judge described as an advantage over traditional metrics rather than a lack of rigour?",
+        "answer": "Because criteria genuinely do shift as you see more data — you discover that what you care about is more specific than what you first wrote down. A fixed metric forces your evaluation to keep measuring the original approximation, while a prompt-based judge lets the measurement track your improved understanding. The rigour comes from validating the judge, not from freezing the criterion."
+      },
+      {
+        "question": "A judge scores summaries from three different models and consistently rates one model's output highest. What should you check before concluding that model is best?",
+        "answer": "Whether the judge is the same model that produced the favoured output, which would point to self-enhancement bias. You should also check for verbosity bias by comparing average output lengths — if the favoured model simply writes longer answers, the judge may be rewarding length. Validating against human labels settles it."
+      }
+    ],
+    "further_exploration": [
+      "Take an existing pairwise evaluation and add a positional swap, then measure your judge's flip rate — treat anything above a few percent as a problem to fix.",
+      "Run the padding probe on your own judge: score a concise answer, then score it again with filler added, and see whether the score moves.",
+      "Rewrite one of your rubrics to explicitly penalise verbosity, and compare the label distribution before and after.",
+      "Explore the open-source EvalAssist framework to see how a purpose-built tool structures rubrics and bias checks.",
+      "Build the two-stage pipeline: direct assessment as a compliance gate, then pairwise ranking to select the best output among those that pass."
+    ]
+  }
+}

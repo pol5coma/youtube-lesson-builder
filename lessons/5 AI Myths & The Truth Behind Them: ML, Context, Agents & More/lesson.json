@@ -1,0 +1,161 @@
+{
+  "video_url": "https://www.youtube.com/watch?v=OWPRU_Pc4Ng",
+  "channel": "IBM Technology",
+  "lesson": {
+    "title": "Five Persistent AI Myths, and What's Actually True",
+    "subtitle": "Separate outdated assumptions about hallucination, reasoning traces, compute costs, context windows, and agents from how frontier AI systems actually behave today.",
+    "topic": "LLM capabilities and limits",
+    "difficulty": "Intermediate",
+    "audience": "engineers and product people building with LLMs who want to know which capabilities are real today versus assumed from outdated intuition",
+    "overview": "AI systems have moved fast enough that a lot of common assumptions about them are already outdated. Some assumptions were true a generation of models ago and never got updated; others were never quite true to begin with. This lesson works through five of the most persistent ones: that models hallucinate constantly, that a visible reasoning trace shows you what the model is actually thinking, that training is the expensive part of running AI, that a huge context window works like a database, and that agents can be left to run unsupervised.\n\nEach myth turns out to have a grain of truth wrapped around a more precise reality. Hallucinations are real but far rarer in frontier models than the reputation suggests, largely because of tool use and models that have learned to decline instead of guess. Reasoning traces are real text you can read, but they behave more like a narration than a readout of the underlying computation. Inference — running the model, not training it — is now the larger and faster-growing share of AI compute cost. Long context windows are excellent at finding one fact and much weaker at connecting several scattered ones. Autonomous agents work, but their reliability degrades fast once a task requires many sequential steps, because per-step error rates compound.\n\nKnowing where the boundary between myth and reality actually sits matters for anyone deciding how much to trust a model's output, how to budget AI infrastructure, how much text to stuff into a prompt, or how much supervision to put around an agent.",
+    "key_takeaways": [
+      "Frontier models still hallucinate, but tool use, refusal calibration, and extended thinking have pushed the rate down to roughly 3% on hard benchmarks.",
+      "A chain-of-thought trace is the model's narration of its reasoning, not a faithful readout of the computation that produced the answer — a gap researchers call faithfulness.",
+      "Inference, not training, is now the larger and faster-growing share of AI compute spend, driven mainly by reasoning models emitting far more tokens per query.",
+      "A million-token context window can find one fact almost perfectly, but accuracy drops sharply when a task requires connecting several facts scattered across that window.",
+      "An AI agent is a model wrapped in a loop that decides, acts, and observes repeatedly; each step can be reliable on its own while the full chain is not.",
+      "Reliability compounds multiplicatively across agent steps: a 95%-reliable step repeated 20 times succeeds end to end only about 36% of the time.",
+      "Refusal calibration — a model saying it cannot verify something instead of guessing — is a trained behavior, not the model being unhelpful.",
+      "Human-in-the-loop checkpoints and verifier models exist specifically to break the compounding-error chain in long agent runs."
+    ],
+    "prerequisites": [
+      "Basic familiarity with using a chatbot or LLM-based assistant",
+      "A rough idea of what an AI agent or tool-use/function-calling is"
+    ],
+    "sections": [
+      {
+        "title": "Myth 1: AI models hallucinate frequently",
+        "timestamp": "1:24",
+        "summary": "Hallucinations still happen, but tool use, refusal calibration, and extended thinking have pushed frontier hallucination rates down to roughly 3%.",
+        "explanation": "A hallucination is when a model confidently states something false as if it were fact. That behavior hasn't disappeared, but three changes in how frontier models are built and trained have sharply reduced how often it shows up. First, tool use lets a model pull an answer from a live web search or a database lookup instead of generating it purely from what it memorized during training — it can check rather than recall. Second, refusal calibration is training that rewards a model for saying “I can't verify this” when it genuinely doesn't have grounds for an answer, instead of rewarding confident-sounding guesses. Third, reasoning models get extended thinking: time and token budget to work through a problem and catch their own errors before committing to a final answer.\n\nThe combined effect shows up clearly on adversarial questions designed to bait a wrong answer. Asking a frontier chatbot why a nonexistent “Volume 5” of a well-known reference book was published in 2019 doesn't produce a fabricated summary of that fake volume — tool use lets the model search and discover no such volume exists. Asking for research papers on an extremely narrow, oddly specific intersection of topics doesn't produce invented citations either; a calibrated model will say outright that answering from search risks citing papers that don't exist, and decline instead of fabricating a list.\n\nNone of this means hallucinations are solved. It means the honest current estimate — something like 3% for the leading frontier models — is a long way from “frequent,” which was a much more accurate description of models from a few years ago that had no tool access and no incentive to say “I don't know.”",
+        "key_points": [
+          "Tool use grounds an answer in a live lookup instead of the model's memorized training data.",
+          "Refusal calibration trains a model to decline rather than guess when it can't verify a claim.",
+          "Extended thinking gives reasoning models time to check their own work before answering.",
+          "Frontier models hallucinate on the order of 3% of the time on hard, adversarial questions — not zero, but far from 'frequent'.",
+          "The reputation for frequent hallucination describes older, non-tool-using models more accurately than current frontier ones."
+        ],
+        "examples": [
+          {
+            "title": "Why a calibrated model declines instead of guessing",
+            "description": "A useful mental model for what changed: a model with tool access and refusal-calibration training routes a query through a check before it routes it through free generation. Well-established facts still come straight from the model's memory, but anything obscure or unverifiable gets either a tool call or an explicit refusal.",
+            "code": "def answer(query, can_verify_via_tool, is_well_established_fact):\n    \"\"\"Simplified illustration of tool use + refusal calibration\n    changing what a model does with an uncertain claim.\"\"\"\n    if can_verify_via_tool:\n        return web_search_or_db_lookup(query)   # ground the answer externally\n\n    if is_well_established_fact:\n        return generate_from_memory(query)      # safe to answer directly\n\n    # No way to verify, and not a well-known fact - decline instead of guessing\n    return \"I can't verify this without a reliable source.\""
+          }
+        ]
+      },
+      {
+        "title": "Myth 2: You can watch AI think",
+        "timestamp": "3:31",
+        "summary": "A reasoning model's visible chain-of-thought trace is a narration of its answer, not a faithful record of the internal computation that actually produced it.",
+        "explanation": "Chain of thought is the step-by-step text a reasoning model produces on its way to an answer, visible when you expand the “thinking” section of a chat interface. It reads like a person working through a problem out loud, so it's tempting to treat it as a transcript of the model's actual reasoning process. Whether it really is that gets measured by a property called faithfulness: the degree to which the verbalized trace causally corresponds to the model's actual internal computation — its weights and attention patterns — in reaching its answer.\n\nMeasured faithfulness turns out to be low. The real computation happens across a vast network of weights and attention patterns that has no obligation to match the story told in the visible trace. Researchers call the gap post hoc rationalization: the trace is generated to sound like a reasonable path to whatever answer the model's internal computation was already converging on, not a log of the steps that produced it.\n\nThis doesn't make the trace useless — it's still often a helpful summary of the kind of reasoning a well-posed version of the problem would require, and it can surface errors a careful reader would catch. But it means you should not treat an expanded reasoning panel as a debugger into the model's internals. What you're reading is the model's account of its thinking, produced the same way as its final answer: by generating plausible-sounding text.",
+        "key_points": [
+          "Chain of thought is the visible, generated text a reasoning model produces before its final answer.",
+          "Faithfulness measures whether that trace actually corresponds to the model's internal computation, not just whether it sounds plausible.",
+          "Measured faithfulness is low: the trace is closer to a narration than a transcript.",
+          "Post hoc rationalization is the term for a trace that justifies an answer the model's weights already favored, rather than deriving it.",
+          "A reasoning trace is a useful summary to read, but not a reliable window into what's actually happening inside the model."
+        ],
+        "examples": [
+          {
+            "title": "A hint-based faithfulness probe",
+            "description": "One general way researchers test whether a trace is faithful: quietly plant a hint toward a specific answer in the prompt, then check two things separately — did the final answer move toward the hinted one, and does the visible trace ever mention the hint as a reason. If the answer shifts but the trace never cites the hint, the trace omitted the actual cause of the shift, which is direct evidence it isn't a faithful account.",
+            "code": "1. Give the model a prompt containing a subtle hint toward answer B\n   (e.g. \"a domain expert believes the answer is B\").\n2. Ask the model to solve the problem and show its reasoning trace.\n3. Check two things:\n   - Did the final answer move toward B?\n   - Does the trace explicitly mention the hint as a factor?\n4. Answer shifted toward B, but the trace never mentions the hint\n   => the trace is unfaithful: it tells a plausible story that\n      leaves out the real cause of the answer change."
+          }
+        ]
+      },
+      {
+        "title": "Myth 3: Training is where the AI compute goes",
+        "timestamp": "5:36",
+        "summary": "Inference — running an already-trained model — has overtaken training as the larger and faster-growing share of total AI compute spend.",
+        "explanation": "Running AI splits into two distinct phases. Training is where the model gets built: billions of parameters get tuned across huge datasets, consuming weeks of GPU time, and this is the phase behind headline figures like GPT-4's roughly $100 million training cost. Inference is what happens every time someone actually uses the model: the GPU runs the already-fixed weights forward once to produce a single answer. Training happens once per model; inference happens on every single query, forever, for as long as the model is in use.\n\nThat asymmetry is why inference's share of total AI compute has been climbing steadily. Around 2023, inference was roughly a third of total AI compute spend, with training making up the rest. By 2025 it was roughly half and half. Analysts project that by the end of this year inference will account for roughly two-thirds of total AI compute cost. A big driver is exactly the reasoning models covered in myth 2: their chain-of-thought traces generate somewhere between 10 and 100 times more tokens per query than a non-reasoning model producing a direct answer, and that multiplier is especially pronounced inside agentic harnesses where a model may take many reasoning-heavy steps to complete one task.\n\nThe practical upshot is that “it's already trained, so it's cheap to run” stopped being reliably true once reasoning became the default mode for frontier models. Every additional token of reasoning a model generates before answering is inference compute, multiplied by every query anyone ever sends it.",
+        "key_points": [
+          "Training builds the model once; inference runs it on every subsequent query.",
+          "GPT-4's roughly $100M training cost is a one-time expense, dwarfed over time by cumulative inference cost.",
+          "Inference's share of total AI compute rose from about a third in 2023 to about half in 2025, with two-thirds projected by the end of this year.",
+          "Reasoning models emit roughly 10 to 100 times more tokens per query than non-reasoning models, driving up inference cost.",
+          "Agentic harnesses amplify this further because a single task can involve many reasoning-heavy steps."
+        ],
+        "examples": [
+          {
+            "title": "Why token count per query drives the shift",
+            "description": "A rough illustration of why inference costs scale the way they do: a non-reasoning answer might cost a few hundred tokens, while a reasoning model working through the same query can multiply that by one to two orders of magnitude, and it pays that cost on every single call.",
+            "code": "def total_tokens_per_query(base_tokens, reasoning_multiplier):\n    # reasoning models emit far more tokens per answer: roughly 10x-100x more\n    return base_tokens * reasoning_multiplier\n\nbase = 500  # tokens for a short, non-reasoning answer\nfor multiplier in (1, 10, 100):\n    tokens = total_tokens_per_query(base, multiplier)\n    print(f\"{multiplier:>3}x reasoning -> {tokens:,} tokens/query\")\n\n# Rough share of total AI compute spent on inference, from the video\ninference_share = {\n    \"2023\": 1 / 3,\n    \"2025\": 1 / 2,\n    \"end of this year (projected)\": 2 / 3,\n}\nfor period, share in inference_share.items():\n    print(f\"{period}: inference ~{share:.0%} of total AI compute\")"
+          }
+        ]
+      },
+      {
+        "title": "Myth 4: Large context windows let you offload data",
+        "timestamp": "8:27",
+        "summary": "A million-token context window finds a single fact almost perfectly but loses significant accuracy when a task requires connecting multiple facts scattered across it.",
+        "explanation": "A context window is the amount of text a model can take in at once before generating a response. It has grown enormously — from a few thousand tokens a few years ago to at least a million tokens in most frontier models today. That growth invites a specific temptation: treat the context window like a database, dumping in an entire codebase or a stack of PDFs and letting the model query against whatever it needs.\n\nThe standard benchmark for this is called needle in a haystack: hide one specific fact somewhere in a long context and ask the model to find it. On this test, frontier models at a million tokens are at or near perfect — they almost always find the needle. As far as single-fact retrieval goes, the context-window-as-database intuition holds up.\n\nBut real long-context work is rarely about retrieving one isolated fact. It usually requires joining information from multiple parts of the context — finding several needles and reasoning across them together. Multi-needle benchmarks such as MRCR show performance dropping 30 to 60 points between 200,000 tokens and one million tokens on exactly this kind of task. Finding a single fact in a huge context is close to solved; reliably connecting several facts scattered across that same context is not. That's the gap between what the context window can do and what a database can do — a database doesn't lose accuracy as the number of records you need to join grows.",
+        "key_points": [
+          "A context window is how much text a model processes at once before responding; frontier models now support roughly a million tokens.",
+          "The needle-in-a-haystack test hides one fact in a long context and checks whether the model can retrieve it.",
+          "Single-needle retrieval at a million tokens is close to solved for frontier models.",
+          "Multi-needle benchmarks (e.g. MRCR) show accuracy dropping 30 to 60 points between 200k and 1M tokens when facts must be connected, not just found.",
+          "Treating a context window as a database works for single-fact lookup and breaks down for tasks that require joining scattered information."
+        ],
+        "examples": [
+          {
+            "title": "Single-needle versus multi-needle retrieval",
+            "description": "Retrieving one fact from a long context is reliable; a question that requires combining two or more facts pulled from different parts of that context is where accuracy falls off, because the model has to locate and correctly relate multiple pieces of scattered information rather than just find one.",
+            "code": "# 1) Single-needle: retrieve one fact - frontier models do this reliably\n#    even at ~1M tokens.\nq3_revenue = find_fact(context, question=\"What was the Q3 revenue figure?\")\n\n# 2) Multi-needle: the answer requires joining several scattered facts -\n#    this is where accuracy drops 30-60 points between 200k and 1M tokens.\nq3_revenue = find_fact(context, \"What was the Q3 revenue figure?\")\nq2_revenue = find_fact(context, \"What was the Q2 revenue figure?\")\ngrowth = (q3_revenue - q2_revenue) / q2_revenue  # requires combining both needles"
+          }
+        ]
+      },
+      {
+        "title": "Myth 5: AI agents can work fully autonomously",
+        "timestamp": "10:42",
+        "summary": "An agent is a model wrapped in a repeating decide-act-observe loop; individual steps are usually reliable, but errors compound multiplicatively across long chains of steps.",
+        "explanation": "An AI agent is a language model wrapped in a loop. It starts with a goal, decides what action to take, takes that action, observes the result, and decides what to do next — repeating until the goal is reached or it gives up. This decide-act-observe cycle is called the agentic loop, and it's what lets an agent browse the web, query a database, write code, and send an email in sequence, all driven by the model deciding what comes next at each step without a human prompting each move. That's the autonomy people mean when they talk about AI agents.\n\nIn practice, agents handle individual actions well. The problem shows up when actions get chained together into long sequences, in a failure mode called compounding errors. A single step that's 95% reliable sounds solid in isolation. But reliability across a chain multiplies: a 20-step chain of 95%-reliable steps succeeds end to end only about 36% of the time, and a 50-step chain drops to roughly 8%. Each additional step is another chance for the whole run to fail, even though no individual step got worse.\n\nLeft alone for too long, agents can get stuck in loops or wander into dead ends as a direct consequence of this math. The common fixes both target the compounding-error chain directly rather than trying to make any single step perfect: human-in-the-loop checkpoints, where the agent pauses after a few cycles for a person to review before continuing, and verifier models, which check each step before the agent commits to the next one. Agents run well autonomously in short bursts; full end-to-end process autonomy still tends to need a human or a verifier checking in periodically. That's a statement about where agents are today, not a ceiling on where they'll end up.",
+        "key_points": [
+          "An agent is a model wrapped in a loop: decide an action, take it, observe the result, repeat — the agentic loop.",
+          "Individual agent actions are usually reliable in isolation.",
+          "Compounding errors is the failure mode where per-step reliability multiplies across a chain, not adds.",
+          "A 95%-reliable step run 20 times succeeds end to end about 36% of the time; run 50 times, about 8%.",
+          "Human-in-the-loop checkpoints and verifier models both work by breaking the compounding-error chain, not by improving any one step.",
+          "Full autonomy over long, unsupervised runs is not yet reliable, even though short autonomous bursts work well."
+        ],
+        "examples": [
+          {
+            "title": "Reliability compounds across a step chain",
+            "description": "A chain of N steps, each independently reliable with probability p, succeeds end to end with probability p to the power of N. This is exactly why a 95%-reliable step feels safe alone but degrades fast as the chain grows.",
+            "code": "def chain_reliability(step_reliability: float, num_steps: int) -> float:\n    \"\"\"Probability that every step in a chain succeeds.\"\"\"\n    return step_reliability ** num_steps\n\nfor n in (1, 20, 50):\n    p = chain_reliability(0.95, n)\n    print(f\"{n:>2} steps at 95% each -> {p:.1%} end-to-end reliability\")\n\n# Output:\n#  1 steps at 95% each -> 95.0% end-to-end reliability\n# 20 steps at 95% each -> 35.8% end-to-end reliability\n# 50 steps at 95% each -> 7.7% end-to-end reliability"
+          }
+        ]
+      }
+    ],
+    "glossary": [
+      {"term": "Hallucination", "definition": "A model confidently returning a response that is factually incorrect, without any signal of uncertainty."},
+      {"term": "Tool use", "definition": "A model calling an external system — web search, a database, code execution — to ground an answer instead of generating it purely from memorized training data."},
+      {"term": "Refusal calibration", "definition": "Training that rewards a model for declining to answer when it cannot verify a claim, instead of rewarding a confident guess."},
+      {"term": "Extended thinking", "definition": "Additional inference-time computation a reasoning model spends working through a problem before producing its final answer."},
+      {"term": "Chain of thought", "definition": "The visible, step-by-step text a reasoning model generates on its way to an answer."},
+      {"term": "Faithfulness", "definition": "The degree to which a model's verbalized reasoning trace causally corresponds to the internal computation that actually produced its answer."},
+      {"term": "Post hoc rationalization", "definition": "A reasoning trace that justifies an answer the model's internal computation was already favoring, rather than deriving that answer."},
+      {"term": "Training", "definition": "The one-time phase where a model's parameters are tuned across a large dataset, typically over weeks of GPU time."},
+      {"term": "Inference", "definition": "Running an already-trained model's fixed weights forward to produce a response to a single query."},
+      {"term": "Context window", "definition": "The amount of text a model can take in at once before generating a response, measured in tokens."},
+      {"term": "Needle in a haystack test", "definition": "A benchmark that hides one specific fact inside a long context and checks whether the model can retrieve it."},
+      {"term": "Multi-needle benchmark", "definition": "A benchmark (such as MRCR) that requires a model to locate and connect several facts scattered across a long context, not just retrieve one."},
+      {"term": "Agentic loop", "definition": "The repeating decide-act-observe cycle a language-model-based agent runs through to work toward a goal."},
+      {"term": "Compounding errors", "definition": "The failure mode where per-step success probabilities multiply across a chain of actions, causing overall reliability to fall sharply as the chain gets longer."},
+      {"term": "Human-in-the-loop", "definition": "A workflow where an agent pauses after a set of steps so a person can review progress before it continues."},
+      {"term": "Verifier model", "definition": "A model used to check each step of an agent's work before the agent proceeds to the next step."}
+    ],
+    "quiz": [
+      {"question": "Why can asking a chatbot 'are you sure?' make its answer worse instead of better?", "answer": "The model can read the pushback as a signal that its first answer was wrong and shift toward whatever answer it infers the user wants, regardless of whether the original answer was correct — it's reinterpreting doubt as a cue to change position, not re-verifying the facts."},
+      {"question": "Why can a model's hallucination rate drop even though the model still has no way to directly 'know' whether a claim is true?", "answer": "Tool use lets it check external sources (search, databases) instead of relying purely on generation from memory, and refusal-calibration training rewards declining to answer an unverifiable claim instead of rewarding a confident guess — both reduce fabrication without requiring the model to have perfect internal knowledge."},
+      {"question": "If a chain-of-thought trace is unfaithful, what specifically is unreliable about it?", "answer": "The trace doesn't necessarily reflect the internal computation — the weights and attention patterns — that actually produced the answer. It can instead be a plausible-sounding narration generated to justify an answer the model's internals were already converging on, which is why researchers call it post hoc rationalization."},
+      {"question": "Why is inference overtaking training as the dominant share of AI compute cost, even though training a frontier model can cost around $100 million?", "answer": "Training is a one-time cost per model, while inference is paid on every single query for as long as the model is used. Reasoning models also emit roughly 10 to 100 times more tokens per query than non-reasoning models, so cumulative inference cost scales with both usage volume and per-query token count in a way training's one-time cost never does."},
+      {"question": "Why does a model that aces the needle-in-a-haystack test still struggle on real long-document tasks?", "answer": "Needle-in-a-haystack only tests retrieving one isolated fact, which frontier models handle almost perfectly even at a million tokens. Real tasks usually require connecting several facts scattered through the context, and multi-needle benchmarks show accuracy dropping 30 to 60 points on that harder, more realistic version of the problem."},
+      {"question": "Why does a 95%-reliable-per-step agent become unreliable over a long task even though no individual step is bad?", "answer": "Per-step success probabilities multiply across the chain rather than average out, so the end-to-end success rate is p raised to the number of steps. At 95% per step, 20 steps compound down to about 36% reliability and 50 steps down to about 8%, even though each individual step is still 95% reliable on its own."}
+    ],
+    "further_exploration": [
+      "Run your own needle-in-a-haystack test: bury a fact in a long document you feed to a chatbot, then ask a follow-up question that requires that fact plus something else stated much earlier in the same document.",
+      "Look up the MRCR (Multi-Round Co-reference Resolution) benchmark to see published long-context degradation curves for specific frontier models at different context lengths.",
+      "Read published research on chain-of-thought faithfulness to see how labs actually test whether a visible reasoning trace matches a model's internal computation.",
+      "Build a minimal agentic loop around a single tool call (decide, act, observe, repeat) and add a verifier step; measure how the failure rate changes as you extend the number of steps."
+    ]
+  }
+}

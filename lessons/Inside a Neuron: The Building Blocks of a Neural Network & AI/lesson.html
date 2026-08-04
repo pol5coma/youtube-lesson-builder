@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inside a Neuron: The Building Blocks of a Neural Network &amp; AI</title>
+<meta name="description" content="Compute a single artificial neuron&#x27;s output by hand and understand what weights, bias, and activation functions actually do.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-neuron-as-a-function-vector-in-signal-out-1"><span class="n">1</span>The Neuron as a Function: Vector In, Signal Out</a></li>
+<li><a href="#turning-real-world-data-into-a-vector-2"><span class="n">2</span>Turning Real-World Data Into a Vector</a></li>
+<li><a href="#weights-encoding-learned-importance-3"><span class="n">3</span>Weights: Encoding Learned Importance</a></li>
+<li><a href="#how-neurons-in-the-same-layer-specialize-4"><span class="n">4</span>How Neurons in the Same Layer Specialize</a></li>
+<li><a href="#squashing-the-weighted-sum-activation-and-bias-5"><span class="n">5</span>Squashing the Weighted Sum: Activation and Bias</a></li>
+<li><a href="#why-nonlinearity-lets-networks-learn-complex-patterns-6"><span class="n">6</span>Why Nonlinearity Lets Networks Learn Complex Patterns</a></li>
+<li><a href="#from-one-neuron-to-a-network-stacking-weights-and-training-7"><span class="n">7</span>From One Neuron to a Network: Stacking, Weights, and Training</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Beginner</span><span class="pill ghost">Neural network fundamentals</span></div>
+  <h1>Inside a Neuron: The Building Blocks of a Neural Network &amp; AI</h1>
+  <p class="lede">Compute a single artificial neuron&#x27;s output by hand and understand what weights, bias, and activation functions actually do.</p>
+  <p class="muted small">For people who have heard the term &#x27;neural network&#x27; and want to understand, in concrete arithmetic, what a single neuron computes · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=H_jD5xa1nRg" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Comfort with basic algebra: multiplication, addition, and summing a list of numbers</li><li>A rough sense of what a neural network is used for, e.g. taking data in and producing a prediction</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>A neural network looks intimidating from the outside, but it is built from one small, repeated unit: the artificial neuron. Each neuron takes in a list of numbers, multiplies them by a set of learned importance values, adds them up, and squashes the result into a signal. Nothing more mysterious happens at the level of one neuron than a dot product, an addition, and a squashing function.</p>
+<p>This lesson walks through that computation step by step, using a running example: a neuron that helps predict a house&#x27;s price from features like square footage and bedroom count. You&#x27;ll see how raw data becomes a vector, how weights encode which features a neuron cares about, why a bias term matters, and why the final squashing step (the activation function) is what gives neural networks the power to learn anything more complex than a straight line.</p>
+<p>By the end, you should be able to take a small set of inputs, weights, and a bias, and compute a neuron&#x27;s output yourself with a calculator — which is the best way to demystify what training a neural network actually adjusts.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>A neuron turns an input vector into a single output signal by computing a weighted sum of the inputs, adding a bias, then passing the result through an activation function.</li><li>Weights encode how much a specific neuron cares about each input feature; every neuron in a layer sees the same input vector but specializes by learning a different set of weights.</li><li>The bias shifts a neuron&#x27;s activation threshold, letting it fire even when the weighted sum of its inputs is small or zero.</li><li>Activation functions like sigmoid or ReLU introduce nonlinearity. Without them, stacking any number of neurons would still compute nothing more than one overall linear function.</li><li>A neuron&#x27;s activation level (its output after the activation function) is a measure of how strongly the pattern that neuron detects is present in the current input.</li><li>Training a network means repeatedly adjusting every neuron&#x27;s weights and biases to reduce prediction error; backpropagation is the algorithm that works out how to adjust them, though it isn&#x27;t covered in depth here.</li><li>Tools like MLflow don&#x27;t change what a neuron computes — they log and visualize how weights and biases evolve across training runs so engineers can compare configurations.</li></ul>
+  </div>
+</section>
+<section id="the-neuron-as-a-function-vector-in-signal-out-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The Neuron as a Function: Vector In, Signal Out</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">A neural network is a collection of neurons, and each neuron is just a small function: it takes a vector of numbers in and produces one output signal.</p>
+  <p>Strip away the diagrams and a neural network is a large number of identical small units wired together. Each of those units is an artificial neuron, and understanding one neuron is most of the work of understanding the whole system, because every neuron performs the same three-step computation on whatever numbers arrive at its input.</p>
+<p>A neuron&#x27;s input is a vector: an ordered list of numbers where each position represents one measurable property of the data point being processed. Its output is a single number, called a signal or activation, that gets passed on to the next layer of neurons (or, if it&#x27;s the last layer, becomes part of the network&#x27;s final prediction). Everything a neuron does — deciding which features matter, combining them, and deciding whether to &#x27;fire&#x27; — happens inside that one input-vector-to-output-number transformation.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A neural network is a collection of neurons; each neuron does an identical three-step computation.</li><li>A neuron&#x27;s input is always a vector (an ordered list of numbers); its output is always a single number.</li><li>That single output number is called a signal or activation, and it feeds into the next layer.</li><li>Understanding one neuron&#x27;s math is the foundation for understanding the whole network.</li></ul></div>
+  <figure class="example">
+  <figcaption>One neuron, one function</figcaption>
+  <p>Think of a neuron as a small function neuron(x) that accepts a vector x = [x1, x2, x3, x4] and returns one number. Everything in this lesson is about what happens inside that function.</p>
+  <pre><code>def neuron(x, weights, bias):
+    # x, weights are same-length vectors; bias is a single number
+    # returns one number: the neuron&#x27;s output signal
+    ...
+</code></pre>
+</figure>
+</section>
+<section id="turning-real-world-data-into-a-vector-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Turning Real-World Data Into a Vector</h2>
+      <a class="stamp" href="#" data-t="40">0:40</a>
+    </div>
+  </div>
+  <p class="summary">Before a neuron can process data, real-world features have to be encoded as normalized numbers and arranged into an input vector.</p>
+  <p>Consider training a network to predict housing prices. A house has features that matter to price: square footage, number of bedrooms, number of bathrooms, zip code. None of these are naturally on the same numeric scale — square footage might be in the thousands, bedroom count is a small integer, zip code is a categorical label. Before any of this can enter a neuron, it gets normalized: converted to values on a comparable scale (commonly between 0 and 1) so that no single feature dominates the computation purely because of the units it happens to be measured in.</p>
+<p>Once normalized, the features are arranged in a fixed order to form the input vector for that house — for example [square_footage, bedrooms, bathrooms, zip_code] becoming something like [0.8, 0.5, 0.3, 0.6]. Every house in the dataset gets encoded the same way, in the same feature order, so that position 1 always means &#x27;square footage&#x27; no matter which house&#x27;s vector you&#x27;re looking at. This input vector is what actually goes into every neuron in the network&#x27;s first layer.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Raw features (square footage, bedrooms, bathrooms, zip code) are normalized to a common numeric scale before use.</li><li>Normalization prevents a feature with naturally large raw values from dominating the computation just because of its units.</li><li>The normalized features are arranged in a fixed, consistent order to form the input vector.</li><li>Every data point (every house) is encoded with the same feature order, so the same vector position always means the same feature.</li></ul></div>
+  <figure class="example">
+  <figcaption>Encoding one house as a vector</figcaption>
+  <p>A house with large square footage, an average number of bedrooms, few bathrooms, and a mid-range zip code might normalize to the vector below. This exact vector is what gets fed into every neuron in the first layer.</p>
+  <pre><code>feature      raw value   normalized
+sq_footage   2,400       0.8
+bedrooms     3           0.5
+bathrooms    1           0.3
+zip_code     94103       0.6
+
+input_vector = [0.8, 0.5, 0.3, 0.6]</code></pre>
+</figure>
+</section>
+<section id="weights-encoding-learned-importance-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Weights: Encoding Learned Importance</h2>
+      <a class="stamp" href="#" data-t="85">1:25</a>
+    </div>
+  </div>
+  <p class="summary">Each input feature is multiplied by a weight — a learned number representing how important that feature is to this particular neuron — and the products are summed.</p>
+  <p>A neuron doesn&#x27;t treat every input feature equally. Each feature in the input vector is paired with a corresponding weight: a number that represents how much that feature matters to this neuron&#x27;s decision. If training determines that square footage strongly predicts price, the weight attached to square footage grows large (e.g. 0.9). If bathroom count turns out to matter less, its weight stays small (e.g. 0.2).</p>
+<p>To combine the input vector with the weights, the neuron multiplies each feature by its matching weight, then adds all of those products together. This is called the weighted sum. For an input vector x = [x1, x2, x3, x4] and weights w = [w1, w2, w3, w4], the weighted sum is x1*w1 + x2*w2 + x3*w3 + x4*w4. Mathematically this is a dot product between the input vector and the weight vector — the weighted sum is nothing more than &#x27;how well does this input line up with what this neuron is looking for.&#x27;</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Every input feature has a matching weight: a learned number representing that feature&#x27;s importance to this specific neuron.</li><li>A large weight means the neuron pays close attention to that feature; a small weight means it mostly ignores it.</li><li>The weighted sum is computed by multiplying each feature by its weight and adding the results together.</li><li>The weighted sum is mathematically a dot product between the input vector and the weight vector.</li></ul></div>
+  <figure class="example">
+  <figcaption>Computing the weighted sum</figcaption>
+  <p>Using the housing input vector from the previous section and a set of weights where this neuron cares most about square footage (0.9) and least about bathrooms (0.2), the weighted sum is the sum of each feature times its weight.</p>
+  <pre><code>x = [0.8, 0.5, 0.3, 0.6]   # sqft, bedrooms, bathrooms, zip
+w = [0.9, 0.4, 0.2, 0.5]   # this neuron&#x27;s learned weights
+
+weighted_sum = (x[0]*w[0]) + (x[1]*w[1]) + (x[2]*w[2]) + (x[3]*w[3])
+#            = (0.8*0.9)  + (0.5*0.4)  + (0.3*0.2)  + (0.6*0.5)
+#            =   0.72     +   0.20     +   0.06     +   0.30
+#            =   1.28</code></pre>
+</figure>
+</section>
+<section id="how-neurons-in-the-same-layer-specialize-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>How Neurons in the Same Layer Specialize</h2>
+      <a class="stamp" href="#" data-t="129">2:09</a>
+    </div>
+  </div>
+  <p class="summary">Every neuron in a layer receives the identical input vector, but each has its own independent weights, so different neurons learn to detect different patterns.</p>
+  <p>A layer of a neural network contains many neurons, and every one of them sees the exact same input vector — the same four housing features in this example. What differs between neurons is not the data they receive, but their weights. One neuron might develop large weights for square footage and zip code, effectively specializing in detecting &#x27;large homes in expensive areas.&#x27; A neighboring neuron might instead develop large weights for bedroom and bathroom counts, specializing in a different pattern entirely.</p>
+<p>This specialization isn&#x27;t designed by hand — it emerges from training. If a particular neuron&#x27;s weighted sum consistently helps the network reduce its prediction error when a certain pattern is present (say, large suburban homes), the training process reinforces the weights that produced that useful signal, and the neuron becomes more strongly tuned to that pattern over time. Repeat this across many neurons and many training examples, and each neuron in a layer ends up responsible for detecting a different useful signal in the data, without ever being explicitly told what to look for.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>All neurons in a layer receive the same input vector; only their weights differ.</li><li>Different weight sets cause different neurons to respond strongly to different feature combinations.</li><li>Specialization emerges from training: weights that help reduce prediction error get reinforced.</li><li>Across many neurons, the layer collectively covers many different useful patterns in the data.</li></ul></div>
+  <figure class="example">
+  <figcaption>Two neurons, same input, different focus</figcaption>
+  <p>Neuron A&#x27;s weights emphasize square footage and zip code; Neuron B&#x27;s weights emphasize bedrooms and bathrooms. Given the identical input vector, they produce different weighted sums because they&#x27;re each looking for a different pattern.</p>
+  <pre><code>x = [0.8, 0.5, 0.3, 0.6]        # same input for both neurons
+
+w_A = [0.9, 0.1, 0.1, 0.7]      # Neuron A: cares about sqft + zip
+w_B = [0.1, 0.8, 0.7, 0.1]      # Neuron B: cares about bed + bath
+
+sum_A = sum(xi*wi for xi, wi in zip(x, w_A))  # = 0.72+0.05+0.03+0.42 = 1.22
+sum_B = sum(xi*wi for xi, wi in zip(x, w_B))  # = 0.08+0.40+0.21+0.06 = 0.75</code></pre>
+</figure>
+</section>
+<section id="squashing-the-weighted-sum-activation-and-bias-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Squashing the Weighted Sum: Activation and Bias</h2>
+      <a class="stamp" href="#" data-t="172">2:52</a>
+    </div>
+  </div>
+  <p class="summary">The raw weighted sum can be any number, so a neuron adds a bias and then applies an activation function like sigmoid to squash the result into a bounded, usable range.</p>
+  <p>A weighted sum by itself is unbounded — depending on the inputs and weights, it could come out as -50 or 500, which is not a convenient signal to pass along or compare between neurons. To fix this, a neuron applies an activation function to the weighted sum. The sigmoid function compresses any real number into a range between 0 and 1: very negative inputs get pushed toward 0, very positive inputs get pushed toward 1, and inputs near zero land near 0.5. This makes it easy for the rest of the network to treat the output as something like a confidence: how strongly is this neuron&#x27;s pattern present?</p>
+<p>Before applying the activation function, the neuron adds one more term to the weighted sum: the bias, usually written as b. The bias is a single learned number, independent of any input feature, that shifts the threshold at which the neuron activates. Without a bias, a neuron could only fire when its weighted sum is naturally positive; the bias lets a neuron fire even when all its inputs are small, or conversely, makes it harder to fire even with sizeable inputs, depending on the sign it learns.</p>
+<p>Putting it together, the full computation for one neuron is: activation = sigmoid(weighted_sum + bias), or written out, sigmoid(x1*w1 + x2*w2 + x3*w3 + x4*w4 + b). Modern networks mostly use ReLU instead of sigmoid for efficiency — sigmoid needs an exponential calculation for every neuron on every forward pass, while ReLU only needs a comparison against zero — but sigmoid is easier to reason about conceptually, which is why it&#x27;s used here.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A raw weighted sum is unbounded, which makes it hard to interpret or compare across neurons.</li><li>The sigmoid activation function squashes any input into the range (0, 1).</li><li>The bias is a single learned number added before activation; it shifts the neuron&#x27;s activation threshold independent of the inputs.</li><li>The full neuron computation is sigmoid(weighted_sum + bias).</li><li>Most modern networks use ReLU instead of sigmoid for computational efficiency, though sigmoid is conceptually simpler.</li></ul></div>
+  <figure class="example">
+  <figcaption>Full worked example: one neuron&#x27;s output by hand</figcaption>
+  <p>Take the weighted sum computed earlier (1.28), add a bias of -0.5, then apply the sigmoid function. This is the complete, concrete computation a single neuron performs for one house.</p>
+  <pre><code>import math
+
+x = [0.8, 0.5, 0.3, 0.6]   # normalized: sqft, bedrooms, bathrooms, zip
+w = [0.9, 0.4, 0.2, 0.5]   # this neuron&#x27;s learned weights
+b = -0.5                    # this neuron&#x27;s learned bias
+
+# Step 1: weighted sum
+weighted_sum = sum(xi * wi for xi, wi in zip(x, w))
+# weighted_sum = 0.72 + 0.20 + 0.06 + 0.30 = 1.28
+
+# Step 2: add bias
+z = weighted_sum + b
+# z = 1.28 - 0.5 = 0.78
+
+# Step 3: squash with sigmoid
+activation = 1 / (1 + math.exp(-z))
+# activation ≈ 0.686
+
+print(round(activation, 3))  # 0.686
+# Interpretation: this neuron is fairly strongly activated (0.686 is
+# well above the 0.5 midpoint), meaning the pattern it detects is
+# clearly present in this house&#x27;s features.</code></pre>
+</figure>
+</section>
+<section id="why-nonlinearity-lets-networks-learn-complex-patterns-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Why Nonlinearity Lets Networks Learn Complex Patterns</h2>
+      <a class="stamp" href="#" data-t="215">3:35</a>
+    </div>
+  </div>
+  <p class="summary">The activation function is what makes a network nonlinear; without it, stacking any number of neurons would collapse into a single linear model.</p>
+  <p>The weighted sum step (multiply, then add) is a purely linear operation. If a network only ever computed weighted sums and passed them directly to the next layer with no activation function in between, then no matter how many layers you stacked, the entire network would be mathematically equivalent to one single linear function. Layers of pure weighted sums compose into another weighted sum — you gain more parameters, but not more expressive power.</p>
+<p>The activation function breaks that collapse. Because sigmoid (or ReLU) is a nonlinear function, feeding its output into another layer&#x27;s weighted sum produces something that can no longer be reduced to a single straight-line relationship between input and output. This is what allows a multi-layer network to represent curved decision boundaries, combinations of features, and other complex patterns that a linear model fundamentally cannot capture, no matter how it&#x27;s tuned.</p>
+<p>The activation function&#x27;s output — the activation level — has a direct interpretation: a value close to 1 (for sigmoid) means the neuron&#x27;s weighted sum was strongly positive after the bias was applied, i.e. the pattern this neuron detects is strongly present in the current input. A value close to 0 means that pattern is essentially absent. This is the sense in which an activation function &#x27;decides whether a neuron fires.&#x27;</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Stacking layers of pure weighted sums, with no activation function, still only computes one overall linear function.</li><li>The activation function&#x27;s nonlinearity is what lets multi-layer networks represent curved, complex relationships.</li><li>An activation level near 1 (sigmoid) signals the neuron&#x27;s pattern is strongly present; near 0 signals it&#x27;s absent.</li><li>This is why activation functions are sometimes described as deciding &#x27;whether a neuron fires.&#x27;</li></ul></div>
+  <figure class="example">
+  <figcaption>Two linear layers collapse into one</figcaption>
+  <p>Without an activation function between them, a two-layer network is algebraically identical to a single layer. Here, layer 1 computes h = 2x + 1 and layer 2 computes y = 3h - 4; substituting shows the whole thing reduces to one linear function of x.</p>
+  <pre><code># Layer 1 (no activation): h = 2x + 1
+# Layer 2 (no activation): y = 3h - 4
+
+# Substitute h into layer 2:
+# y = 3*(2x + 1) - 4
+# y = 6x + 3 - 4
+# y = 6x - 1
+
+# This is exactly the form of a single linear layer: y = W*x + B
+# with W = 6 and B = -1. The extra layer added no new capability.</code></pre>
+</figure>
+</section>
+<section id="from-one-neuron-to-a-network-stacking-weights-and-training-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>From One Neuron to a Network: Stacking, Weights, and Training</h2>
+      <a class="stamp" href="#" data-t="260">4:20</a>
+    </div>
+  </div>
+  <p class="summary">A single neuron can only capture one relationship, but stacking many, fully connected between layers, lets a network learn combinations of patterns; training is the process of tuning every weight and bias.</p>
+  <p>A single neuron, however well-tuned, can only capture one relationship between its inputs and an output signal. Real predictive power comes from stacking many neurons: in a typical fully connected network, every neuron in one layer connects to every neuron in the next layer, each connection carrying its own weight, and each neuron carrying its own bias. This gives the network a large number of independent &#x27;dials&#x27; — every weight and every bias — that can be individually tuned.</p>
+<p>Training a neural network is the process of searching for the configuration of all those dials that makes the network&#x27;s predictions as accurate as possible. Concretely, during training the network tweaks weights and biases to reduce prediction error; the algorithm responsible for figuring out which direction to nudge each dial is called backpropagation, which works backward from the network&#x27;s error to assign a share of the blame to every weight and bias in the network. Backpropagation is a substantial topic on its own and isn&#x27;t covered in depth here, but the key idea to take away is that &#x27;training&#x27; has a precise meaning at the level of a single neuron: it means adjusting that neuron&#x27;s weights and bias.</p>
+<p>Because a real network can have millions of these dials, engineers use tooling to keep training manageable. Open-source projects like MLflow let engineers log and compare training runs, visualizing how a model&#x27;s weights and biases change over time and how different configurations affect overall performance. MLflow doesn&#x27;t change what a neuron computes — it&#x27;s an observability layer on top of the same weighted-sum-plus-bias-plus-activation computation this lesson has walked through.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A single neuron can only capture one relationship; networks gain power by stacking many neurons.</li><li>In a fully connected network, every neuron connects to every neuron in the next layer, each connection with its own weight.</li><li>Training means searching for the weight and bias values across the whole network that minimize prediction error.</li><li>Backpropagation is the algorithm that determines how to adjust every weight and bias to reduce error (a topic beyond this lesson).</li><li>Tools like MLflow track and visualize how weights and biases evolve during training, without changing the underlying neuron computation.</li></ul></div>
+  <figure class="example">
+  <figcaption>Counting the tunable dials in a small layer</figcaption>
+  <p>Even a tiny fully connected layer has many independent weights and biases. A layer of 3 neurons, each receiving the 4-feature housing vector, has 3*4 = 12 weights plus 3 biases: 15 numbers that training has to tune.</p>
+  <pre><code>num_inputs = 4     # sqft, bedrooms, bathrooms, zip
+num_neurons = 3    # neurons in this layer
+
+num_weights = num_inputs * num_neurons   # 4 * 3 = 12
+num_biases  = num_neurons                # 3 (one per neuron)
+
+total_tunable_params = num_weights + num_biases  # 15</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Neuron</dt><dd>The basic unit of a neural network. It takes a vector of numbers as input and produces one output number by computing a weighted sum, adding a bias, and applying an activation function.</dd></div><div class="term"><dt>Vector</dt><dd>An ordered list of numbers, where each position represents a specific measurable feature of the data being described.</dd></div><div class="term"><dt>Weight</dt><dd>A learned number attached to one input feature of one neuron, representing how much that feature matters to that neuron&#x27;s output.</dd></div><div class="term"><dt>Weighted sum</dt><dd>The result of multiplying each input by its matching weight and adding all the products together; mathematically a dot product of the input vector and the weight vector.</dd></div><div class="term"><dt>Bias</dt><dd>A single learned number added to a neuron&#x27;s weighted sum before activation. It shifts the neuron&#x27;s activation threshold independent of any input feature.</dd></div><div class="term"><dt>Activation function</dt><dd>A function applied to a neuron&#x27;s weighted sum (plus bias) that squashes it into a bounded, usable output and introduces nonlinearity into the network.</dd></div><div class="term"><dt>Sigmoid function</dt><dd>An activation function that compresses any real number into the range between 0 and 1, commonly used to conceptualize a neuron&#x27;s output as a confidence level.</dd></div><div class="term"><dt>ReLU</dt><dd>Rectified Linear Unit, an activation function that outputs the input directly if it&#x27;s positive and 0 otherwise. Used more often than sigmoid in modern networks for its computational efficiency.</dd></div><div class="term"><dt>Activation level</dt><dd>A neuron&#x27;s output after its activation function has been applied; a higher activation level means the pattern that neuron detects is more strongly present in the current input.</dd></div><div class="term"><dt>Nonlinearity</dt><dd>A property of a function whose output isn&#x27;t a fixed straight-line multiple of its input. Activation functions must be nonlinear for stacking multiple layers of neurons to add any representational power.</dd></div><div class="term"><dt>Layer</dt><dd>A group of neurons that all receive the same input vector, each computing its own weighted sum, bias, and activation independently.</dd></div><div class="term"><dt>Backpropagation</dt><dd>The training algorithm that works backward from a network&#x27;s prediction error to determine how much each weight and bias contributed to that error, so they can be adjusted to reduce it.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why does a neural network need a nonlinear activation function instead of just passing the weighted sum straight to the next layer?</summary>
+  <div class="answer"><p>Because a weighted sum is a purely linear operation, and stacking any number of purely linear layers is mathematically equivalent to a single linear layer — you&#x27;d gain more tunable numbers but not more expressive power. A nonlinear activation function (sigmoid, ReLU, etc.) breaks that collapse, which is what lets a multi-layer network represent curved, complex relationships between inputs and outputs.</p></div>
+</details><details class="q">
+  <summary>Two neurons in the same layer receive the exact same input vector. Why can they end up detecting completely different patterns?</summary>
+  <div class="answer"><p>Because each neuron has its own independent set of weights (and its own bias). Training adjusts each neuron&#x27;s weights separately based on how much that neuron&#x27;s output helps reduce the network&#x27;s overall prediction error, so different neurons drift toward emphasizing different feature combinations even though the input they see never changes.</p></div>
+</details><details class="q">
+  <summary>What does the bias term let a neuron do that the weights alone cannot?</summary>
+  <div class="answer"><p>The bias shifts a neuron&#x27;s activation threshold independent of any input. Without it, a neuron&#x27;s weighted sum would be forced toward 0 whenever the inputs themselves are small, making it impossible for the neuron to fire in that case. The bias lets a neuron fire even when all its inputs are small (or, with the opposite sign, makes it harder to fire even with sizeable inputs).</p></div>
+</details><details class="q">
+  <summary>If a neuron&#x27;s weighted sum plus bias comes out very negative, what does its sigmoid output tell you about that input?</summary>
+  <div class="answer"><p>Sigmoid squashes very negative values toward 0, so a very negative weighted sum produces an activation close to 0. That means the neuron is effectively &#x27;off&#x27; for this input: the specific pattern this neuron has learned to detect is essentially absent from the current data point.</p></div>
+</details><details class="q">
+  <summary>The video says most modern networks use ReLU instead of sigmoid. What&#x27;s the stated reason, and what is that reason actually about?</summary>
+  <div class="answer"><p>Efficiency. Sigmoid requires computing an exponential for every neuron on every forward pass through the network, while ReLU only requires comparing a number against zero. At the scale of modern networks with millions of neurons, that difference in computation adds up, which is why ReLU is preferred in practice even though sigmoid is easier to reason about conceptually.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Implement a single neuron in NumPy (dot product + bias + sigmoid) and confirm it reproduces the hand-computed 0.686 activation from this lesson.</li><li>Plot the sigmoid and ReLU functions side by side to see visually how each squashes or thresholds its input differently.</li><li>Read up on backpropagation and gradient descent, the mechanism mentioned but not explained here, to see exactly how a network decides which direction to nudge each weight and bias.</li><li>Install MLflow and log a few training runs of a toy model to see how weights and biases are tracked and compared in practice.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Code Refactoring: Letting a Probabilistic System Edit Production Code Safely — Condensed</title>
+<meta name="description" content="Understand the loop, the verification steps and the deterministic tooling that make autonomous refactoring trustworthy.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-summary">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#refactoring-change-the-inside-preserve-the-outside-1"><span class="n">1</span>Refactoring: change the inside, preserve the outside</a></li>
+<li><a href="#why-bother-and-what-happens-if-you-do-not-2"><span class="n">2</span>Why bother, and what happens if you do not</a></li>
+<li><a href="#inline-versus-agentic-refactoring-3"><span class="n">3</span>Inline versus agentic refactoring</a></li>
+<li><a href="#the-risk-a-probabilistic-system-editing-hundreds-of-files-4"><span class="n">4</span>The risk: a probabilistic system editing hundreds of files</a></li>
+<li><a href="#the-loop-part-one-plan-read-search-report-5"><span class="n">5</span>The loop, part one: plan, read, search, report</a></li>
+<li><a href="#the-loop-part-two-approve-snapshot-patch-6"><span class="n">6</span>The loop, part two: approve, snapshot, patch</a></li>
+<li><a href="#verify-roll-back-and-the-ci-cd-fit-7"><span class="n">7</span>Verify, roll back, and the CI/CD fit</a></li>
+<li><a href="#deterministic-patching-with-syntax-trees-8"><span class="n">8</span>Deterministic patching with syntax trees</a></li>
+<li><a href="#learning-from-accept-reject-pass-and-fail-9"><span class="n">9</span>Learning from accept, reject, pass and fail</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Advanced</span><span class="pill ghost">Agentic software engineering</span><span class="pill ghost">Condensed</span><span class="muted">IBM Technology</span></div>
+  <h1>AI Code Refactoring: Letting a Probabilistic System Edit Production Code Safely</h1>
+  <p class="lede">Understand the loop, the verification steps and the deterministic tooling that make autonomous refactoring trustworthy.</p>
+  <p class="muted small">For engineers evaluating or building autonomous refactoring into their workflow · 26 July 2026</p>
+  <p class="muted small">Every section, key point, term and question from the full lesson is here. The extended explanations and the additional examples are not.</p>
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=f84XbvASkk4" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson.html">Read the full lesson</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Working experience with a real codebase and a test suite</li><li>Familiarity with version control and CI</li><li>Comfort reading Python</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>A large language model is a probabilistic guessing machine, and these machines are now being pointed at production code. The obvious question is whether that is safe.</p>
+<p>The answer turns out not to be about the model at all. Refactoring means changing a program&#x27;s internal structure while leaving its external behaviour identical, and &#x27;identical&#x27; is a checkable property — you have tests, a build, a type checker and a diff. Agentic refactoring is safe to the extent that a guess has to survive those checks before it reaches the codebase, and unsafe to the extent that it does not.</p>
+<p>So the interesting content is the loop: plan, read, search, report, approve, snapshot, patch, verify, roll back on failure and go round again. Two details sharpen it further. The patch step can skip probabilistic generation entirely by operating on a syntax tree, making common transformations deterministic. And every accept, reject, pass and fail is a training signal, so the suggestions improve over time.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Refactoring changes internal structure while leaving external behaviour identical — the second half is what makes it verifiable.</li><li>The three canonical motives are readability, removing duplication and lowering complexity; skipping them compounds into technical debt.</li><li>Inline refactoring works alongside a developer on small local edits; agentic refactoring is handed a goal and works the whole codebase autonomously.</li><li>The danger is a probabilistic system deleting things that look unused but exist for a reason nobody wrote down.</li><li>The guard rail is a loop: plan, read, search, report, approve, snapshot, patch, verify — with rollback on failure.</li><li>Human approval sits between the report and any edit, so guesses never reach the codebase unreviewed.</li><li>Because verification is just tests and builds, the whole loop slots into CI/CD like another developer.</li><li>Patching via a syntax tree makes transformations like rename deterministic rather than probabilistic.</li></ul>
+  </div>
+</section>
+<section id="refactoring-change-the-inside-preserve-the-outside-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Refactoring: change the inside, preserve the outside</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">Take a program&#x27;s internal structure and change it, while to the outside world the thing still looks exactly the same.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Refactoring changes internal structure and preserves external behaviour.</li><li>Preservation is what makes correctness checkable rather than a judgement call.</li><li>External behaviour includes side effects, errors, types and timing — not just return values.</li><li>Verifiability depends on being able to detect a behaviour change, which usually means tests.</li><li>Refactoring untested code is rewriting, whoever performs it.</li></ul></div>
+  <figure class="example">
+  <figcaption>The invariant, stated as a test</figcaption>
+  <p>This is the shape of a characterisation test: it does not assert that the behaviour is correct, only that it has not changed. For code you are about to restructure, that is exactly the right assertion, and it can be generated from recorded production inputs.</p>
+  <pre><code>@pytest.mark.parametrize(&quot;case&quot;, RECORDED_INPUTS)
+def test_behaviour_unchanged(case, snapshot):
+    result = process(case.input)
+
+    assert result == snapshot(case.id)          # same return value
+    assert case.side_effects == captured_writes()   # same writes
+    assert case.raised == captured_exceptions()     # same errors
+
+# it does not claim the behaviour is right. it claims it is the same,
+# which is the only property a refactoring is allowed to preserve.</code></pre>
+</figure>
+</section>
+<section id="why-bother-and-what-happens-if-you-do-not-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Why bother, and what happens if you do not</h2>
+      <a class="stamp" href="#" data-t="43">0:43</a>
+    </div>
+  </div>
+  <p class="summary">Readability, removing duplication, lowering complexity. Skip them long enough and it compounds into technical debt.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Readability: names that carry meaning reduce the cost of every future read.</li><li>Duplication: one copied bug becomes several, and nobody knows how many.</li><li>Complexity: a function doing six jobs is hard to test and unsafe to change.</li><li>Technical debt is the compounding cost of skipping this work.</li><li>The cost is the interest — paid by every future change, invisible in any single sprint.</li></ul></div>
+  <figure class="example">
+  <figcaption>The three canonical moves</figcaption>
+  <p>Each preserves behaviour exactly and each is mechanical enough to automate reliably — which is precisely why refactoring was the first place agentic coding tools became genuinely useful.</p>
+  <pre><code># 1. rename for readability
+-  temp2 = fetch(o.cid).st
++  customer_state = fetch(order.customer_id).state
+
+# 2. remove duplication — the same 20 lines existed in 4 files
++  def normalise_address(raw): ...
+-  &lt;the same block, inlined, four times, one of them subtly different&gt;
+
+# 3. lower complexity — one 300-line function doing six jobs
++  def validate(order): ...
++  def price(order): ...
++  def apply_discounts(order): ...
++  def charge(order): ...
+-  def process_order(order):   # 300 lines, six responsibilities</code></pre>
+</figure>
+</section>
+<section id="inline-versus-agentic-refactoring-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Inline versus agentic refactoring</h2>
+      <a class="stamp" href="#" data-t="170">2:50</a>
+    </div>
+  </div>
+  <p class="summary">One works next to you on small local edits. The other is handed a goal and works the whole codebase on its own.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Refactoring is largely pattern recognition, which is what these models do well.</li><li>Inline refactoring: small local edits in the editor, alongside the developer.</li><li>Agentic refactoring: given a goal, works the whole codebase autonomously.</li><li>Goals range from precise (&#x27;upgrade this library&#x27;) to vague (&#x27;clean up this module&#x27;).</li><li>The real difference is the review surface: continuous and implicit, versus deferred and deliberate.</li></ul></div>
+  <figure class="example">
+  <figcaption>Two tools, two working modes</figcaption>
+  <p>The last row is the one that determines how much machinery you need around the tool. A rejected inline suggestion costs a keystroke; a bad agentic change set costs a review of hundreds of files.</p>
+  <pre><code>                    inline                    agentic
+─────────────────────────────────────────────────────────────────────
+input               cursor position           a goal, in English
+scope               one expression, one file  the whole repository
+autonomy            suggests, you accept      plans and executes
+duration            instant                   minutes to hours
+context held        the current file          project and dependencies
+review              continuous, implicit      deferred, deliberate
+cost of a bad edit  one keystroke             a change set to audit</code></pre>
+</figure>
+</section>
+<section id="the-risk-a-probabilistic-system-editing-hundreds-of-files-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>The risk: a probabilistic system editing hundreds of files</h2>
+      <a class="stamp" href="#" data-t="295">4:55</a>
+    </div>
+  </div>
+  <p class="summary">It predicts likely-looking code, so it may tidy away something that looked unused but was there for a reason.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The model predicts likely-looking code; it does not know why something exists.</li><li>The leap-year example is locally correct reasoning reaching a wrong conclusion.</li><li>Watch for code reached by reflection, schedulers, queues, flags, shims and rare error paths.</li><li>The risk is not new — the volume and speed are.</li><li>The mitigation is verification before commit, not a more careful model.</li></ul></div>
+  <figure class="example">
+  <figcaption>Correct reasoning, wrong answer</figcaption>
+  <p>Reconstruct the agent&#x27;s chain and every step is defensible. The missing information was never in the repository, which is why no amount of reading the code would have prevented it — and why the loop needs steps that are not reading the code.</p>
+  <pre><code>def adjust_for_leap_year(date, term_days):
+    &quot;&quot;&quot;Contract terms crossing 29 Feb need a day added.&quot;&quot;&quot;
+    ...
+
+# the agent&#x27;s reasoning:
+#   1. grep for adjust_for_leap_year → one definition, no calls
+#   2. no tests reference it
+#   3. no imports elsewhere in the repo
+#   4. removing unused code is a valid refactoring
+#   → remove it
+
+# what it could not see:
+#   called via getattr(rules, f&quot;adjust_for_{rule_name}&quot;) in a config-driven
+#   dispatcher, where rule_name comes from a YAML file</code></pre>
+</figure>
+</section>
+<section id="the-loop-part-one-plan-read-search-report-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>The loop, part one: plan, read, search, report</h2>
+      <a class="stamp" href="#" data-t="337">5:37</a>
+    </div>
+  </div>
+  <p class="summary">Agentic refactoring manages risk by working as a cycle. The first four stages build context and produce findings rather than edits.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The loop runs plan → read → search → report, with the goal at the centre.</li><li>Plan produces an ordered list of changes and is revised as the agent learns.</li><li>Read maps structure: functions, classes and their relationships.</li><li>Search covers the rest of the project and its dependencies to find all references.</li><li>Report ranks findings by priority, each with explicit reasoning.</li><li>None of these four stages modifies anything — the output is a document.</li></ul></div>
+  <figure class="example">
+  <figcaption>The loop</figcaption>
+  <p>Read it as a cycle rather than a pipeline. A failure at verify does not abort the job — it returns to plan with new information, which is what makes the agent able to recover rather than merely stop.</p>
+  <pre><code>                        ┌──────── plan ────────┐
+                        │                      ▼
+                   verify                     read
+                        ▲                      │
+                        │        GOAL          ▼
+                    patch                    search
+                        ▲                      │
+                        │                      ▼
+                   snapshot ◄──── approve ◄── report
+                                     ▲
+                                  human
+
+# read / search / report change nothing.
+# nothing is written until after approve.</code></pre>
+</figure>
+</section>
+<section id="the-loop-part-two-approve-snapshot-patch-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>The loop, part two: approve, snapshot, patch</h2>
+      <a class="stamp" href="#" data-t="464">7:44</a>
+    </div>
+  </div>
+  <p class="summary">The human re-enters here, choosing which findings to fix. Then a snapshot is taken so everything can be undone, and only then does code change.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Human approval sits after analysis and before any modification.</li><li>The human reviews a ranked list with reasoning, not a large diff.</li><li>A snapshot is taken automatically so every change can be undone.</li><li>Patching carries the context gathered during read and search, unlike find-and-replace.</li><li>Keep change sets small — approval is worthless if the diff is too large to read.</li></ul></div>
+  <figure class="example">
+  <figcaption>Approval as a selection, not a yes/no</figcaption>
+  <p>Selecting a subset is what makes the review real. A single accept-everything button trains the human to click it, which removes the guard rail while leaving it visible in the diagram.</p>
+  <pre><code>Findings for goal: &quot;clean up billing/&quot;
+
+  [x] HIGH  charge.py:88     bare except swallows gateway timeouts
+  [x] HIGH  invoice.py:112   duplicated day-count logic (4 sites)
+  [ ] MED   refund.py:203    extract 180-line function      ← not now
+  [x] LOW   monthly.py:12    unused import
+  [ ] LOW   legacy.py:41     remove apparently unused helper ← verify first
+
+  → 3 of 5 approved. the agent patches only those.</code></pre>
+</figure>
+</section>
+<section id="verify-roll-back-and-the-ci-cd-fit-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Verify, roll back, and the CI/CD fit</h2>
+      <a class="stamp" href="#" data-t="507">8:27</a>
+    </div>
+  </div>
+  <p class="summary">The agent writes and runs tests and rebuilds the project. If a test breaks it rolls back and goes round again — which is why the whole loop fits into a pipeline.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Verify runs the tests and rebuilds the project, then shows a diff against the snapshot.</li><li>A failing test triggers rollback and another pass through the loop.</li><li>Guesses face two independent gates: human approval and automated verification.</li><li>Because verification is tests and builds, the loop fits into CI/CD like another developer.</li><li>Verification is only as strong as the test suite — add characterisation tests first where coverage is thin.</li><li>Type checks, linters, builds and contract tests are additional cheap gates.</li></ul></div>
+  <figure class="example">
+  <figcaption>Verification as a stack of independent gates</figcaption>
+  <p>Each gate catches a different class of mistake and each is cheap. On codebases where coverage is weak, the gates other than tests are what keep the floor off the ground.</p>
+  <pre><code>def verify(snapshot):
+    checks = [
+        (&quot;build&quot;,     lambda: run(&quot;make build&quot;)),        # imports, syntax
+        (&quot;types&quot;,     lambda: run(&quot;mypy .&quot;)),            # signature drift
+        (&quot;lint&quot;,      lambda: run(&quot;ruff check .&quot;)),      # obvious removals
+        (&quot;unit&quot;,      lambda: run(&quot;pytest tests/unit&quot;)), # behaviour
+        (&quot;contract&quot;,  lambda: run(&quot;pytest tests/contract&quot;)),  # external API
+    ]
+
+    for name, check in checks:
+        if not check():
+            git.reset_hard(snapshot.base)               # roll back
+            return Failure(stage=name)                  # and loop again
+
+    return Success(diff=git.diff(snapshot.base))</code></pre>
+</figure>
+</section>
+<section id="deterministic-patching-with-syntax-trees-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Deterministic patching with syntax trees</h2>
+      <a class="stamp" href="#" data-t="593">9:53</a>
+    </div>
+  </div>
+  <p class="summary">The patch step can skip probabilistic generation entirely by parsing the code into a tree and operating on its structure.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Parsing to a syntax tree makes transformations structural rather than textual.</li><li>A rename becomes: find the symbol, update every reference — correct by construction.</li><li>Text replacement cannot distinguish variables, fields, substrings and comments; a tree can.</li><li>A type-aware tree distinguishes identically named symbols on different types.</li><li>Lossless trees preserve formatting and comments, keeping diffs small and reviewable.</li><li>Let the model decide what to change; let the tree perform the change.</li></ul></div>
+  <figure class="example">
+  <figcaption>Four things text replacement cannot tell apart</figcaption>
+  <p>Every line contains the string. Only one should change. This is why mechanical refactorings performed by text substitution produce bugs that survive review — the wrong edits look exactly like the right ones.</p>
+  <pre><code>customer_state = order.state          # the variable — rename this
+shipping.state = &quot;CA&quot;                 # a different object&#x27;s field
+real_estate_value = 100               # a substring of another identifier
+# the state machine handles this      # a comment
+settings[&quot;state&quot;] = active            # a string key
+
+# sed &#x27;s/state/status/g&#x27; changes all five.
+# a tree operation changes one.</code></pre>
+</figure>
+</section>
+<section id="learning-from-accept-reject-pass-and-fail-9" class="block section">
+  <div class="section-head">
+    <span class="num">09</span>
+    <div>
+      <h2>Learning from accept, reject, pass and fail</h2>
+      <a class="stamp" href="#" data-t="635">10:35</a>
+    </div>
+  </div>
+  <p class="summary">Every approval, rejection, passing test and failing test is a training signal, so the suggestions improve over time.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Accept/reject decisions and test pass/fail results are both training signals.</li><li>The loop produces labels as a by-product of ordinary work, with no annotation effort.</li><li>Test outcomes are objective, automatic and high-volume — closer to a grader than a preference.</li><li>The signal inherits your reviewers&#x27; blind spots, including a habit of approving in bulk.</li><li>It also inherits your coverage: undetectable breakage is labelled as success.</li><li>Verification and human review are what make the capability usable, and what make it improve.</li></ul></div>
+  <figure class="example">
+  <figcaption>Labels generated by using the system</figcaption>
+  <p>Four rows, four labelled examples, and nobody was asked to annotate anything. The last row is the most informative kind: a change that looked right, was approved by a human, and was caught by the suite.</p>
+  <pre><code>finding                          approved?   patched?   tests
+──────────────────────────────────────────────────────────────────
+bare except in charge.py         yes         yes        pass    +
+duplicated day-count logic       yes         yes        pass    +
+extract 180-line function        no          —          —       −
+remove &quot;unused&quot; helper           yes         yes        FAIL    −−
+
+# the last row is worth the most: plausible, human-approved,
+# and objectively wrong. that is a hard negative you cannot buy.</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Refactoring</dt><dd>Changing a program&#x27;s internal structure while leaving its external behaviour identical.</dd></div><div class="term"><dt>External behaviour</dt><dd>Everything observable from outside: return values, types, side effects, exceptions, emitted logs and timing. What a refactoring must preserve.</dd></div><div class="term"><dt>Technical debt</dt><dd>The compounding cost of deferred cleanup, paid as interest by every future change that has to route around the mess.</dd></div><div class="term"><dt>Characterisation test</dt><dd>A test asserting that behaviour has not changed rather than that it is correct. The right instrument before refactoring untested code.</dd></div><div class="term"><dt>Inline refactoring</dt><dd>Small, local suggestions made in the editor alongside the developer, reviewed continuously as they appear.</dd></div><div class="term"><dt>Agentic refactoring</dt><dd>An autonomous agent given a goal that plans and executes changes across the whole codebase, reviewed after the fact.</dd></div><div class="term"><dt>The refactoring loop</dt><dd>Plan, read, search, report, approve, snapshot, patch, verify — with rollback on failure and another pass round.</dd></div><div class="term"><dt>Snapshot</dt><dd>The recorded starting state, in practice a branch or commit, taken automatically so any change can be undone.</dd></div><div class="term"><dt>Abstract syntax tree (AST)</dt><dd>A structural representation of parsed code. Discards formatting and comments, so regenerating source reformats the file.</dd></div><div class="term"><dt>Lossless syntax tree</dt><dd>A richer tree that preserves formatting, comments and whitespace exactly, so a transformation produces a minimal diff.</dd></div><div class="term"><dt>Deterministic patching</dt><dd>Applying a change as a tree operation rather than generating text, making transformations like rename correct by construction.</dd></div><div class="term"><dt>Dead code</dt><dd>Code with no reachable callers. Hard to establish statically, because reflection, schedulers, flags and config can reach it invisibly.</dd></div><div class="term"><dt>Training signal</dt><dd>An outcome usable as a label. Here: whether a finding was approved, and whether the resulting patch passed the tests.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why does refactoring&#x27;s definition — internal change, external behaviour preserved — make it a good first target for autonomous AI tools?</summary>
+  <div class="answer"><p>Because the success criterion is mechanically checkable. You are not asking whether the new code is good, only whether it behaves identically, and tests, types and builds can answer that automatically. A task with an automatic correctness check is one where a probabilistic system can be allowed to guess, because the guess gets verified before it counts.</p></div>
+</details><details class="q">
+  <summary>The agent removed a function with no callers, no tests and no imports, and it was needed. Where exactly did the reasoning fail?</summary>
+  <div class="answer"><p>It did not fail. Every step was locally correct; the justification for keeping the function existed outside the repository, in a config-driven dispatcher or an incident three years ago. That is why the loop needs stages beyond reading code — searching dependencies and dynamic references, plus a human who might recognise the name.</p></div>
+</details><details class="q">
+  <summary>Why does human approval sit between the report and the patch rather than after the patch?</summary>
+  <div class="answer"><p>Because it puts the review before the irreversible step, and it makes the review a ranked list with reasoning rather than a diff across hundreds of files. The expensive autonomous analysis happens unsupervised, which is fine because it changes nothing; the human&#x27;s attention is spent only on the decision that has consequences.</p></div>
+</details><details class="q">
+  <summary>Your module has 21% coverage. Why does a passing verify stage prove almost nothing, and what should happen first?</summary>
+  <div class="answer"><p>Verification detects behaviour changes only where tests observe behaviour, so most of the module&#x27;s behaviour could change without any test noticing. The correct sequence is two separate reviewed changes: first the agent writes characterisation tests capturing current behaviour, which a human reviews; then it refactors against them. PR 1 is easy to review precisely because nothing behavioural changed in it.</p></div>
+</details><details class="q">
+  <summary>Why is renaming a variable via a lossless syntax tree better than a careful find-and-replace, even when the replacement is scoped to one file?</summary>
+  <div class="answer"><p>Because text has no idea what any occurrence is. The same string appears as your variable, as a different object&#x27;s field, inside a longer identifier, in a comment and as a dictionary key — and the wrong edits look exactly like the right ones in review. A tree operates on identifier nodes, so it changes only the symbol, and a lossless tree keeps the rest of the file byte-identical so the diff shows nothing else.</p></div>
+</details><details class="q">
+  <summary>The loop generates training signals from approvals and test results. What does that signal inherit that you should audit?</summary>
+  <div class="answer"><p>Your review culture and your coverage. If reviewers approve in bulk, the model learns that most proposals are acceptable and proposes more of the same. If coverage is thin, patches that break untested behaviour are labelled as successes, teaching the model that undetectable breakage is fine. Both failure modes reinforce themselves.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Take a module you are afraid to change, have an agent write characterisation tests against its current behaviour, and read them — the tests alone usually reveal behaviour nobody knew was there.</li><li>Write a libcst transformer for a mechanical migration you have been putting off, and compare its diff against what a text-based script produces on the same repository.</li><li>Run an agentic refactoring with a deliberately vague goal on a scratch branch and read the report without approving anything; the findings tell you as much about the codebase as about the tool.</li><li>Audit your repository against the dead-code checklist and count how many entry points are invisible to static analysis — the number determines how much you can trust automated deletions.</li><li>Wire the loop into CI on a schedule with a hard cap on findings per run, and measure how many of its pull requests get merged unchanged over a month.</li><li>Compare the diff size of an AST-based transformation against a lossless-tree one on the same change, and notice how much reviewability depends on that difference.</li><li>Read Fowler&#x27;s *Refactoring* for the catalogue of named transformations — agentic tools implement these, and knowing the names makes their reports far easier to evaluate.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

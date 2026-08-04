@@ -1,0 +1,366 @@
+{
+  "video_url": "https://www.youtube.com/watch?v=UabBYexBD4k",
+  "channel": "IBM Technology",
+  "lesson": {
+    "title": "RAG or Long Context: How to Get Data Into a Model",
+    "subtitle": "Decide between retrieval and stuffing the context window using cost, recall and data size rather than fashion.",
+    "topic": "LLM context architecture",
+    "difficulty": "Advanced",
+    "audience": "engineers designing the data path into an LLM application",
+    "overview": "Language models are frozen in time. They know the world up to their training cutoff and nothing about what happened five minutes ago, nor anything about your internal wikis or proprietary codebase. Every application that needs current or private data therefore has to solve the same problem: get the right data into the model at the right time. This is context injection.\n\nThere are two answers. RAG is the engineering answer — chunk your documents, embed them, store the vectors, search at query time, inject the best matches. Long context is the brute-force answer — put the documents into the prompt and let the model's attention mechanism find what matters. For years the second was impossible because context windows were tiny. They are not tiny any more, which is why the question is live.\n\nThe honest answer is that the two fail in different places, and which failure you can afford decides the architecture. RAG can silently fail to retrieve the answer that was sitting right there. Long context makes you pay to re-read everything on every query, dilutes attention as it grows, and hits a hard ceiling long before enterprise data does. Neither is dead; they cover different regimes.",
+    "key_takeaways": [
+      "Context injection is the shared problem: a frozen model needs current or private data supplied at query time.",
+      "RAG chunks and embeds documents ahead of time, then retrieves the closest matches per query and injects them.",
+      "Long context skips the retrieval stack entirely and lets the attention mechanism do the finding.",
+      "Long context collapses the infrastructure — no chunking strategy, no embedding model, no vector store, no reranker, no sync.",
+      "RAG's characteristic failure is silent: the answer existed in the data but retrieval never surfaced it, and nothing reports an error.",
+      "RAG cannot answer questions about what is absent, because it retrieves what exists and never sees the gap between two documents.",
+      "Long context re-pays the processing cost on every query; RAG pays it once at index time, and prompt caching only helps for static prefixes.",
+      "Attention dilutes as context grows, so more context is not monotonically better — and enterprise data will never fit regardless."
+    ],
+    "prerequisites": [
+      "What a context window is and that it is finite",
+      "A basic idea of embeddings and vector search",
+      "Comfort reading Python"
+    ],
+    "sections": [
+      {
+        "title": "The problem both approaches solve",
+        "timestamp": "0:00",
+        "summary": "Models are frozen at their training cutoff and have never seen your private data. Everything else follows from that.",
+        "explanation": "There is a fundamental truth about large language models: they are frozen in time. They know a great deal about the world up until their training cutoff and absolutely nothing about what happened five minutes ago. They also know nothing about your private data — your internal wikis, your proprietary codebase, your ticket history.\n\nSo any application that needs current or private information has to solve the same problem, which is worth naming precisely: context injection. How do you get the right data into the model at the right time?\n\nBoth candidate answers put the data in the same place. It ends up in the context window, as text, alongside the user's question. The difference is entirely in how it gets selected. RAG selects a small relevant subset before the call. Long context declines to select and sends everything. That is the whole disagreement, and framing it this way makes the trade-off visible: you are choosing between the risk of selecting wrongly and the cost of not selecting at all.",
+        "key_points": [
+          "Models know nothing past their training cutoff and nothing private to you.",
+          "Context injection is the shared problem: right data, right time, into the prompt.",
+          "Both approaches deliver the data as text in the context window.",
+          "They differ only in whether a selection step happens before the call.",
+          "The trade is the risk of selecting wrongly against the cost of sending everything."
+        ],
+        "examples": [
+          {
+            "title": "The same call, two ways of filling it",
+            "description": "The model sees a prompt either way. The question is what went into the placeholder — four retrieved chunks, or the entire corpus.",
+            "code": "# RAG: a selection step runs first\ncontext = retrieve(question, k=5)          # ~2,000 tokens\n\n# long context: no selection\ncontext = open(\"manual.txt\").read()        # ~250,000 tokens\n\n# identical from here on\nmodel.generate(f\"Context:\\n{context}\\n\\nQuestion: {question}\")"
+          }
+        ]
+      },
+      {
+        "title": "RAG: the engineering approach",
+        "timestamp": "0:43",
+        "summary": "Chunk the documents, embed them, store the vectors, search semantically at query time, inject the winners.",
+        "explanation": "Ahead of time, you take the documents you want the model to have — PDFs, code files, entire books — and chunk them, breaking them into smaller pieces. Those chunks pass through an embedding model, which turns each one into a vector. The vectors go into a dedicated vector database.\n\nThen, when a user asks a question, the system performs a semantic search to find the most relevant chunks and injects them into the context window. The window now holds the user's prompt plus the retrieved chunks, and together they form the input the model actually receives.\n\nThis works. But notice what it rests on: the hope that your retrieval logic actually found the right information. Everything downstream is conditioned on that step. The model cannot answer from a chunk it was never given, and it has no way to know that a better chunk existed. Retrieval quality is not one component's quality among several — it is a ceiling on the whole system.",
+        "key_points": [
+          "Indexing happens ahead of time: chunk, embed, store.",
+          "Query time is: embed the question, search, inject the top matches.",
+          "The context window ends up holding the prompt plus the retrieved chunks.",
+          "The entire system is conditioned on retrieval having found the right chunks.",
+          "The model cannot know that a better chunk existed and was not retrieved."
+        ],
+        "examples": [
+          {
+            "title": "The indexing pipeline, once per document",
+            "description": "Four stages, all offline. The chunking strategy is a real decision — fixed size, sliding window, or recursive splitting on structure — and it is made before you know what anyone will ask.",
+            "code": "def index(document, store):\n    chunks = chunk(document.text, size=800, overlap=100)\n    vectors = embed_batch(chunks)                  # one forward pass per chunk\n\n    store.upsert([\n        {\"doc_id\": document.id, \"text\": c, \"vector\": v}\n        for c, v in zip(chunks, vectors)\n    ])\n\n# runs once per document, not per query — this is the whole point"
+          },
+          {
+            "title": "The query path",
+            "description": "One embedding call and one search, then an ordinary generation. The `k` is doing a lot of work: it is simultaneously your cost control and your recall ceiling.",
+            "code": "def answer(question, store, k=5):\n    hits = store.search(embed(question), k=k)\n\n    context = \"\\n\\n\".join(f\"[{i+1}] {h.text}\" for i, h in enumerate(hits))\n    return model.generate(\n        f\"Answer from the context only.\\n\\n\"\n        f\"<context>\\n{context}\\n</context>\\n\\n{question}\"\n    )"
+          }
+        ]
+      },
+      {
+        "title": "Long context: the model-native approach",
+        "timestamp": "2:10",
+        "summary": "Skip the database and the embedding model. Put the documents in the prompt and let attention do the heavy lifting.",
+        "explanation": "The second approach is more brute force. You skip the vector database. You skip the embedding model. You take your documents and put them straight into the context window, then let the model's attention mechanism do the work of finding the answer.\n\nThis is the model-native solution in a real sense: attention is already a relevance-weighting mechanism. Every layer computes how much each part of the input should influence every other part. Retrieval is doing an approximate, external, one-shot version of something the model does internally, exactly, at every layer.\n\nFor a long time this was not an option, because context windows were too small to hold anything useful. That constraint is what created the RAG architecture in the first place — it was never chosen on its merits over long context, because long context did not exist as a choice.",
+        "key_points": [
+          "No embedding model, no vector store, no retrieval step.",
+          "The attention mechanism performs relevance weighting internally, at every layer.",
+          "Retrieval is an approximate external version of what attention already does.",
+          "RAG originated as a workaround for small context windows, not as the better design.",
+          "The model sees everything, so there is nothing for a selection step to miss."
+        ],
+        "examples": [
+          {
+            "title": "The no-stack stack",
+            "description": "The same capability, minus five components. Every box removed is a box that cannot break, drift out of sync, or need capacity planning.",
+            "code": "RAG                                long context\n────────────────────────────────────────────────────\nchunking strategy                  —\nembedding model                    —\nvector database                    —\nreranker                           —\nindex sync pipeline                —\nretrieval logic                    —\n                                   read the files\nmodel call                         model call"
+          },
+          {
+            "title": "The whole implementation",
+            "description": "Not a simplification for teaching — this really is the entire data path. That is the argument in its strongest form.",
+            "code": "docs = \"\\n\\n\".join(p.read_text() for p in Path(\"corpus\").glob(\"*.md\"))\n\nanswer = model.generate(f\"{docs}\\n\\nQuestion: {question}\")"
+          }
+        ]
+      },
+      {
+        "title": "What changed: three orders of magnitude",
+        "timestamp": "2:50",
+        "summary": "Early context windows held about 4K tokens. Today's frontier models handle a million and more, which is what makes the question worth asking.",
+        "explanation": "Initially context windows were tiny. Early models could hold somewhere around 4K tokens — you could not fit a novel in there, let alone a corporate knowledge base. You basically had to use RAG. There was no debate to have.\n\nToday's models routinely handle far more, with some at a million tokens and beyond. A million tokens is roughly 700,000 words: you could fit the entire Lord of the Rings series into the prompt and still have room for The Hobbit.\n\nThat jump forces a genuine architectural question. If you can select all your documentation and paste it into the context window, do you really need the overhead of embedding models and vector stores? Is RAG an unnecessary complexity layer that outlived the constraint that produced it?\n\nBe careful with the units when reasoning about this. Tokens are not words and not characters — roughly three-quarters of a word for English prose, and considerably worse for code, JSON, tables and non-Latin scripts, where a single word can cost several tokens. Estimating your corpus in words will understate it, sometimes by a lot. Count tokens with the actual tokenizer before concluding that everything fits.",
+        "key_points": [
+          "Early windows around 4K tokens made RAG mandatory rather than chosen.",
+          "Frontier models now reach a million tokens and beyond.",
+          "A million tokens is roughly 700,000 words of English prose.",
+          "Tokens are not words: code, JSON and non-Latin text are far denser.",
+          "Measure your corpus with a real tokenizer before assuming it fits."
+        ],
+        "examples": [
+          {
+            "title": "Measure, do not estimate",
+            "description": "The rule of thumb is fine for prose and misleading for everything else. Run this over your actual corpus — teams are routinely surprised by a factor of two on codebases and structured data.",
+            "code": "import tiktoken\nenc = tiktoken.get_encoding(\"cl100k_base\")\n\ntotal = 0\nfor path in Path(\"corpus\").rglob(\"*\"):\n    if path.is_file():\n        n = len(enc.encode(path.read_text(errors=\"ignore\")))\n        total += n\n        print(f\"{n:>9,}  {path}\")\n\nprint(f\"{total:>9,}  TOTAL\")\nprint(f\"fits in a 1M window: {total < 1_000_000}\")"
+          },
+          {
+            "title": "Density varies more than people expect",
+            "description": "Approximate ratios, not measurements — the point is the spread. A corpus that is 'only 200,000 words' can be well past a million tokens if it is mostly JSON.",
+            "code": "English prose      ~0.75 words per token   → 1M tokens ≈ 700k words\nsource code        denser: punctuation and identifiers split aggressively\nJSON / tables      denser still: braces, quotes and keys repeat constantly\nnon-Latin scripts  often several tokens per character"
+          }
+        ]
+      },
+      {
+        "title": "The case for long context: no stack, and no retrieval lottery",
+        "timestamp": "4:20",
+        "summary": "Two arguments. You delete most of the architecture, and you delete the failure mode that never announces itself.",
+        "explanation": "The first argument is infrastructure collapse. A production RAG system is heavy. You need a chunking strategy — fixed size, sliding window, recursive, you decide, and the decision matters. You need an embedding model to encode the data. You need a vector database to store it. You need a reranker to sort the results. You need to keep all the vectors in sync with the source data. That is a lot of moving parts and a lot of places for things to break. Long context removes the database, the embeddings and the retrieval logic; the architecture simplifies down to fetching the data and sending it.\n\nThe second argument is sharper. RAG introduces a critical point of failure at the retrieval step itself. Semantic search compares vectors and returns the closest matches, and it is probabilistic. For all sorts of reasons it can fail to surface the relevant document. This has a name: silent failure. The answer existed in the data, but the model never saw it, because retrieval did not return it.\n\nSilent is the operative word. Nothing raises an exception. No error is logged. The model receives four plausible-looking chunks, none of which contain the answer, and produces a confident response built from them. From the outside it looks exactly like a model that does not know something. With long context there is no retrieval step, so this failure mode simply does not exist — the model gets to see everything.",
+        "key_points": [
+          "A production RAG system is chunking, embedding, storage, reranking and sync — five things that can break.",
+          "Long context reduces the data path to reading files and calling the model.",
+          "Semantic search is probabilistic and can miss documents that are present.",
+          "Silent failure: the answer existed, retrieval missed it, nothing reported an error.",
+          "With no retrieval step, long context cannot fail this way at all."
+        ],
+        "examples": [
+          {
+            "title": "What a silent failure looks like from the outside",
+            "description": "This is the entire problem. Both paths return a fluent answer and a 200 status. The only way to tell them apart is to already know the answer — which is why silent failure needs a deliberate measurement rather than monitoring.",
+            "code": "question: \"What is the escalation path for a P1 outage after midnight?\"\n\nretrieved:\n  [1] \"Escalation policy overview ...\"        ← topical, wrong section\n  [2] \"P2 and P3 handling during business...\" ← topical, wrong severity\n  [3] \"On-call rotation calendar ...\"         ← topical, no procedure\n\nanswer: fluent, confident, wrong\nlogs:   no errors\nstatus: 200 OK\n\n# the correct paragraph was chunk #4,912 and scored 6th"
+          },
+          {
+            "title": "Measuring recall so failure stops being silent",
+            "description": "Build a set of questions whose answers you can point at in the corpus, then check whether retrieval actually returns them. This converts an invisible failure into a number you can watch. Without it you have no idea what your ceiling is.",
+            "code": "GOLD = [\n    (\"escalation path for P1 after midnight\", \"runbook.md#after-hours\"),\n    (\"how do we rotate the signing key\",      \"security.md#key-rotation\"),\n]\n\ndef recall_at_k(store, k):\n    hits = sum(\n        any(h.source == expected for h in store.search(embed(q), k=k))\n        for q, expected in GOLD\n    )\n    return hits / len(GOLD)\n\nfor k in (1, 3, 5, 10, 25):\n    print(f\"recall@{k:<3} {recall_at_k(store, k):.0%}\")\n\n# whatever this tops out at is the ceiling on your whole system"
+          }
+        ]
+      },
+      {
+        "title": "The whole-book problem: reasoning about what is absent",
+        "timestamp": "5:43",
+        "summary": "RAG retrieves what exists. Some questions are about what is missing, and no snippet contains a gap.",
+        "explanation": "This is the most interesting argument against retrieval, because it is structural rather than a matter of tuning. RAG is fundamentally designed to retrieve what exists. It finds a semantic match between your query and a specific snippet of text in the database.\n\nSo consider a corpus with a product requirements document and a set of release notes, and the question: which security requirements were omitted from the final release? Query for omitted security requirements and the vector search looks for chunks discussing security and requirements. It retrieves snippets from the requirements doc. It retrieves snippets from the release notes. But it cannot retrieve the gap between them, because the gap is not text and has no embedding.\n\nBecause RAG shows the model only a few isolated snapshots, the model never sees the full picture needed to spot what is missing. Answering the question requires holding both documents in full and comparing them — which is exactly what long context does by putting the whole requirements doc and the whole release notes into the window.\n\nThe generalisation is worth carrying around: retrieval is a poor fit whenever the answer is a property of the corpus as a whole rather than a passage within it. Absences, counts, exhaustive comparisons, 'how many', 'which ones never', 'what is inconsistent between'. If no single passage could contain the answer, top-k retrieval cannot find it, no matter how good the embeddings are.",
+        "key_points": [
+          "RAG matches queries to passages, and a gap is not a passage.",
+          "Questions about omissions require seeing both documents in full.",
+          "Isolated snippets cannot support a global comparison.",
+          "The same limit applies to counting, exhaustiveness and cross-document consistency.",
+          "If no single passage could contain the answer, top-k retrieval structurally cannot find it."
+        ],
+        "examples": [
+          {
+            "title": "Why the retrieval succeeds and the answer still fails",
+            "description": "Retrieval did its job here — the chunks are genuinely relevant. That is what makes this failure different from silent failure and impossible to fix by improving the embeddings.",
+            "code": "question: \"which security requirements were omitted from the final release?\"\n\nretrieved:\n  [1] requirements.md  \"3.4 All API endpoints shall enforce rate limiting...\"\n  [2] requirements.md  \"3.7 Session tokens shall expire after 30 minutes...\"\n  [3] release-notes.md \"Added rate limiting to public endpoints.\"\n  [4] release-notes.md \"Improved session handling performance.\"\n\n# every chunk is relevant. the answer — that 3.7 was never implemented —\n# is in the *absence* of a matching release note, which no chunk contains."
+          },
+          {
+            "title": "The question shape that decides the architecture",
+            "description": "A quick test before choosing. If you can imagine highlighting a passage that answers the question, retrieval can work. If the answer only emerges from surveying everything, it cannot.",
+            "code": "answerable from one passage        → retrieval works\n  \"what is the session timeout?\"\n  \"how do I rotate the signing key?\"\n\nanswerable only from the whole     → needs the full documents\n  \"which requirements were dropped?\"\n  \"how many endpoints lack rate limiting?\"\n  \"where do these two specs contradict each other?\"\n  \"summarise the argument of this book\""
+          }
+        ]
+      },
+      {
+        "title": "The case for RAG: you pay to re-read, every single time",
+        "timestamp": "7:53",
+        "summary": "Long context creates a compute inefficiency that scales with traffic. RAG pays the processing cost once, at indexing time.",
+        "explanation": "Take a 500-page manual. As tokens that is somewhere around 250,000. With long context you put it in the prompt, which means the model processes that entire manual on every single user query. Ten thousand queries, ten thousand full readings of the same unchanged document.\n\nRAG also has to process that manual, but it pays that cost once, at indexing time. After that, each query processes a few thousand tokens of retrieved chunks. The asymmetry compounds with traffic: long context's cost is proportional to corpus size times query volume, while RAG's is corpus size plus a small amount times query volume.\n\nPrompt caching partially offsets this. If the long prefix is identical across requests, providers can cache the processed representation and charge less for the cached portion. That genuinely helps for static data. But it depends on the prefix being byte-identical and on the cache still being warm, and it does nothing for dynamic data streams where content changes frequently — there you are stuck paying the full tax on every request. It also constrains your prompt layout: anything that varies must come after everything that does not, or the cache misses on every call.",
+        "key_points": [
+          "A 500-page manual is roughly 250,000 tokens, re-processed on every long-context query.",
+          "RAG pays the processing cost once at index time, then a few thousand tokens per query.",
+          "Long-context cost scales as corpus size × query volume; RAG as corpus size + small × volume.",
+          "Prompt caching offsets this only for stable, byte-identical prefixes that stay warm.",
+          "Frequently changing content invalidates the cache and restores the full cost."
+        ],
+        "examples": [
+          {
+            "title": "Where the two curves cross",
+            "description": "Rates are placeholders — substitute your provider's current numbers, since they change. What does not change is the shape: long context is dominated by a term that multiplies corpus size by traffic, and RAG is not.",
+            "code": "CORPUS_TOKENS = 250_000\nRETRIEVED     = 3_000\nIN_RATE       = 3.00 / 1_000_000     # per input token\nEMBED_RATE    = 0.02 / 1_000_000\n\ndef long_context(queries, cache_hit_rate=0.0):\n    effective = CORPUS_TOKENS * (1 - cache_hit_rate * 0.9)  # cached ≈ 10% cost\n    return queries * effective * IN_RATE\n\ndef rag(queries):\n    index_once = CORPUS_TOKENS * EMBED_RATE\n    return index_once + queries * RETRIEVED * IN_RATE\n\nfor q in (100, 1_000, 10_000, 100_000):\n    print(f\"{q:>7,}  long={long_context(q):>9.2f}  \"\n          f\"cached={long_context(q, 0.9):>8.2f}  rag={rag(q):>8.2f}\")"
+          },
+          {
+            "title": "Prompt caching dictates prompt layout",
+            "description": "Caching keys on an exact prefix. Put anything variable — a timestamp, a user ID, the question — before the bulk content and every request misses. This ordering is the single most common reason teams see no benefit from caching they believe they enabled.",
+            "code": "# cache misses every time: the prefix changes on every request\nprompt = f\"Time: {now()}\\nUser: {user_id}\\n\\n{manual}\\n\\n{question}\"\n\n# cache hits: the stable bulk comes first, variables last\nprompt = f\"{manual}\\n\\nTime: {now()}\\nUser: {user_id}\\n\\n{question}\"\n#          └─── cacheable prefix ───┘└──── varies per request ────┘"
+          }
+        ]
+      },
+      {
+        "title": "The case for RAG: attention dilutes as context grows",
+        "timestamp": "8:36",
+        "summary": "There is an intuitive assumption that data in the window will be used. Research suggests otherwise.",
+        "explanation": "The assumption is that if the data is in the context window, the model will probably use it. In practice that holds less well than it sounds. As the window grows — a hundred thousand tokens, five hundred thousand — the attention mechanism gets diluted. Ask a specific question about a single paragraph buried in the middle of a two-thousand-page document and the model often fails to surface it, or hallucinates details from the surrounding text.\n\nRAG inverts this by giving the model less. Retrieve the top five relevant chunks and you have removed the haystack and handed over just the needles. The model is forced to focus on signal rather than noise, and precision on that specific question typically goes up rather than down.\n\nThis is why 'more context is better' is wrong as a general rule. Context is not free even when it fits and even when you are willing to pay for it: irrelevant material competes for attention with relevant material. Which produces a genuinely counter-intuitive practice — pruning context can improve accuracy, and if you are not measuring, you will not notice that your 400,000-token prompt performs worse than the 8,000-token version of the same request.\n\nSo test it rather than assuming either way. Build a needle-in-a-haystack evaluation over your own corpus and your own question types, place known facts at varying depths, and measure retrieval accuracy as a function of context length and position. The behaviour differs between models and changes between versions.",
+        "key_points": [
+          "Attention dilutes as context length grows; presence in the window does not guarantee use.",
+          "Facts buried mid-document are the hardest to surface, and failures can look like hallucination.",
+          "Retrieving the top chunks removes the haystack and hands the model the needles.",
+          "More context can lower accuracy — irrelevant tokens compete with relevant ones.",
+          "Measure position and length effects on your own data; behaviour varies by model and version."
+        ],
+        "examples": [
+          {
+            "title": "A needle-in-a-haystack test for your own corpus",
+            "description": "Insert a fact the model cannot know, at a controlled depth, then ask for it. Sweep length and depth to map where your accuracy falls off — that boundary is what tells you how much context you can actually rely on.",
+            "code": "NEEDLE = \"The internal codename for the Q3 migration is BLUE HERON.\"\nQUESTION = \"What is the internal codename for the Q3 migration?\"\n\ndef trial(filler_tokens, depth_fraction):\n    filler = make_filler(filler_tokens)\n    cut = int(len(filler) * depth_fraction)\n    haystack = filler[:cut] + NEEDLE + filler[cut:]\n\n    out = model.generate(f\"{haystack}\\n\\n{QUESTION}\")\n    return \"BLUE HERON\" in out.upper()\n\nfor length in (10_000, 50_000, 200_000, 500_000):\n    row = [trial(length, d) for d in (0.1, 0.3, 0.5, 0.7, 0.9)]\n    print(f\"{length:>7,}  \" + \"  \".join(\"ok \" if r else \"MISS\" for r in row))"
+          },
+          {
+            "title": "Less context, better answer",
+            "description": "The same question against the same corpus, two ways. This is the result people find hardest to believe until they measure it on their own data.",
+            "code": "full document in context     : 480,000 tokens\n  → answer draws on a similar passage 200 pages away, states the wrong figure\n\ntop-5 retrieved chunks       :   3,200 tokens\n  → answer quotes the correct paragraph\n\n# 150x less input, and correct instead of wrong"
+          }
+        ]
+      },
+      {
+        "title": "The case for RAG: the infinite dataset",
+        "timestamp": "9:19",
+        "summary": "A million-token window sounds enormous until you compare it to an enterprise data lake measured in terabytes.",
+        "explanation": "A context window of millions of tokens sounds like a lot. In the scheme of enterprise data it is a drop in the bucket. An enterprise data lake is measured in terabytes, sometimes petabytes. There is no context window on any roadmap that closes that gap, and the gap is growing at least as fast as window sizes are.\n\nSo if you need a system that can answer over everything the organisation knows, you need a retrieval layer that filters the corpus down to something that fits. That is not a limitation of the current generation of models to be waited out — it is a structural relationship between how much data organisations accumulate and how much any single forward pass can process.\n\nThe useful reframing is that this argument is about the shape of your data, not its absolute size. A bounded corpus — one contract, one book, one codebase, one incident's logs — can fit, and the long-context arguments apply in full. An unbounded corpus cannot, will not, and the question of whether it fits today is the wrong question, because the answer changes with every document anyone adds.",
+        "key_points": [
+          "Enterprise data lakes are measured in terabytes or petabytes; windows are measured in millions of tokens.",
+          "The gap is structural and is not closing.",
+          "Answering over everything requires a filtering layer that reduces the corpus to what fits.",
+          "The deciding property is whether the corpus is bounded, not how large it is right now.",
+          "A bounded corpus that fits today may not be bounded — check growth, not just current size."
+        ],
+        "examples": [
+          {
+            "title": "Bounded or unbounded is the real question",
+            "description": "Ask what the corpus looks like in two years rather than what it looks like now. Anything that grows with usage — tickets, logs, messages, commits — is unbounded and needs retrieval regardless of today's measurement.",
+            "code": "bounded, fits, stays fitting        unbounded, will never fit\n──────────────────────────────────────────────────────────────\none legal contract                  every contract the firm has\none book                            the company wiki\none service's source                the monorepo\none incident's logs                 all logs, all time\na product spec + release notes      the ticket system"
+          },
+          {
+            "title": "The hybrid most production systems converge on",
+            "description": "Retrieval as a coarse filter rather than a precise selector. Retrieve generously to make silent failure unlikely, then let attention do the fine-grained work on a corpus small enough that dilution has not set in. This captures most of both arguments.",
+            "code": "def answer(question, store):\n    # coarse: cut terabytes down to something that fits, with slack\n    candidates = store.search(embed(question), k=60)\n\n    # fine: let attention pick within a manageable window\n    context = \"\\n\\n\".join(c.text for c in candidates)   # ~40k tokens\n\n    return model.generate(\n        f\"<context>\\n{context}\\n</context>\\n\\nQuestion: {question}\"\n    )\n\n# high k → silent failure becomes unlikely\n# bounded context → attention stays sharp"
+          }
+        ]
+      },
+      {
+        "title": "Choosing",
+        "timestamp": "10:05",
+        "summary": "Bounded data plus global reasoning favours long context. Unbounded enterprise knowledge still requires a vector database.",
+        "explanation": "If your problem involves a bounded dataset and requires complex global reasoning — analysing a specific legal contract, summarising a book, comparing two specifications in full — long context is the way to go. It simplifies the stack and it improves the reasoning, because the model sees the whole object rather than fragments of it.\n\nIf you are navigating the effectively infinite dataset of enterprise knowledge, the vector database remains the only viable warehouse. There is nothing to debate; the data does not fit.\n\nMost real systems land between these, which is why the hybrid pattern has become standard: retrieve broadly to reduce an unbounded corpus to a bounded one, then hand the model enough context to reason globally over what survived. You get retrieval's scalability with much of long context's robustness, and you tune one dial — how much you retrieve — against measured recall and measured dilution.\n\nWhichever you choose, the decision is only defensible if you measured. Recall on a gold set tells you what retrieval is missing. A needle test tells you where attention stops being reliable. Cost per query at your actual traffic tells you what the architecture bills. Without those three numbers you are choosing by fashion, and both fashions have been wrong within the last two years.",
+        "key_points": [
+          "Bounded corpus plus global reasoning → long context.",
+          "Unbounded enterprise knowledge → retrieval, non-negotiably.",
+          "The common middle ground is retrieve-broadly-then-reason, tuned by k.",
+          "Three measurements decide it: recall on a gold set, needle accuracy by length, cost at real traffic.",
+          "Both defaults have been wrong recently; measure rather than following the trend."
+        ],
+        "examples": [
+          {
+            "title": "The decision, on one screen",
+            "description": "Work down the column that matches your corpus. Most of the disagreement about RAG comes from people arguing from different rows without saying which.",
+            "code": "                        long context            RAG\n─────────────────────────────────────────────────────────────────\ncorpus                  bounded                 unbounded\nquestion type           global / comparative    passage-level\ncost driver             tokens x every query    one-off indexing\ncharacteristic failure  attention dilution      silent retrieval miss\ninfrastructure          none                    embed + store + sync\nfreshness               re-read the file        re-index the document\nanswers \"what is        yes                     no\n  missing?\"\nscales to a data lake   no                      yes"
+          },
+          {
+            "title": "The three numbers to collect before deciding",
+            "description": "Cheap to produce and they end the argument. Teams that skip them tend to re-litigate the architecture every six months as the fashion swings.",
+            "code": "1. recall@k on 30–50 gold questions with known source passages\n     → the ceiling on any RAG design you build\n\n2. needle accuracy at your realistic context lengths and depths\n     → where long context stops being trustworthy for your data\n\n3. cost and p95 latency per query at projected traffic, both ways\n     → which one you can actually afford to run"
+          }
+        ]
+      }
+    ],
+    "glossary": [
+      {
+        "term": "Context injection",
+        "definition": "Getting the right external data into a model's prompt at query time, so it can answer about things outside its training data."
+      },
+      {
+        "term": "Context window",
+        "definition": "The maximum number of tokens a model can process in one call, covering the prompt and the generated output together."
+      },
+      {
+        "term": "Chunking",
+        "definition": "Splitting documents into smaller passages before embedding. Strategies include fixed size, sliding window and recursive splitting on structure."
+      },
+      {
+        "term": "Embedding model",
+        "definition": "A model that converts text into a vector whose position encodes meaning, so similar passages sit near each other."
+      },
+      {
+        "term": "Vector database",
+        "definition": "Storage built for fast nearest-neighbour search over embeddings, plus the indexing and sync machinery around it."
+      },
+      {
+        "term": "Semantic search",
+        "definition": "Ranking documents by vector similarity to the query rather than by shared keywords, so meaning matches even when wording differs."
+      },
+      {
+        "term": "Silent failure",
+        "definition": "When retrieval misses a document that contained the answer. No error is raised — the model simply answers from the wrong material, confidently."
+      },
+      {
+        "term": "Reranker",
+        "definition": "A second-stage model that re-scores retrieved candidates more accurately than vector similarity, usually over a shortlist."
+      },
+      {
+        "term": "Long context",
+        "definition": "Placing whole documents directly in the prompt and letting the attention mechanism locate what matters, with no retrieval step."
+      },
+      {
+        "term": "Prompt caching",
+        "definition": "Reusing a provider's processed representation of an identical prompt prefix across requests, cutting the cost of the repeated portion."
+      },
+      {
+        "term": "Needle in a haystack",
+        "definition": "A test that plants a known fact at a controlled depth in a long context and checks whether the model can retrieve it."
+      },
+      {
+        "term": "Attention dilution",
+        "definition": "The degradation in a model's ability to focus on a specific passage as the surrounding context grows."
+      },
+      {
+        "term": "recall@k",
+        "definition": "The fraction of questions for which the correct source passage appears in the top k retrieved results. The ceiling on a RAG system's accuracy."
+      },
+      {
+        "term": "Token",
+        "definition": "The unit a model actually processes — a word fragment. Roughly three-quarters of a word for English prose, and much denser for code or JSON."
+      }
+    ],
+    "quiz": [
+      {
+        "question": "Why is a retrieval miss described as a silent failure, and what does that imply about monitoring?",
+        "answer": "Because nothing errors: retrieval returns plausible chunks, the model answers fluently from them, and the response is a 200 with no warning. Standard monitoring cannot see it, since there is no failure signal to alert on. The only way to detect it is a gold set of questions with known source passages and a recall@k measurement run deliberately."
+      },
+      {
+        "question": "Retrieval returns four chunks that are all genuinely relevant, yet the system still cannot answer 'which requirements were dropped from the release?'. Why is better embedding not the fix?",
+        "answer": "The answer is an absence, and an absence is not a passage — there is no text anywhere in the corpus that says a requirement was omitted, so no embedding can point at it. The question requires holding both documents in full and comparing them. This is a structural limit of passage retrieval, not a quality problem."
+      },
+      {
+        "question": "A team enables prompt caching for a long-context application and sees no cost reduction. What is the most likely cause?",
+        "answer": "Something variable sits at the front of the prompt — a timestamp, a session ID, the question itself — so the cacheable prefix differs on every request and the cache misses every time. Caching keys on an exact prefix, so all stable bulk content must come first and everything variable must come last."
+      },
+      {
+        "question": "Why can adding more relevant-looking context to a prompt make answers worse rather than better?",
+        "answer": "Attention dilutes as context grows: irrelevant material competes with relevant material for the model's focus, and a fact buried mid-document can be missed or blended with surrounding text. This is why retrieving the top few chunks often beats supplying everything, even when everything fits and you are willing to pay for it."
+      },
+      {
+        "question": "Your corpus is 400,000 tokens today and fits comfortably in the window. Why might retrieval still be the right architecture?",
+        "answer": "Because the deciding property is whether the corpus is bounded, not its size right now. If it grows with usage — tickets, logs, commits, messages — today's fit is temporary, and rebuilding the data path later is far more expensive than building retrieval now. Ask what it looks like in two years."
+      },
+      {
+        "question": "Why does the hybrid pattern — retrieve fifty chunks, then reason over all of them — capture most of both arguments?",
+        "answer": "A high k makes silent failure unlikely, because the correct passage almost certainly appears somewhere in a wide net. Bounding the result to a moderate context keeps attention sharp and cost predictable, while letting the model do global reasoning over what survived. Retrieval acts as a coarse filter rather than a precise selector, which is the job it is actually good at."
+      }
+    ],
+    "further_exploration": [
+      "Build a gold set of 30 questions with known source passages for your own corpus and plot recall@k for k in 1, 3, 5, 10, 25, 50 — the plateau is the ceiling on any RAG system you build on it.",
+      "Run the needle-in-a-haystack script against the model you actually use, sweeping length and depth, and find where accuracy falls off for your content type rather than for generic prose.",
+      "Compute the crossover point where long-context cost exceeds RAG cost at your real query volume, then recompute it with a realistic prompt-cache hit rate.",
+      "Take a question your RAG system answers badly and re-ask it with the full documents in context; if it becomes correct, you have found a whole-book problem rather than a retrieval-quality problem.",
+      "Implement the retrieve-60-then-reason hybrid and sweep k against both recall and answer accuracy — the two curves usually peak at different values, and the gap is informative.",
+      "Instrument your RAG pipeline to log the retrieved chunk IDs alongside every answer, so that when a wrong answer is reported you can tell immediately whether retrieval or generation was at fault."
+    ]
+  }
+}

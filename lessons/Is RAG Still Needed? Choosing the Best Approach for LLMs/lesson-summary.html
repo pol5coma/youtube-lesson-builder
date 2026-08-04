@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG or Long Context: How to Get Data Into a Model — Condensed</title>
+<meta name="description" content="Decide between retrieval and stuffing the context window using cost, recall and data size rather than fashion.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-summary">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-problem-both-approaches-solve-1"><span class="n">1</span>The problem both approaches solve</a></li>
+<li><a href="#rag-the-engineering-approach-2"><span class="n">2</span>RAG: the engineering approach</a></li>
+<li><a href="#long-context-the-model-native-approach-3"><span class="n">3</span>Long context: the model-native approach</a></li>
+<li><a href="#what-changed-three-orders-of-magnitude-4"><span class="n">4</span>What changed: three orders of magnitude</a></li>
+<li><a href="#the-case-for-long-context-no-stack-and-no-retrieval-lottery-5"><span class="n">5</span>The case for long context: no stack, and no retrieval lottery</a></li>
+<li><a href="#the-whole-book-problem-reasoning-about-what-is-absent-6"><span class="n">6</span>The whole-book problem: reasoning about what is absent</a></li>
+<li><a href="#the-case-for-rag-you-pay-to-re-read-every-single-time-7"><span class="n">7</span>The case for RAG: you pay to re-read, every single time</a></li>
+<li><a href="#the-case-for-rag-attention-dilutes-as-context-grows-8"><span class="n">8</span>The case for RAG: attention dilutes as context grows</a></li>
+<li><a href="#the-case-for-rag-the-infinite-dataset-9"><span class="n">9</span>The case for RAG: the infinite dataset</a></li>
+<li><a href="#choosing-10"><span class="n">10</span>Choosing</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Advanced</span><span class="pill ghost">LLM context architecture</span><span class="pill ghost">Condensed</span><span class="muted">IBM Technology</span></div>
+  <h1>RAG or Long Context: How to Get Data Into a Model</h1>
+  <p class="lede">Decide between retrieval and stuffing the context window using cost, recall and data size rather than fashion.</p>
+  <p class="muted small">For engineers designing the data path into an LLM application · 26 July 2026</p>
+  <p class="muted small">Every section, key point, term and question from the full lesson is here. The extended explanations and the additional examples are not.</p>
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=UabBYexBD4k" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson.html">Read the full lesson</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>What a context window is and that it is finite</li><li>A basic idea of embeddings and vector search</li><li>Comfort reading Python</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Language models are frozen in time. They know the world up to their training cutoff and nothing about what happened five minutes ago, nor anything about your internal wikis or proprietary codebase. Every application that needs current or private data therefore has to solve the same problem: get the right data into the model at the right time. This is context injection.</p>
+<p>There are two answers. RAG is the engineering answer — chunk your documents, embed them, store the vectors, search at query time, inject the best matches. Long context is the brute-force answer — put the documents into the prompt and let the model&#x27;s attention mechanism find what matters. For years the second was impossible because context windows were tiny. They are not tiny any more, which is why the question is live.</p>
+<p>The honest answer is that the two fail in different places, and which failure you can afford decides the architecture. RAG can silently fail to retrieve the answer that was sitting right there. Long context makes you pay to re-read everything on every query, dilutes attention as it grows, and hits a hard ceiling long before enterprise data does. Neither is dead; they cover different regimes.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Context injection is the shared problem: a frozen model needs current or private data supplied at query time.</li><li>RAG chunks and embeds documents ahead of time, then retrieves the closest matches per query and injects them.</li><li>Long context skips the retrieval stack entirely and lets the attention mechanism do the finding.</li><li>Long context collapses the infrastructure — no chunking strategy, no embedding model, no vector store, no reranker, no sync.</li><li>RAG&#x27;s characteristic failure is silent: the answer existed in the data but retrieval never surfaced it, and nothing reports an error.</li><li>RAG cannot answer questions about what is absent, because it retrieves what exists and never sees the gap between two documents.</li><li>Long context re-pays the processing cost on every query; RAG pays it once at index time, and prompt caching only helps for static prefixes.</li><li>Attention dilutes as context grows, so more context is not monotonically better — and enterprise data will never fit regardless.</li></ul>
+  </div>
+</section>
+<section id="the-problem-both-approaches-solve-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The problem both approaches solve</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">Models are frozen at their training cutoff and have never seen your private data. Everything else follows from that.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Models know nothing past their training cutoff and nothing private to you.</li><li>Context injection is the shared problem: right data, right time, into the prompt.</li><li>Both approaches deliver the data as text in the context window.</li><li>They differ only in whether a selection step happens before the call.</li><li>The trade is the risk of selecting wrongly against the cost of sending everything.</li></ul></div>
+  <figure class="example">
+  <figcaption>The same call, two ways of filling it</figcaption>
+  <p>The model sees a prompt either way. The question is what went into the placeholder — four retrieved chunks, or the entire corpus.</p>
+  <pre><code># RAG: a selection step runs first
+context = retrieve(question, k=5)          # ~2,000 tokens
+
+# long context: no selection
+context = open(&quot;manual.txt&quot;).read()        # ~250,000 tokens
+
+# identical from here on
+model.generate(f&quot;Context:\n{context}\n\nQuestion: {question}&quot;)</code></pre>
+</figure>
+</section>
+<section id="rag-the-engineering-approach-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>RAG: the engineering approach</h2>
+      <a class="stamp" href="#" data-t="43">0:43</a>
+    </div>
+  </div>
+  <p class="summary">Chunk the documents, embed them, store the vectors, search semantically at query time, inject the winners.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Indexing happens ahead of time: chunk, embed, store.</li><li>Query time is: embed the question, search, inject the top matches.</li><li>The context window ends up holding the prompt plus the retrieved chunks.</li><li>The entire system is conditioned on retrieval having found the right chunks.</li><li>The model cannot know that a better chunk existed and was not retrieved.</li></ul></div>
+  <figure class="example">
+  <figcaption>The indexing pipeline, once per document</figcaption>
+  <p>Four stages, all offline. The chunking strategy is a real decision — fixed size, sliding window, or recursive splitting on structure — and it is made before you know what anyone will ask.</p>
+  <pre><code>def index(document, store):
+    chunks = chunk(document.text, size=800, overlap=100)
+    vectors = embed_batch(chunks)                  # one forward pass per chunk
+
+    store.upsert([
+        {&quot;doc_id&quot;: document.id, &quot;text&quot;: c, &quot;vector&quot;: v}
+        for c, v in zip(chunks, vectors)
+    ])
+
+# runs once per document, not per query — this is the whole point</code></pre>
+</figure>
+</section>
+<section id="long-context-the-model-native-approach-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Long context: the model-native approach</h2>
+      <a class="stamp" href="#" data-t="130">2:10</a>
+    </div>
+  </div>
+  <p class="summary">Skip the database and the embedding model. Put the documents in the prompt and let attention do the heavy lifting.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>No embedding model, no vector store, no retrieval step.</li><li>The attention mechanism performs relevance weighting internally, at every layer.</li><li>Retrieval is an approximate external version of what attention already does.</li><li>RAG originated as a workaround for small context windows, not as the better design.</li><li>The model sees everything, so there is nothing for a selection step to miss.</li></ul></div>
+  <figure class="example">
+  <figcaption>The no-stack stack</figcaption>
+  <p>The same capability, minus five components. Every box removed is a box that cannot break, drift out of sync, or need capacity planning.</p>
+  <pre><code>RAG                                long context
+────────────────────────────────────────────────────
+chunking strategy                  —
+embedding model                    —
+vector database                    —
+reranker                           —
+index sync pipeline                —
+retrieval logic                    —
+                                   read the files
+model call                         model call</code></pre>
+</figure>
+</section>
+<section id="what-changed-three-orders-of-magnitude-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>What changed: three orders of magnitude</h2>
+      <a class="stamp" href="#" data-t="170">2:50</a>
+    </div>
+  </div>
+  <p class="summary">Early context windows held about 4K tokens. Today&#x27;s frontier models handle a million and more, which is what makes the question worth asking.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Early windows around 4K tokens made RAG mandatory rather than chosen.</li><li>Frontier models now reach a million tokens and beyond.</li><li>A million tokens is roughly 700,000 words of English prose.</li><li>Tokens are not words: code, JSON and non-Latin text are far denser.</li><li>Measure your corpus with a real tokenizer before assuming it fits.</li></ul></div>
+  <figure class="example">
+  <figcaption>Measure, do not estimate</figcaption>
+  <p>The rule of thumb is fine for prose and misleading for everything else. Run this over your actual corpus — teams are routinely surprised by a factor of two on codebases and structured data.</p>
+  <pre><code>import tiktoken
+enc = tiktoken.get_encoding(&quot;cl100k_base&quot;)
+
+total = 0
+for path in Path(&quot;corpus&quot;).rglob(&quot;*&quot;):
+    if path.is_file():
+        n = len(enc.encode(path.read_text(errors=&quot;ignore&quot;)))
+        total += n
+        print(f&quot;{n:&gt;9,}  {path}&quot;)
+
+print(f&quot;{total:&gt;9,}  TOTAL&quot;)
+print(f&quot;fits in a 1M window: {total &lt; 1_000_000}&quot;)</code></pre>
+</figure>
+</section>
+<section id="the-case-for-long-context-no-stack-and-no-retrieval-lottery-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>The case for long context: no stack, and no retrieval lottery</h2>
+      <a class="stamp" href="#" data-t="260">4:20</a>
+    </div>
+  </div>
+  <p class="summary">Two arguments. You delete most of the architecture, and you delete the failure mode that never announces itself.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A production RAG system is chunking, embedding, storage, reranking and sync — five things that can break.</li><li>Long context reduces the data path to reading files and calling the model.</li><li>Semantic search is probabilistic and can miss documents that are present.</li><li>Silent failure: the answer existed, retrieval missed it, nothing reported an error.</li><li>With no retrieval step, long context cannot fail this way at all.</li></ul></div>
+  <figure class="example">
+  <figcaption>What a silent failure looks like from the outside</figcaption>
+  <p>This is the entire problem. Both paths return a fluent answer and a 200 status. The only way to tell them apart is to already know the answer — which is why silent failure needs a deliberate measurement rather than monitoring.</p>
+  <pre><code>question: &quot;What is the escalation path for a P1 outage after midnight?&quot;
+
+retrieved:
+  [1] &quot;Escalation policy overview ...&quot;        ← topical, wrong section
+  [2] &quot;P2 and P3 handling during business...&quot; ← topical, wrong severity
+  [3] &quot;On-call rotation calendar ...&quot;         ← topical, no procedure
+
+answer: fluent, confident, wrong
+logs:   no errors
+status: 200 OK
+
+# the correct paragraph was chunk #4,912 and scored 6th</code></pre>
+</figure>
+</section>
+<section id="the-whole-book-problem-reasoning-about-what-is-absent-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>The whole-book problem: reasoning about what is absent</h2>
+      <a class="stamp" href="#" data-t="343">5:43</a>
+    </div>
+  </div>
+  <p class="summary">RAG retrieves what exists. Some questions are about what is missing, and no snippet contains a gap.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>RAG matches queries to passages, and a gap is not a passage.</li><li>Questions about omissions require seeing both documents in full.</li><li>Isolated snippets cannot support a global comparison.</li><li>The same limit applies to counting, exhaustiveness and cross-document consistency.</li><li>If no single passage could contain the answer, top-k retrieval structurally cannot find it.</li></ul></div>
+  <figure class="example">
+  <figcaption>Why the retrieval succeeds and the answer still fails</figcaption>
+  <p>Retrieval did its job here — the chunks are genuinely relevant. That is what makes this failure different from silent failure and impossible to fix by improving the embeddings.</p>
+  <pre><code>question: &quot;which security requirements were omitted from the final release?&quot;
+
+retrieved:
+  [1] requirements.md  &quot;3.4 All API endpoints shall enforce rate limiting...&quot;
+  [2] requirements.md  &quot;3.7 Session tokens shall expire after 30 minutes...&quot;
+  [3] release-notes.md &quot;Added rate limiting to public endpoints.&quot;
+  [4] release-notes.md &quot;Improved session handling performance.&quot;
+
+# every chunk is relevant. the answer — that 3.7 was never implemented —
+# is in the *absence* of a matching release note, which no chunk contains.</code></pre>
+</figure>
+</section>
+<section id="the-case-for-rag-you-pay-to-re-read-every-single-time-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>The case for RAG: you pay to re-read, every single time</h2>
+      <a class="stamp" href="#" data-t="473">7:53</a>
+    </div>
+  </div>
+  <p class="summary">Long context creates a compute inefficiency that scales with traffic. RAG pays the processing cost once, at indexing time.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A 500-page manual is roughly 250,000 tokens, re-processed on every long-context query.</li><li>RAG pays the processing cost once at index time, then a few thousand tokens per query.</li><li>Long-context cost scales as corpus size × query volume; RAG as corpus size + small × volume.</li><li>Prompt caching offsets this only for stable, byte-identical prefixes that stay warm.</li><li>Frequently changing content invalidates the cache and restores the full cost.</li></ul></div>
+  <figure class="example">
+  <figcaption>Where the two curves cross</figcaption>
+  <p>Rates are placeholders — substitute your provider&#x27;s current numbers, since they change. What does not change is the shape: long context is dominated by a term that multiplies corpus size by traffic, and RAG is not.</p>
+  <pre><code>CORPUS_TOKENS = 250_000
+RETRIEVED     = 3_000
+IN_RATE       = 3.00 / 1_000_000     # per input token
+EMBED_RATE    = 0.02 / 1_000_000
+
+def long_context(queries, cache_hit_rate=0.0):
+    effective = CORPUS_TOKENS * (1 - cache_hit_rate * 0.9)  # cached ≈ 10% cost
+    return queries * effective * IN_RATE
+
+def rag(queries):
+    index_once = CORPUS_TOKENS * EMBED_RATE
+    return index_once + queries * RETRIEVED * IN_RATE
+
+for q in (100, 1_000, 10_000, 100_000):
+    print(f&quot;{q:&gt;7,}  long={long_context(q):&gt;9.2f}  &quot;
+          f&quot;cached={long_context(q, 0.9):&gt;8.2f}  rag={rag(q):&gt;8.2f}&quot;)</code></pre>
+</figure>
+</section>
+<section id="the-case-for-rag-attention-dilutes-as-context-grows-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>The case for RAG: attention dilutes as context grows</h2>
+      <a class="stamp" href="#" data-t="516">8:36</a>
+    </div>
+  </div>
+  <p class="summary">There is an intuitive assumption that data in the window will be used. Research suggests otherwise.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Attention dilutes as context length grows; presence in the window does not guarantee use.</li><li>Facts buried mid-document are the hardest to surface, and failures can look like hallucination.</li><li>Retrieving the top chunks removes the haystack and hands the model the needles.</li><li>More context can lower accuracy — irrelevant tokens compete with relevant ones.</li><li>Measure position and length effects on your own data; behaviour varies by model and version.</li></ul></div>
+  <figure class="example">
+  <figcaption>A needle-in-a-haystack test for your own corpus</figcaption>
+  <p>Insert a fact the model cannot know, at a controlled depth, then ask for it. Sweep length and depth to map where your accuracy falls off — that boundary is what tells you how much context you can actually rely on.</p>
+  <pre><code>NEEDLE = &quot;The internal codename for the Q3 migration is BLUE HERON.&quot;
+QUESTION = &quot;What is the internal codename for the Q3 migration?&quot;
+
+def trial(filler_tokens, depth_fraction):
+    filler = make_filler(filler_tokens)
+    cut = int(len(filler) * depth_fraction)
+    haystack = filler[:cut] + NEEDLE + filler[cut:]
+
+    out = model.generate(f&quot;{haystack}\n\n{QUESTION}&quot;)
+    return &quot;BLUE HERON&quot; in out.upper()
+
+for length in (10_000, 50_000, 200_000, 500_000):
+    row = [trial(length, d) for d in (0.1, 0.3, 0.5, 0.7, 0.9)]
+    print(f&quot;{length:&gt;7,}  &quot; + &quot;  &quot;.join(&quot;ok &quot; if r else &quot;MISS&quot; for r in row))</code></pre>
+</figure>
+</section>
+<section id="the-case-for-rag-the-infinite-dataset-9" class="block section">
+  <div class="section-head">
+    <span class="num">09</span>
+    <div>
+      <h2>The case for RAG: the infinite dataset</h2>
+      <a class="stamp" href="#" data-t="559">9:19</a>
+    </div>
+  </div>
+  <p class="summary">A million-token window sounds enormous until you compare it to an enterprise data lake measured in terabytes.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Enterprise data lakes are measured in terabytes or petabytes; windows are measured in millions of tokens.</li><li>The gap is structural and is not closing.</li><li>Answering over everything requires a filtering layer that reduces the corpus to what fits.</li><li>The deciding property is whether the corpus is bounded, not how large it is right now.</li><li>A bounded corpus that fits today may not be bounded — check growth, not just current size.</li></ul></div>
+  <figure class="example">
+  <figcaption>Bounded or unbounded is the real question</figcaption>
+  <p>Ask what the corpus looks like in two years rather than what it looks like now. Anything that grows with usage — tickets, logs, messages, commits — is unbounded and needs retrieval regardless of today&#x27;s measurement.</p>
+  <pre><code>bounded, fits, stays fitting        unbounded, will never fit
+──────────────────────────────────────────────────────────────
+one legal contract                  every contract the firm has
+one book                            the company wiki
+one service&#x27;s source                the monorepo
+one incident&#x27;s logs                 all logs, all time
+a product spec + release notes      the ticket system</code></pre>
+</figure>
+</section>
+<section id="choosing-10" class="block section">
+  <div class="section-head">
+    <span class="num">10</span>
+    <div>
+      <h2>Choosing</h2>
+      <a class="stamp" href="#" data-t="605">10:05</a>
+    </div>
+  </div>
+  <p class="summary">Bounded data plus global reasoning favours long context. Unbounded enterprise knowledge still requires a vector database.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Bounded corpus plus global reasoning → long context.</li><li>Unbounded enterprise knowledge → retrieval, non-negotiably.</li><li>The common middle ground is retrieve-broadly-then-reason, tuned by k.</li><li>Three measurements decide it: recall on a gold set, needle accuracy by length, cost at real traffic.</li><li>Both defaults have been wrong recently; measure rather than following the trend.</li></ul></div>
+  <figure class="example">
+  <figcaption>The decision, on one screen</figcaption>
+  <p>Work down the column that matches your corpus. Most of the disagreement about RAG comes from people arguing from different rows without saying which.</p>
+  <pre><code>                        long context            RAG
+─────────────────────────────────────────────────────────────────
+corpus                  bounded                 unbounded
+question type           global / comparative    passage-level
+cost driver             tokens x every query    one-off indexing
+characteristic failure  attention dilution      silent retrieval miss
+infrastructure          none                    embed + store + sync
+freshness               re-read the file        re-index the document
+answers &quot;what is        yes                     no
+  missing?&quot;
+scales to a data lake   no                      yes</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Context injection</dt><dd>Getting the right external data into a model&#x27;s prompt at query time, so it can answer about things outside its training data.</dd></div><div class="term"><dt>Context window</dt><dd>The maximum number of tokens a model can process in one call, covering the prompt and the generated output together.</dd></div><div class="term"><dt>Chunking</dt><dd>Splitting documents into smaller passages before embedding. Strategies include fixed size, sliding window and recursive splitting on structure.</dd></div><div class="term"><dt>Embedding model</dt><dd>A model that converts text into a vector whose position encodes meaning, so similar passages sit near each other.</dd></div><div class="term"><dt>Vector database</dt><dd>Storage built for fast nearest-neighbour search over embeddings, plus the indexing and sync machinery around it.</dd></div><div class="term"><dt>Semantic search</dt><dd>Ranking documents by vector similarity to the query rather than by shared keywords, so meaning matches even when wording differs.</dd></div><div class="term"><dt>Silent failure</dt><dd>When retrieval misses a document that contained the answer. No error is raised — the model simply answers from the wrong material, confidently.</dd></div><div class="term"><dt>Reranker</dt><dd>A second-stage model that re-scores retrieved candidates more accurately than vector similarity, usually over a shortlist.</dd></div><div class="term"><dt>Long context</dt><dd>Placing whole documents directly in the prompt and letting the attention mechanism locate what matters, with no retrieval step.</dd></div><div class="term"><dt>Prompt caching</dt><dd>Reusing a provider&#x27;s processed representation of an identical prompt prefix across requests, cutting the cost of the repeated portion.</dd></div><div class="term"><dt>Needle in a haystack</dt><dd>A test that plants a known fact at a controlled depth in a long context and checks whether the model can retrieve it.</dd></div><div class="term"><dt>Attention dilution</dt><dd>The degradation in a model&#x27;s ability to focus on a specific passage as the surrounding context grows.</dd></div><div class="term"><dt>recall@k</dt><dd>The fraction of questions for which the correct source passage appears in the top k retrieved results. The ceiling on a RAG system&#x27;s accuracy.</dd></div><div class="term"><dt>Token</dt><dd>The unit a model actually processes — a word fragment. Roughly three-quarters of a word for English prose, and much denser for code or JSON.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why is a retrieval miss described as a silent failure, and what does that imply about monitoring?</summary>
+  <div class="answer"><p>Because nothing errors: retrieval returns plausible chunks, the model answers fluently from them, and the response is a 200 with no warning. Standard monitoring cannot see it, since there is no failure signal to alert on. The only way to detect it is a gold set of questions with known source passages and a recall@k measurement run deliberately.</p></div>
+</details><details class="q">
+  <summary>Retrieval returns four chunks that are all genuinely relevant, yet the system still cannot answer &#x27;which requirements were dropped from the release?&#x27;. Why is better embedding not the fix?</summary>
+  <div class="answer"><p>The answer is an absence, and an absence is not a passage — there is no text anywhere in the corpus that says a requirement was omitted, so no embedding can point at it. The question requires holding both documents in full and comparing them. This is a structural limit of passage retrieval, not a quality problem.</p></div>
+</details><details class="q">
+  <summary>A team enables prompt caching for a long-context application and sees no cost reduction. What is the most likely cause?</summary>
+  <div class="answer"><p>Something variable sits at the front of the prompt — a timestamp, a session ID, the question itself — so the cacheable prefix differs on every request and the cache misses every time. Caching keys on an exact prefix, so all stable bulk content must come first and everything variable must come last.</p></div>
+</details><details class="q">
+  <summary>Why can adding more relevant-looking context to a prompt make answers worse rather than better?</summary>
+  <div class="answer"><p>Attention dilutes as context grows: irrelevant material competes with relevant material for the model&#x27;s focus, and a fact buried mid-document can be missed or blended with surrounding text. This is why retrieving the top few chunks often beats supplying everything, even when everything fits and you are willing to pay for it.</p></div>
+</details><details class="q">
+  <summary>Your corpus is 400,000 tokens today and fits comfortably in the window. Why might retrieval still be the right architecture?</summary>
+  <div class="answer"><p>Because the deciding property is whether the corpus is bounded, not its size right now. If it grows with usage — tickets, logs, commits, messages — today&#x27;s fit is temporary, and rebuilding the data path later is far more expensive than building retrieval now. Ask what it looks like in two years.</p></div>
+</details><details class="q">
+  <summary>Why does the hybrid pattern — retrieve fifty chunks, then reason over all of them — capture most of both arguments?</summary>
+  <div class="answer"><p>A high k makes silent failure unlikely, because the correct passage almost certainly appears somewhere in a wide net. Bounding the result to a moderate context keeps attention sharp and cost predictable, while letting the model do global reasoning over what survived. Retrieval acts as a coarse filter rather than a precise selector, which is the job it is actually good at.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Build a gold set of 30 questions with known source passages for your own corpus and plot recall@k for k in 1, 3, 5, 10, 25, 50 — the plateau is the ceiling on any RAG system you build on it.</li><li>Run the needle-in-a-haystack script against the model you actually use, sweeping length and depth, and find where accuracy falls off for your content type rather than for generic prose.</li><li>Compute the crossover point where long-context cost exceeds RAG cost at your real query volume, then recompute it with a realistic prompt-cache hit rate.</li><li>Take a question your RAG system answers badly and re-ask it with the full documents in context; if it becomes correct, you have found a whole-book problem rather than a retrieval-quality problem.</li><li>Implement the retrieve-60-then-reason hybrid and sweep k against both recall and answer accuracy — the two curves usually peak at different values, and the gap is informative.</li><li>Instrument your RAG pipeline to log the retrieved chunk IDs alongside every answer, so that when a wrong answer is reported you can tell immediately whether retrieval or generation was at fault.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

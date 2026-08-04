@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Actually Run AI Evals: Rubrics, Golden Datasets &amp; LLM-as-a-Judge — Condensed</title>
+<meta name="description" content="Walk the full evaluation loop end to end — write the rubric, hand-label a golden dataset, build an LLM judge, and prove the judge agrees with you.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-summary">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#why-evaluation-became-the-defining-product-skill-1"><span class="n">1</span>Why evaluation became the defining product skill</a></li>
+<li><a href="#the-four-types-of-eval-2"><span class="n">2</span>The four types of eval</a></li>
+<li><a href="#step-one-the-prompt-and-the-context-it-needs-3"><span class="n">3</span>Step one: the prompt and the context it needs</a></li>
+<li><a href="#step-two-write-the-rubric-before-you-grade-anything-4"><span class="n">4</span>Step two: write the rubric before you grade anything</a></li>
+<li><a href="#step-three-build-the-golden-dataset-by-hand-5"><span class="n">5</span>Step three: build the golden dataset by hand</a></li>
+<li><a href="#what-you-find-when-you-actually-look-at-the-data-6"><span class="n">6</span>What you find when you actually look at the data</a></li>
+<li><a href="#how-many-examples-do-you-actually-need-7"><span class="n">7</span>How many examples do you actually need?</a></li>
+<li><a href="#step-four-encode-the-rubric-as-an-llm-judge-8"><span class="n">8</span>Step four: encode the rubric as an LLM judge</a></li>
+<li><a href="#step-five-judge-the-judge-with-match-rate-9"><span class="n">9</span>Step five: judge the judge with match rate</a></li>
+<li><a href="#shipping-internal-then-a-small-slice-then-real-users-10"><span class="n">10</span>Shipping: internal, then a small slice, then real users</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">AI evaluation</span><span class="pill ghost">Condensed</span><span class="muted">Peter Yang</span></div>
+  <h1>How to Actually Run AI Evals: Rubrics, Golden Datasets &amp; LLM-as-a-Judge</h1>
+  <p class="lede">Walk the full evaluation loop end to end — write the rubric, hand-label a golden dataset, build an LLM judge, and prove the judge agrees with you.</p>
+  <p class="muted small">For product managers and engineers shipping an LLM feature who need to know whether it is actually good enough to deploy · 27 July 2026</p>
+  <p class="muted small">Every section, key point, term and question from the full lesson is here. The extended explanations and the additional examples are not.</p>
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=TL527yTpxlk" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson.html">Read the full lesson</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>You have prompted an LLM and seen it produce a confidently wrong answer</li><li>Comfort with spreadsheets — genuinely, that is the main tool here</li><li>A rough idea of what a system prompt is</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Every model provider tells you to evaluate your AI system, and almost nobody explains what that concretely looks like on a Tuesday afternoon. This lesson follows one worked example the whole way down: a customer-support agent for a running-shoe brand, taken from a blank prompt to a measured, trustworthy evaluation.</p>
+<p>The core claim is unglamorous. Evaluation starts in a spreadsheet, with a human reading model outputs one at a time and arguing with a teammate about whether each one is good. Every automated technique that follows — LLM-as-a-judge, scaled scoring, continuous monitoring — is built on top of that hand-labelled foundation, and inherits its quality. Get the labels wrong and everything downstream is confidently wrong.</p>
+<p>You will learn the four kinds of eval and when each applies, how to turn vague quality intuitions into a rubric your team can grade against, how many examples you actually need, how to encode that rubric as a judge prompt, and — the step most teams skip — how to measure whether your judge agrees with your humans before you trust a single one of its scores.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>There are four kinds of eval: code-based assertions, human labels, LLM-as-a-judge, and user/business signals. They form a ladder of scale, and each one is validated by the one before it.</li><li>The golden dataset is the foundation. If your hand-labelled examples are bad, every automated eval built on them is bad, no matter how sophisticated the tooling.</li><li>A rubric turns &#x27;is this good?&#x27; into named dimensions with written definitions — for a support agent: product knowledge, policy compliance, and tone, each graded good/average/bad.</li><li>Start with about 10 labelled rows for internal iteration; get to 100 or more before you trust a number for production.</li><li>More data means more confidence but slower iteration. These are orthogonal dimensions and you must consciously pick a point between them.</li><li>An LLM judge must output an explanation, not just a score, so you can audit its reasoning rather than trusting a bare label.</li><li>Match rate — how often the judge&#x27;s label equals the human&#x27;s label — is what tells you whether the judge can be trusted. A judge that scores everything &#x27;good&#x27; has a great average and zero value.</li><li>Disagreement between teammates during labelling is a feature: it surfaces genuine product decisions the specification never settled.</li></ul>
+  </div>
+</section>
+<section id="why-evaluation-became-the-defining-product-skill-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Why evaluation became the defining product skill</h2>
+      <a class="stamp" href="#" data-t="82">1:22</a>
+    </div>
+  </div>
+  <p class="summary">LLMs hallucinate, so the only way to know your product works is to measure it — which is why the people selling you the models tell you to check the models&#x27; answers.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>LLMs hallucinate as a structural property, not an occasional bug, so quality has to be measured rather than assumed.</li><li>Model vendors themselves push customers to build evals — the strongest available admission of how much verification is required.</li><li>Evals measure the quality of your AI system, which is what turns prompt changes from guesswork into engineering.</li><li>Without evals you cannot tell whether a change improved the system or broke something you were not watching.</li></ul></div>
+  <figure class="example">
+  <figcaption>The one-example trap</figcaption>
+  <p>You ask the support agent a return-policy question, get a polished answer, and feel good about shipping. But you have sampled a single point from a distribution of thousands of possible user questions. The response you happened to see tells you almost nothing about the ones you did not.</p>
+  
+</figure>
+</section>
+<section id="the-four-types-of-eval-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>The four types of eval</h2>
+      <a class="stamp" href="#" data-t="164">2:44</a>
+    </div>
+  </div>
+  <p class="summary">Code-based, human, LLM-as-a-judge, and user evals form a ladder from cheap and narrow to expensive and real.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Code-based eval: binary pass/fail assertions like string presence, format checks, allowed-value checks. Cheap, deterministic, easy to generate.</li><li>Human eval: a PM or domain expert grading interactions by hand. The slowest per example and the source of truth for everything else.</li><li>LLM-as-a-judge: a model applying your rubric at scale, imitating how a human would label. The most common way to evaluate large volumes.</li><li>User eval: real-world signal from actual users — thumbs up/down, complaints, downstream business metrics.</li><li>Do not fully outsource human eval to contractors or labelling vendors: the person who owns the product judgement has to be in the spreadsheet.</li></ul></div>
+  <figure class="example">
+  <figcaption>A code-based eval in a few lines</figcaption>
+  <p>The competitor-mention check needs no model and no rubric. It runs in milliseconds on every response and catches an embarrassing, unambiguous class of failure.</p>
+  <pre><code>COMPETITORS = {&quot;delta&quot;, &quot;united&quot;, &quot;american airlines&quot;}
+
+def no_competitor_mentioned(response: str, own_brand: str) -&gt; bool:
+    &quot;&quot;&quot;Pass/fail: the reply must not steer a customer to a rival.&quot;&quot;&quot;
+    text = response.lower()
+    return not any(c in text for c in COMPETITORS - {own_brand.lower()})
+
+assert no_competitor_mentioned(
+    &quot;You can book that on our site.&quot;, own_brand=&quot;United&quot;
+)</code></pre>
+</figure>
+</section>
+<section id="step-one-the-prompt-and-the-context-it-needs-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Step one: the prompt and the context it needs</h2>
+      <a class="stamp" href="#" data-t="450">7:30</a>
+    </div>
+  </div>
+  <p class="summary">Before you can evaluate anything you need a system to evaluate — and the prompt&#x27;s quality is mostly determined by the context you feed it.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Identify the run-time variables first: user question, product info, policy info. These become template placeholders, not hard-coded text.</li><li>Prompt-generation tools give you a reasonable first draft with variables and examples already scaffolded — a fine starting point.</li><li>Product and policy context can be assembled quickly by having a model extract it from your own public website.</li><li>Automated prompt optimisation often adds bulk without adding quality; you cannot tell whether it helped without evals and real data.</li></ul></div>
+  <figure class="example">
+  <figcaption>The parameterised support prompt</figcaption>
+  <p>The skeleton of the agent. Everything variable is injected per request, so the same prompt serves every customer question and can be evaluated as a fixed artefact.</p>
+  <pre><code>SYSTEM_PROMPT = &quot;&quot;&quot;You are a customer support agent for On running shoes.
+
+Answer using only the product and policy information provided.
+If the answer is not covered by the policy, say so directly
+and give the customer the support contact route.
+
+&lt;product_info&gt;
+{product_info}
+&lt;/product_info&gt;
+
+&lt;policy_info&gt;
+{policy_info}
+&lt;/policy_info&gt;
+&quot;&quot;&quot;
+
+messages = [
+    {&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: SYSTEM_PROMPT.format(
+        product_info=catalogue, policy_info=returns_policy)},
+    {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: user_question},
+]</code></pre>
+</figure>
+</section>
+<section id="step-two-write-the-rubric-before-you-grade-anything-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Step two: write the rubric before you grade anything</h2>
+      <a class="stamp" href="#" data-t="908">15:08</a>
+    </div>
+  </div>
+  <p class="summary">Turn &#x27;is this good?&#x27; into named dimensions with written definitions, so that two people grading the same output reach the same label for the same reason.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Name dimensions, do not grade a single overall &#x27;good&#x27;. For a support agent: product knowledge, policy compliance, tone.</li><li>Write an explicit definition of what good, average, and bad mean for each dimension, so labels are consistent between people.</li><li>Separate dimensions are diagnostic: they tell you which part of the system to fix, not just that something is wrong.</li><li>Draft the rubric before labelling begins — one invented mid-grading drifts and produces inconsistent labels.</li></ul></div>
+  <figure class="example">
+  <figcaption>A three-dimension rubric with written grade definitions</figcaption>
+  <p>This is the whole rubric for the support agent. It is small enough to fit on one screen and specific enough that two people grading the same reply usually land on the same label.</p>
+  <pre><code>Dimension: PRODUCT KNOWLEDGE
+  good    - names the correct product, accurate specs and price
+  average - correct product, vague or incomplete detail
+  bad     - wrong product, invented specs, or claims no knowledge
+
+Dimension: POLICY COMPLIANCE
+  good    - applies the stated policy correctly, cites the rule,
+            and gives the next action the policy provides
+  average - correct outcome, missing the route to resolution
+  bad     - misapplies the policy, invents a rule, or deflects
+            to another team without giving contact details
+
+Dimension: TONE
+  good    - warm, concise, on-brand
+  average - correct but formal or noticeably long
+  bad     - cold, robotic, or so verbose the answer is buried</code></pre>
+</figure>
+</section>
+<section id="step-three-build-the-golden-dataset-by-hand-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Step three: build the golden dataset by hand</h2>
+      <a class="stamp" href="#" data-t="990">16:30</a>
+    </div>
+  </div>
+  <p class="summary">Run real questions through the system, put inputs and outputs in a spreadsheet, and grade each row against the rubric with your team.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>One row per interaction: question, response, one grade per dimension, plus a free-text note.</li><li>Grading forces the team to settle product decisions the specification left open — that debate is the point, not a distraction.</li><li>Labelling reveals gaps in your source documents, not only in the model&#x27;s behaviour.</li><li>Write notes on the bad rows, then have an LLM summarise them into the top few fixes.</li><li>A five-row dataset is enormously better than none: start somewhere and grow it.</li></ul></div>
+  <figure class="example">
+  <figcaption>The golden dataset as a table</figcaption>
+  <p>Five rows of a real labelling session. The notes column is where the value accumulates — it is what you turn into next week&#x27;s prompt changes.</p>
+  <pre><code>| question                        | response      | prod | policy | tone | note                          |
+|---------------------------------|---------------|------|--------|------|-------------------------------|
+| Return Cloud Monster, 2 months? | over 30 days  | good | good   | avg  | a bit formal                  |
+| 3 weeks, lost the box           | contact us    | good | BAD    | avg  | never gives contact details;  |
+|                                 |               |      |        |      | policy silent on lost box     |
+| Change address, ordered 45m ago | says past 60m | good | BAD    | good | MATH ERROR: 45 &lt; 60           |
+| Marathon, max cushioning?       | Cloud Monster | good | n/a    | avg  | very verbose                  |
+| How do I track my order?        | correct link  | good | good   | good |                               |</code></pre>
+</figure>
+</section>
+<section id="what-you-find-when-you-actually-look-at-the-data-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>What you find when you actually look at the data</h2>
+      <a class="stamp" href="#" data-t="1364">22:44</a>
+    </div>
+  </div>
+  <p class="summary">Real failures are specific and often boring — like a model asserting that 45 minutes is past a 60-minute window.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A real logged failure: the agent claimed 45 minutes was past a 60-minute window. LLMs are unreliable at arithmetic.</li><li>This class of bug is found by a human reading rows, not by a dashboard or a generic metric.</li><li>Automated evals can only catch failure modes a human first identified and encoded into a check.</li><li>The strongest fix is usually to move deterministic work out of the model — compute the comparison in code and pass in the result.</li></ul></div>
+  <figure class="example">
+  <figcaption>Removing arithmetic from the model</figcaption>
+  <p>Rather than instructing the model to be careful with numbers, compute the eligibility in code and hand the model a fact it cannot get wrong.</p>
+  <pre><code>from datetime import datetime, timedelta
+
+def cancellation_context(order_placed_at: datetime) -&gt; str:
+    elapsed = datetime.now() - order_placed_at
+    eligible = elapsed &lt; timedelta(minutes=60)
+    mins = int(elapsed.total_seconds() // 60)
+    return (
+        f&quot;Order placed {mins} minutes ago. &quot;
+        f&quot;Cancellation window is 60 minutes. &quot;
+        f&quot;ELIGIBLE_FOR_CANCELLATION: {eligible}&quot;
+    )
+
+# The model now reports a boolean it was handed,
+# instead of performing a comparison it may get wrong.</code></pre>
+</figure>
+</section>
+<section id="how-many-examples-do-you-actually-need-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>How many examples do you actually need?</h2>
+      <a class="stamp" href="#" data-t="1489">24:49</a>
+    </div>
+  </div>
+  <p class="summary">Ten rows to start iterating internally, a hundred or more before you trust the number for production — and the answer is fundamentally a statistics question.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>About 10 examples for internal testing and early iteration — enough to tell whether the approach is worth pursuing.</li><li>100 or more before trusting a production decision; regulated domains need substantially more.</li><li>It is fundamentally a statistics question: how much data before the measurement is trustworthy?</li><li>Speed of iteration and confidence in the result are orthogonal — more data means more confidence and slower loops.</li><li>Early on you change the prompt constantly, so large manual passes on every change are impractical.</li></ul></div>
+  <figure class="example">
+  <figcaption>Matching dataset size to the decision</figcaption>
+  <p>The size of the golden set should follow the weight of the decision it supports, not a fixed convention.</p>
+  <pre><code>Decision being made          Rows   Why
+---------------------------  -----  ------------------------------
+Is this approach viable?     ~10    Fast loop, cheap to relabel
+Which of 2 prompts is better?  ~50  Needs to separate real signal
+Is this safe to launch?      100+   The number must be defensible
+Regulated / clinical / legal  many  Confidence requirement is high</code></pre>
+</figure>
+</section>
+<section id="step-four-encode-the-rubric-as-an-llm-judge-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Step four: encode the rubric as an LLM judge</h2>
+      <a class="stamp" href="#" data-t="1941">32:21</a>
+    </div>
+  </div>
+  <p class="summary">The judge prompt is your rubric, rewritten as instructions to a model, returning a label and — critically — an explanation.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The judge prompt is the rubric restated as model instructions, given the same context the human grader had.</li><li>Run one judge per dimension so each call makes a single focused judgement.</li><li>Always require an explanation with the label — it is the judge&#x27;s equivalent of reviewer notes and makes the score auditable.</li><li>Once encoded, you can replay hundreds of examples across prompt variants or different models on a fixed question set.</li></ul></div>
+  <figure class="example">
+  <figcaption>A judge prompt for policy compliance</figcaption>
+  <p>One dimension, the full context, a constrained label, and a required explanation. Structured output keeps the result parseable.</p>
+  <pre><code>JUDGE_PROMPT = &quot;&quot;&quot;You are grading a customer support reply for POLICY COMPLIANCE.
+
+good    - applies the stated policy correctly, and gives the next
+          action the policy provides (including contact details)
+average - correct outcome, but missing the route to resolution
+bad     - misapplies the policy, invents a rule, or deflects to
+          another team without giving contact details
+
+&lt;question&gt;{question}&lt;/question&gt;
+&lt;policy&gt;{policy_info}&lt;/policy&gt;
+&lt;response&gt;{response}&lt;/response&gt;
+
+Return JSON: {{&quot;label&quot;: &quot;good|average|bad&quot;, &quot;explanation&quot;: &quot;...&quot;}}
+Explain your reasoning before committing to the label.
+&quot;&quot;&quot;</code></pre>
+</figure>
+</section>
+<section id="step-five-judge-the-judge-with-match-rate-9" class="block section">
+  <div class="section-head">
+    <span class="num">09</span>
+    <div>
+      <h2>Step five: judge the judge with match rate</h2>
+      <a class="stamp" href="#" data-t="2189">36:29</a>
+    </div>
+  </div>
+  <p class="summary">Compare the judge&#x27;s labels against your human labels and measure how often they agree — because a judge that scores everything &#x27;good&#x27; looks great and tells you nothing.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Match rate = the fraction of examples where the judge&#x27;s label equals the human&#x27;s label, computed per dimension.</li><li>A judge that labels everything &#x27;good&#x27; produces a flawless-looking dashboard and zero information — only human labels expose this.</li><li>Per-dimension match rate localises the fault: product knowledge matched 100%, tone matched once, so the tone judge is what needs fixing.</li><li>Fix a disagreeing judge by making its prompt stricter on whatever the humans were penalising — here, verbosity.</li><li>Validate the judge on 5–10 examples first, then scale to 100 once it tracks your humans.</li></ul></div>
+  <figure class="example">
+  <figcaption>Computing match rate per dimension</figcaption>
+  <p>A few lines that turn two label columns into the number that decides whether you can trust the judge.</p>
+  <pre><code>def match_rate(rows, dimension):
+    human = f&quot;human_{dimension}&quot;
+    model = f&quot;judge_{dimension}&quot;
+    scored = [r for r in rows if r.get(human) and r.get(model)]
+    if not scored:
+        return None
+    agree = sum(1 for r in scored if r[human] == r[model])
+    return agree / len(scored)
+
+for dim in (&quot;product&quot;, &quot;policy&quot;, &quot;tone&quot;):
+    print(f&quot;{dim:&gt;8}: {match_rate(golden_set, dim):.0%}&quot;)
+
+# product: 100%   &lt;- judge is aligned, trust it
+# policy:   80%
+# tone:     20%   &lt;- judge is broken, rewrite this prompt</code></pre>
+</figure>
+</section>
+<section id="shipping-internal-then-a-small-slice-then-real-users-10" class="block section">
+  <div class="section-head">
+    <span class="num">10</span>
+    <div>
+      <h2>Shipping: internal, then a small slice, then real users</h2>
+      <a class="stamp" href="#" data-t="2854">47:34</a>
+    </div>
+  </div>
+  <p class="summary">Offline evals get you to a candidate; dogfooding and a small A/B slice tell you whether it works in the world — and user signals are noisier than they look.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Sequence: internal dogfooding, then a 1–10% A/B slice, then broader rollout with real-world monitoring.</li><li>Dogfooding is high-value because the people using it already know what good looks like.</li><li>A thumbs-down conflates &#x27;the system did badly&#x27; with &#x27;I disliked the outcome&#x27; — the signal is real but ambiguous.</li><li>Decide in advance how you break the tie when evals look good and the business metric drops.</li><li>The resolution to any conflict between signals is to go back and read the actual data.</li></ul></div>
+  <figure class="example">
+  <figcaption>The ambiguous thumbs-down</figcaption>
+  <p>A customer asks to return shoes after 60 days. The agent correctly explains the 30-day policy, warmly and with a link to support. The customer thumbs-downs it. Every rubric dimension scores good; the user signal is negative. Both are correct measurements of different things — treating the thumbs-down as a quality failure would push you to build an agent that misstates policy to keep people happy.</p>
+  
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Eval</dt><dd>A systematic measurement of one specific aspect of an AI system&#x27;s quality, such as whether a reply followed policy.</dd></div><div class="term"><dt>Golden dataset</dt><dd>A curated set of example inputs with human-assigned quality labels, used as the reference standard for measuring the system and validating automated judges.</dd></div><div class="term"><dt>Rubric</dt><dd>The named dimensions you grade on, each with written definitions of what good, average, and bad mean, so different people label consistently.</dd></div><div class="term"><dt>LLM-as-a-judge</dt><dd>Using a language model to apply your rubric to your system&#x27;s outputs at scale, producing a label and an explanation the way a human grader would.</dd></div><div class="term"><dt>Match rate</dt><dd>The fraction of examples where the LLM judge&#x27;s label equals the human&#x27;s label. It measures whether the judge can be trusted.</dd></div><div class="term"><dt>Alignment (of a judge)</dt><dd>The state of an LLM judge agreeing with human labels often enough that its scores can be believed without re-checking each one.</dd></div><div class="term"><dt>Code-based eval</dt><dd>A deterministic pass/fail check written in ordinary code, such as verifying a required string is present or a field holds an allowed value.</dd></div><div class="term"><dt>User eval</dt><dd>Quality signal gathered from real users in production — explicit thumbs up/down, complaints, or downstream business metrics.</dd></div><div class="term"><dt>Dogfooding</dt><dd>Using your own product internally before exposing it to customers, so the people who know what good looks like find the problems first.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Your LLM judge reports that 100% of responses are good. Why is this a warning sign rather than a success?</summary>
+  <div class="answer"><p>Because a judge that never assigns a bad label is indistinguishable from a judge that is not working. Real systems produce a mix of quality, so uniform approval suggests the judge prompt is too lenient or too vague to discriminate. You can only detect this by comparing against human labels and computing match rate — the dashboard alone would look perfect.</p></div>
+</details><details class="q">
+  <summary>Why grade three separate dimensions instead of a single overall quality score?</summary>
+  <div class="answer"><p>Because separate dimensions are diagnostic. A single &#x27;bad&#x27; tells you something is wrong; &#x27;policy compliance bad, product knowledge good&#x27; tells you the failure is in how rules are applied rather than in the catalogue, and those have completely different fixes. Aggregate scores also hide compensating errors, where a strong dimension masks a weak one.</p></div>
+</details><details class="q">
+  <summary>Why should you start with roughly 10 labelled examples rather than going straight to 100?</summary>
+  <div class="answer"><p>Because confidence and iteration speed pull against each other. Early on you are changing the prompt constantly, and hand-labelling 100 rows on every change would make the loop unusably slow. Ten rows is enough to expose obvious failure modes and validate a judge&#x27;s alignment; you scale to 100 once the system stabilises and you need a number you would defend.</p></div>
+</details><details class="q">
+  <summary>A user gives a thumbs-down to a reply that your rubric scores as good on every dimension. What has actually been measured?</summary>
+  <div class="answer"><p>Two different things. The rubric measured whether the system behaved as designed — correct policy, clear communication, appropriate tone. The thumbs-down measured the user&#x27;s satisfaction with the outcome, which may simply be that they disliked being told no. Treating the thumbs-down as a quality failure would train the system to misstate policy in order to please people.</p></div>
+</details><details class="q">
+  <summary>Why must an LLM judge return an explanation rather than just a label?</summary>
+  <div class="answer"><p>Because a bare label is unauditable — you cannot distinguish a correct judgement from a lucky one, or diagnose why the judge disagrees with your humans. The explanation plays the role a human reviewer&#x27;s notes play: when match rate is low, reading the explanations on the mismatched rows is what tells you how to rewrite the judge prompt.</p></div>
+</details><details class="q">
+  <summary>Why is the golden dataset described as the foundation that everything else inherits from?</summary>
+  <div class="answer"><p>Because the LLM judge is validated against human labels, and the human labels come from the golden dataset. If those labels are inconsistent or reflect criteria nobody agreed on, the judge will be aligned to noise, and every scaled measurement built on it will be confidently wrong while appearing rigorous.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Take a feature you have already shipped, write a three-dimension rubric for it, and hand-label 10 real logged interactions before reading any dashboard.</li><li>Build one judge prompt for your weakest dimension, run it on those same 10 rows, and compute the match rate against your own labels.</li><li>Find a failure in your logs that a substring assertion would have caught, and add that assertion as a code-based eval that runs on every change.</li><li>Identify one place where your model performs arithmetic or date comparison, and move that computation into code that hands the model a precomputed fact.</li><li>Agree with your team, in writing and in advance, on how you will resolve a conflict between a good eval score and a declining business metric.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

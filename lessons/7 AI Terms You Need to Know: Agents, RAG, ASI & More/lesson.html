@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seven Terms That Describe a Modern AI System</title>
+<meta name="description" content="Place agents, reasoning models, vector search, RAG, MCP, mixture of experts and ASI on one map, and see how they connect.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#agentic-ai-1"><span class="n">1</span>Agentic AI</a></li>
+<li><a href="#large-reasoning-models-2"><span class="n">2</span>Large reasoning models</a></li>
+<li><a href="#vector-databases-3"><span class="n">3</span>Vector databases</a></li>
+<li><a href="#retrieval-augmented-generation-4"><span class="n">4</span>Retrieval augmented generation</a></li>
+<li><a href="#model-context-protocol-5"><span class="n">5</span>Model Context Protocol</a></li>
+<li><a href="#mixture-of-experts-6"><span class="n">6</span>Mixture of experts</a></li>
+<li><a href="#agi-and-asi-7"><span class="n">7</span>AGI and ASI</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Advanced</span><span class="pill ghost">AI systems vocabulary</span><span class="muted">IBM Technology</span></div>
+  <h1>Seven Terms That Describe a Modern AI System</h1>
+  <p class="lede">Place agents, reasoning models, vector search, RAG, MCP, mixture of experts and ASI on one map, and see how they connect.</p>
+  <p class="muted small">For engineers who keep meeting these terms and want the mechanism behind each, not the marketing · 26 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=VSFuqMh4hus" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>What a large language model does at the input/output level</li><li>A rough idea of what a neural network layer is</li><li>Comfort reading Python</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>These seven terms are not a list of unrelated buzzwords. Six of them describe layers of one system, and they stack: a mixture-of-experts architecture makes a large model affordable to serve, reasoning fine-tuning turns that model into one that plans, an agent loop turns the planner into something that acts, MCP gives it a standard way to reach external systems, and retrieval over a vector database gives it facts it was never trained on.</p>
+<p>The seventh, artificial superintelligence, is different in kind. It names a hypothesis rather than a component, and it is worth keeping separate from the six precisely because it is not something you can build with today.</p>
+<p>What follows takes each term down to the mechanism — what it actually does, what it costs, and where it breaks — because most of these words are used loosely enough that knowing the definition and knowing the thing are quite different states.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>An agent is a loop — perceive, reason, act, observe — around a model that is otherwise stateless and reactive.</li><li>Large reasoning models are fine-tuned to work step by step, trained on problems whose answers can be checked automatically.</li><li>A vector database stores embeddings so that &#x27;find similar&#x27; becomes a distance computation rather than a keyword match.</li><li>RAG uses that search to inject relevant text into the prompt, giving a model facts it was never trained on.</li><li>MCP standardises how applications expose tools and data to models, replacing one-off connectors with a common protocol.</li><li>Mixture of experts activates only a few subnetworks per token, so total parameters and active parameters come apart.</li><li>MoE saves computation, not memory — every expert still has to be resident even though few are used.</li><li>AGI and ASI are both theoretical; ASI additionally supposes recursive self-improvement, which is what makes it a different claim.</li></ul>
+  </div>
+</section>
+<section id="agentic-ai-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Agentic AI</h2>
+      <a class="stamp" href="#" data-t="40">0:40</a>
+    </div>
+  </div>
+  <p class="summary">Systems that reason and act autonomously toward a goal, cycling through perceive, reason, act and observe instead of answering once.</p>
+  <p>An AI agent reasons and acts autonomously to achieve a goal. Unlike a chatbot, which responds to one prompt at a time, an agent runs on its own through a cycle: it perceives its environment, reasons about the best next step, acts on the plan it has built, observes the result, and goes round again.</p>
+<p>The roles this enables are broad because the loop is generic. A travel agent that books a trip. A data analyst spotting trends across quarterly reports. A DevOps engineer detecting anomalies in logs, spinning up containers to test fixes, and rolling back faulty deployments.</p>
+<p>What is worth holding onto is that none of this is a property of the model. The model is stateless and reactive; it answers when asked. Everything agentic is the program around it — the loop, the tools it can call, the message history that carries results forward. Swap in a different model and you still have an agent; remove the loop and you have a chatbot, whatever model you kept.</p>
+<p>That framing tells you where the engineering effort goes, and it is not where people expect. A loop has no natural stopping point, so termination is your problem: a step budget, a check for repeated actions, and a defined outcome when the budget runs out. Actions with consequences need limits enforced in code rather than requested in the prompt, because a probabilistic system will occasionally do the improbable thing.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The cycle is perceive → reason → act → observe, repeated until the goal is met.</li><li>A chatbot answers once; an agent pursues an objective across many steps.</li><li>Nothing agentic lives in the model — the loop, the tools and the history are ordinary code.</li><li>The loop has no inherent stopping condition, so budgets and termination are your responsibility.</li><li>Consequential actions need limits enforced in code, not merely requested in the prompt.</li></ul></div>
+  <figure class="example">
+  <figcaption>The loop, in the smallest honest form</figcaption>
+  <p>Three of the four stages are plain software. Only &#x27;reason&#x27; is the model. The step budget is not defensive decoration — nothing in the model guarantees it will ever decide it is finished.</p>
+  <pre><code>def run(goal, tools, max_steps=20):
+    history = [system_prompt(), user(goal)]
+
+    for _ in range(max_steps):
+        reply = model.chat(history, tools=tools)   # reason
+        if not reply.tool_calls:
+            return reply.content                   # it says it is done
+
+        history.append(reply)
+        for call in reply.tool_calls:              # act
+            try:
+                result = tools[call.name](**call.arguments)
+            except Exception as e:
+                result = f&quot;ERROR: {e}&quot;             # failures are observations
+            history.append(tool_result(call.id, result))   # observe
+
+    raise BudgetExceeded(goal)</code></pre>
+</figure><figure class="example">
+  <figcaption>The same model, two different systems</figcaption>
+  <p>Worth stating plainly because the marketing rarely does: whether something is an agent is a question about your code, not about which model you bought.</p>
+  <pre><code>chatbot   prompt ──&gt; model ──&gt; answer
+                                (done)
+
+agent     goal ──&gt; [ model ──&gt; tool ──&gt; result ] ──&gt; answer
+                        ^                  |
+                        └──────────────────┘
+                            until done</code></pre>
+</figure>
+</section>
+<section id="large-reasoning-models-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Large reasoning models</h2>
+      <a class="stamp" href="#" data-t="83">1:23</a>
+    </div>
+  </div>
+  <p class="summary">LLMs given reasoning-focused fine-tuning so they work through a problem step by step before answering.</p>
+  <p>Agents are typically built on a particular kind of large language model: a large reasoning model. These are LLMs that have undergone reasoning-focused fine-tuning. Where a regular model generates its response immediately, a reasoning model is trained to work through the problem step by step — which is exactly what an agent needs when planning a complex, multi-step task.</p>
+<p>The training is the interesting part, and it explains both the strength and the limits. The model is trained on problems with verifiably correct answers: mathematics, and code that a compiler or test suite can check. Through reinforcement learning it learns to generate reasoning sequences that lead to correct final answers. The reward is not human preference about whether the reasoning sounds good — it is whether the answer was right.</p>
+<p>That requirement for automatic verification is the constraint worth carrying. It is why these models improved fastest on maths and code, and why domains without a programmatic checker benefit less directly. If you cannot write the grader, you cannot run this training loop.</p>
+<p>When a chatbot pauses and says it is thinking, that is the reasoning model generating an internal chain of thought, breaking the problem down before producing a response.</p>
+<p>The practical cost is that thinking is generated text, and generated text is tokens, latency and money — paid before the user sees a single word of the answer. Reasoning depth is a budget decision per call, not a setting to turn on and forget. For a hard planning step it pays for itself; for classifying a support ticket it is waste.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Reasoning models are LLMs fine-tuned to work step by step before answering.</li><li>Training uses problems with verifiably correct answers — maths, and code a compiler can test.</li><li>Reinforcement learning rewards reaching the correct answer, not producing plausible-sounding reasoning.</li><li>Domains without an automatic checker gain less, because the training loop needs a grader.</li><li>The visible &#x27;thinking&#x27; pause is chain-of-thought being generated.</li><li>Reasoning tokens cost latency and money on every call, so depth is a per-task budget decision.</li></ul></div>
+  <figure class="example">
+  <figcaption>Why verifiable answers make the training loop work</figcaption>
+  <p>The grader is the whole design. Where one can be written, the model optimises the property you actually care about. Where it cannot, you are back to rewarding text that reads well — which is a different and much weaker signal.</p>
+  <pre><code>def reward(problem, attempt):
+    &quot;&quot;&quot;Programmatic and definitive — this is what makes the loop possible.&quot;&quot;&quot;
+    if problem.kind == &quot;math&quot;:
+        return float(parse_final(attempt) == problem.answer)
+    if problem.kind == &quot;code&quot;:
+        if not compiles(attempt):
+            return 0.0
+        return passed(attempt) / problem.total_tests
+
+# works: maths, code, anything with a checkable answer
+# does not: &quot;write a good summary&quot; — no definitive right answer</code></pre>
+</figure><figure class="example">
+  <figcaption>Thinking is not free</figcaption>
+  <p>Illustrative figures, not measurements, but the shape is real: reasoning tokens are generated before the answer begins, so they are latency the user waits through and tokens you are billed for.</p>
+  <pre><code>standard model    prompt ──&gt; 180 output tokens          ~1.2 s
+reasoning model   prompt ──&gt; 2,400 thinking tokens
+                            + 180 output tokens          ~9.0 s
+
+# worth it: planning a multi-step migration
+# not worth it: routing a support ticket into one of six categories</code></pre>
+</figure>
+</section>
+<section id="vector-databases-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Vector databases</h2>
+      <a class="stamp" href="#" data-t="166">2:46</a>
+    </div>
+  </div>
+  <p class="summary">Data stored as embeddings rather than raw blobs, so similarity search becomes a mathematical operation.</p>
+  <p>In a vector database you do not store raw data — text files, images — as opaque blobs. An embedding model converts the data into a vector: a long list of numbers that captures the semantic meaning of the content.</p>
+<p>The payoff is that search becomes arithmetic. Looking for embeddings that sit close to one another translates directly into finding semantically similar content. Take a picture of a mountain vista, run it through the embedding model to get a multidimensional numeric vector, and a similarity search returns the nearest vectors in that space. The same machinery works for text articles and audio.</p>
+<p>What makes this different from a keyword index is that nothing is being matched. Two documents about the same subject that share no vocabulary still land near each other, because the embedding model was trained so that context determines position.</p>
+<p>Two practical points follow immediately. Vectors are only comparable within the model that produced them, so embedding your corpus with one model and your queries with another yields valid-looking distances and meaningless results. And comparing a query against millions of vectors exhaustively is too slow, so real systems use approximate nearest-neighbour indexes that trade a small, measurable amount of recall for a very large amount of speed — measurable being the operative word, since that recall is a ceiling on everything built above it.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>An embedding model converts content into a vector encoding its meaning.</li><li>Similarity search is a distance computation, not a keyword match.</li><li>Documents sharing no words can still rank as similar.</li><li>The same approach covers text, images and audio.</li><li>Vectors are only comparable within the model that produced them.</li><li>Approximate nearest-neighbour indexes trade a little recall for a lot of speed.</li></ul></div>
+  <figure class="example">
+  <figcaption>Similarity as geometry</figcaption>
+  <p>The top match shares no content word with the query. That is the behaviour a keyword index cannot produce, and it is the entire reason vector search exists.</p>
+  <pre><code>import numpy as np
+
+def cosine(a, b):
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+query = embed(&quot;revenue growth last quarter&quot;)
+
+for doc in corpus:
+    print(f&quot;{cosine(query, embed(doc)):.3f}  {doc}&quot;)
+
+# 0.91  &quot;Q4 performance exceeded plan across all regions.&quot;
+# 0.88  &quot;Quarterly sales rose against the prior period.&quot;
+# 0.22  &quot;The revenue recognition policy is in appendix B.&quot;
+#         ^ shares the word &quot;revenue&quot; and is still least relevant</code></pre>
+</figure><figure class="example">
+  <figcaption>The mixed-model bug</figcaption>
+  <p>Nothing errors. Dimensions match, distances compute, results come back ranked — and they are noise. Store the model identity next to the index and assert on it, because this failure is otherwise very hard to see.</p>
+  <pre><code>store.upsert(id=doc.id, vector=model_a.embed(doc.text))   # months ago
+hits = store.search(model_b.embed(question), k=5)         # today
+
+assert store.meta[&quot;embedding_model&quot;] == model.name</code></pre>
+</figure>
+</section>
+<section id="retrieval-augmented-generation-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Retrieval augmented generation</h2>
+      <a class="stamp" href="#" data-t="249">4:09</a>
+    </div>
+  </div>
+  <p class="summary">Use vector search to pull relevant passages and paste them into the prompt, so the model answers from facts it was never trained on.</p>
+  <p>RAG uses a vector database to enrich the prompt sent to an LLM. The flow starts at a retriever component. It takes the user&#x27;s prompt, turns it into a vector with an embedding model, and performs a similarity search against the vector database. What comes back is inserted into the original prompt, and the enriched prompt goes to the model.</p>
+<p>So you can ask a question about company policy, and the system pulls the relevant section of the employee handbook into the prompt before the model ever sees the question.</p>
+<p>The important structural fact is that the model is untouched. Same weights, same endpoint. RAG is a prompt-construction technique with a search engine in front of it — which is exactly why adding a document to the corpus makes it available on the very next query, with no retraining and no deployment.</p>
+<p>The characteristic failure follows from the same structure. If retrieval returns the wrong passages, the model answers confidently from the wrong passages, and nothing raises an error. This has a name — silent failure — and it is invisible to ordinary monitoring, since the response is fluent and the status code is 200. The only way to see it is to build a set of questions whose correct source passage you already know, and measure how often retrieval actually returns it.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The retriever embeds the query, searches, and injects the best matches into the prompt.</li><li>The model&#x27;s weights are never modified — RAG is entirely input-side.</li><li>New knowledge is live as soon as a document is indexed.</li><li>The model can only answer from passages it was given.</li><li>Silent failure: retrieval misses, the model answers from the wrong text, nothing errors.</li><li>Detect it with a gold set of questions whose correct source you already know.</li></ul></div>
+  <figure class="example">
+  <figcaption>The whole pipeline</figcaption>
+  <p>Four steps, and the instruction to admit ignorance is what converts a confident guess into an honest refusal when retrieval comes back empty-handed.</p>
+  <pre><code>def answer(question, store, model, k=5):
+    hits = store.search(embed(question), k=k)          # 1. retrieve
+
+    context = &quot;\n\n&quot;.join(f&quot;[{i+1}] {h.text}&quot;          # 2. augment
+                          for i, h in enumerate(hits))
+    prompt = (
+        &quot;Answer using only the context below. If it does not &quot;
+        &quot;contain the answer, say you do not know.\n\n&quot;
+        f&quot;&lt;context&gt;\n{context}\n&lt;/context&gt;\n\n{question}&quot;
+    )
+    return model.generate(prompt)                      # 3. generate</code></pre>
+</figure><figure class="example">
+  <figcaption>Measuring the ceiling</figcaption>
+  <p>Whatever this number tops out at is the best your whole system can do — no prompt engineering recovers a passage the model was never given. It is worth knowing before tuning anything downstream.</p>
+  <pre><code>GOLD = [
+    (&quot;what is the parental leave policy?&quot;, &quot;handbook.md#leave&quot;),
+    (&quot;how do I expense a taxi?&quot;,           &quot;finance.md#travel&quot;),
+]
+
+def recall_at_k(store, k):
+    hits = sum(any(h.source == want for h in store.search(embed(q), k=k))
+               for q, want in GOLD)
+    return hits / len(GOLD)
+
+for k in (1, 3, 5, 10, 25):
+    print(f&quot;recall@{k:&lt;3} {recall_at_k(store, k):.0%}&quot;)</code></pre>
+</figure>
+</section>
+<section id="model-context-protocol-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Model Context Protocol</h2>
+      <a class="stamp" href="#" data-t="333">5:33</a>
+    </div>
+  </div>
+  <p class="summary">A standard way for applications to expose tools and data to models, replacing bespoke connectors with one protocol.</p>
+  <p>For language models to be genuinely useful they have to reach external data sources, services and tools. MCP — Model Context Protocol — standardises how applications provide that context.</p>
+<p>The problem it solves is combinatorial. Without a standard, connecting models to systems means building a one-off integration for each pairing: this model to that database, this assistant to that code repository, this tool to that email server. Every new tool multiplies the work. MCP replaces that with a common interface — write an MCP server once for a system, and any MCP-speaking client can use it.</p>
+<p>An MCP server is what sits in front of the external system and tells the model exactly what is available and how to reach it. The client, typically the application hosting the model, connects to it.</p>
+<p>The piece worth understanding beyond the diagram is what a server actually exposes, because it is not only functions. Tools are actions the model can invoke. Resources are data the client can read — files, records, documents — addressed by URI. Prompts are reusable templates the server offers. Keeping those distinct matters in practice: something the model should read is a resource, and something it should do is a tool, and conflating them produces servers that make the model call a function to fetch data it could simply have been given.</p>
+<p>Security deserves a sentence, since MCP is precisely the boundary where a model reaches your systems. A server defines what is reachable at all, so it is the right place to enforce scope and permission — not the prompt, which is a request rather than a guarantee.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>MCP standardises how applications expose context, tools and data to models.</li><li>It replaces one-off connectors per model-tool pairing with a single protocol.</li><li>An MCP server fronts an external system; the model&#x27;s host application is the client.</li><li>Servers expose tools (actions), resources (readable data) and prompts (templates).</li><li>Something to read is a resource; something to do is a tool — conflating them is a common design error.</li><li>The server boundary is where scope and permission should be enforced.</li></ul></div>
+  <figure class="example">
+  <figcaption>Why a protocol rather than connectors</figcaption>
+  <p>The arithmetic is the argument. Bespoke integration work grows with the product of clients and systems; a protocol makes it grow with the sum.</p>
+  <pre><code>without a standard          with MCP
+─────────────────────────────────────────────────────────
+client A ──&gt; database       client A ──┐
+client A ──&gt; git repo       client B ──┼──&gt; MCP ──&gt; database
+client A ──&gt; email          client C ──┘         ──&gt; git repo
+client B ──&gt; database                            ──&gt; email
+client B ──&gt; git repo
+...                          write each server once;
+N x M integrations           any client can use it
+                             N + M</code></pre>
+</figure><figure class="example">
+  <figcaption>The three things a server exposes</figcaption>
+  <p>Sketched in Python for readability rather than as any particular SDK&#x27;s syntax. The distinction that matters is the annotation, not the function body: one is a read, the other is an action with consequences.</p>
+  <pre><code># a TOOL — an action the model may invoke
+@tool(&quot;create_ticket&quot;,
+      description=&quot;Open a support ticket. Use when the user reports a fault.&quot;)
+def create_ticket(title: str, severity: Literal[&quot;low&quot;, &quot;high&quot;]) -&gt; str:
+    return tickets.create(title=title, severity=severity).id
+
+# a RESOURCE — data the client can read, addressed by URI
+@resource(&quot;tickets://open&quot;)
+def open_tickets() -&gt; str:
+    return format_table(tickets.list(status=&quot;open&quot;))
+
+# a PROMPT — a reusable template the server offers
+@prompt(&quot;triage&quot;)
+def triage(ticket_id: str) -&gt; str:
+    return f&quot;Triage ticket {ticket_id}. Assign severity and an owner.&quot;</code></pre>
+</figure><figure class="example">
+  <figcaption>Enforce scope at the server</figcaption>
+  <p>The prompt can ask the model to behave; only the server can guarantee it. Anything with real consequences belongs behind a check the model cannot talk its way past.</p>
+  <pre><code>@tool(&quot;delete_ticket&quot;)
+def delete_ticket(ticket_id: str, *, caller) -&gt; str:
+    if not caller.has_scope(&quot;tickets:write&quot;):
+        return &quot;REFUSED: this connection is read-only&quot;
+    if tickets.get(ticket_id).status == &quot;closed&quot;:
+        return &quot;REFUSED: closed tickets are retained for audit&quot;
+    return tickets.delete(ticket_id)</code></pre>
+</figure>
+</section>
+<section id="mixture-of-experts-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Mixture of experts</h2>
+      <a class="stamp" href="#" data-t="375">6:15</a>
+    </div>
+  </div>
+  <p class="summary">Split the model into specialised subnetworks and activate only the few each token needs, so size and cost come apart.</p>
+  <p>Mixture of experts is an old idea — the paper dates to 1991 — and it has never been more relevant than now.</p>
+<p>MoE divides a large language model into a series of experts: specialised neural subnetworks. There might be three, or well over a hundred. A routing mechanism activates only the experts needed for a particular task, and a merge step combines their outputs mathematically into a single representation that continues through the rest of the model.</p>
+<p>The result is an efficient way to scale model size without a proportional increase in compute. MoE models such as IBM Granite&#x27;s 4.0 series can have dozens of experts, but for any given token only the specific experts needed are activated. So a model may have billions of total parameters while using only a fraction as active parameters at inference time.</p>
+<p>Two details are worth adding because they are where MoE surprises people.</p>
+<p>The first is that routing happens per token, not per task. Each token is scored by a small gating network, the top few experts are selected, and their outputs are combined weighted by those scores. Different tokens in the same sentence go to different experts.</p>
+<p>The second is the one that changes deployment decisions: **MoE saves computation, not memory**. Every expert must be resident and ready, because you cannot know in advance which tokens will route where. A model with 100 billion total and 10 billion active parameters needs memory for 100 billion and compute for 10 billion. It is cheaper to run, not cheaper to host — which is exactly backwards from what &#x27;only uses a fraction of its parameters&#x27; suggests on first hearing.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>MoE splits the model into specialised expert subnetworks.</li><li>A router activates only the experts a given token needs, then merges their outputs.</li><li>Model size scales without a proportional increase in compute.</li><li>Routing is per token, not per task — one sentence uses many experts.</li><li>Total parameters and active parameters are different numbers.</li><li>Memory is sized by total parameters; compute by active ones. MoE saves FLOPs, not VRAM.</li></ul></div>
+  <figure class="example">
+  <figcaption>Routing and merging, per token</figcaption>
+  <p>The gate is a small learned layer producing one score per expert. Only the top few run, and their outputs are summed weighted by those scores — which is what makes the merge differentiable and therefore trainable end to end.</p>
+  <pre><code>def moe_layer(x, experts, gate, k=2):
+    scores = softmax(gate(x))              # one score per expert
+    top = topk_indices(scores, k)          # only these actually run
+
+    out = 0
+    for i in top:
+        out = out + scores[i] * experts[i](x)   # weighted merge
+    return out
+
+# 128 experts defined, 2 evaluated per token.
+# the other 126 still occupy memory.</code></pre>
+</figure><figure class="example">
+  <figcaption>Total versus active parameters</figcaption>
+  <p>Illustrative numbers to show the shape. The middle column decides what hardware you need; the right column decides what a token costs. Reading only the right column is how teams end up with a model they cannot fit.</p>
+  <pre><code>                    total params   active per token   what it means
+────────────────────────────────────────────────────────────────────
+dense model             30 B             30 B          all of it, always
+MoE model              100 B             10 B          3x the compute
+                                                        efficiency ...
+
+memory required        100 B worth                     ... but you host
+                                                        all 100 B</code></pre>
+</figure><figure class="example">
+  <figcaption>Why routers need a balancing pressure</figcaption>
+  <p>Left alone, a router tends to collapse onto a few favourites — they get more gradient, improve faster, and get chosen still more often. An auxiliary loss penalising uneven load is what keeps the remaining experts in use.</p>
+  <pre><code># without balancing: the router&#x27;s rich get richer
+expert usage: [41%, 33%, 18%, 5%, 2%, 1%, 0%, 0%]
+               ^^^^^^^^^^ doing nearly all the work
+
+# an auxiliary loss penalises uneven load
+aux = alpha * n_experts * sum(frac_tokens[i] * mean_gate[i]
+                              for i in range(n_experts))
+loss = task_loss + aux</code></pre>
+</figure>
+</section>
+<section id="agi-and-asi-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>AGI and ASI</h2>
+      <a class="stamp" href="#" data-t="497">8:17</a>
+    </div>
+  </div>
+  <p class="summary">Two theoretical thresholds. AGI matches human experts across cognitive tasks; ASI goes beyond, with recursive self-improvement.</p>
+  <p>Artificial superintelligence is the stated goal of the frontier labs, and at this point it is purely theoretical. It does not exist, and we do not know whether it ever will.</p>
+<p>Today&#x27;s best models are slowly approaching a different standard: artificial general intelligence. AGI is also theoretical, but the definition is specific — a system that could complete all cognitive tasks as well as any human expert. Note both quantifiers, because they are doing the work. All tasks, not most. As well as an expert, not as well as an average person.</p>
+<p>ASI is a step beyond: intellectual scope past human-level intelligence, potentially capable of recursive self-improvement. That last clause is what makes ASI a different kind of claim rather than simply a larger number. A system that can redesign and upgrade itself becomes smarter, and the smarter version is better at redesigning itself, in a cycle with no obvious ceiling.</p>
+<p>It is the kind of development that would either solve humanity&#x27;s biggest problems or create entirely new ones nobody has imagined.</p>
+<p>For an engineer, the practical value of these two terms is mostly in noticing when they are being used to describe something that has been measured. Benchmark results are narrow and specific: this model scored this on that set of problems. AGI is a claim about generality across all cognitive work, which no benchmark tests. When you see the words attached to a product, the useful question is which specific capability was measured, on what, and by whom — because the gap between a strong benchmark score and &#x27;all cognitive tasks as well as any expert&#x27; is not a gap of degree.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>ASI is theoretical, does not exist, and may never.</li><li>AGI is also theoretical: all cognitive tasks, as well as any human expert.</li><li>Both quantifiers matter — all tasks, and expert-level rather than average.</li><li>ASI additionally supposes recursive self-improvement, which is a different kind of claim.</li><li>Benchmarks measure narrow capabilities; generality is not among them.</li><li>When the terms appear in marketing, ask what was measured, on what, by whom.</li></ul></div>
+  <figure class="example">
+  <figcaption>The three levels, and what separates them</figcaption>
+  <p>Only the first row describes anything that exists. The distinction between the second and third is not scale but self-modification, which is why they are separate terms rather than points on one axis.</p>
+  <pre><code>narrow AI      strong at specific tasks; everything shipping today
+                 ↓
+AGI            all cognitive tasks, at the level of a human expert
+                 ↓            (theoretical)
+ASI            beyond human level, plus recursive self-improvement
+                              (theoretical)
+
+# the last step is not &quot;more&quot; — it is a system that can rewrite itself</code></pre>
+</figure><figure class="example">
+  <figcaption>What recursive self-improvement means</figcaption>
+  <p>The reason ASI is discussed as a discontinuity rather than a milestone. Written as a loop, the claim is easy to state and the missing piece is obvious: nothing today can perform the improve step on itself.</p>
+  <pre><code>system = current_best()
+
+while True:
+    better = system.redesign(system)   # the step nobody can do today
+    if not better.more_capable_than(system):
+        break
+    system = better
+
+# each iteration produces something better at running the next one.
+# no known system closes this loop; the whole idea rests on it.</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Agentic AI</dt><dd>A system that pursues a goal autonomously by cycling through perceiving, reasoning, acting and observing, rather than answering a single prompt.</dd></div><div class="term"><dt>Large reasoning model</dt><dd>An LLM fine-tuned to work through problems step by step before answering, trained on tasks whose answers can be checked automatically.</dd></div><div class="term"><dt>Chain of thought</dt><dd>The intermediate reasoning a model generates before its final answer. What a chatbot is producing while it shows that it is thinking.</dd></div><div class="term"><dt>Embedding model</dt><dd>A model that converts text, images or audio into a vector whose position encodes the content&#x27;s meaning.</dd></div><div class="term"><dt>Vector database</dt><dd>Storage built to hold embeddings and retrieve them by similarity, turning &#x27;find things like this&#x27; into a distance computation.</dd></div><div class="term"><dt>RAG</dt><dd>Retrieval augmented generation: searching a corpus for relevant passages and inserting them into the prompt so the model can answer from them.</dd></div><div class="term"><dt>Silent failure</dt><dd>When retrieval misses the passage containing the answer. No error is raised — the model simply answers from the wrong material, fluently.</dd></div><div class="term"><dt>MCP</dt><dd>Model Context Protocol: a standard for applications to expose tools, data and prompt templates to models, replacing per-pairing connectors.</dd></div><div class="term"><dt>MCP server</dt><dd>The component fronting an external system, declaring what a model can reach there and how. The right place to enforce permission.</dd></div><div class="term"><dt>Tool vs resource</dt><dd>In MCP, a tool is an action the model invokes; a resource is data the client reads. Something to do versus something to read.</dd></div><div class="term"><dt>Mixture of experts (MoE)</dt><dd>An architecture splitting a model into specialised subnetworks, with a router activating only a few per token.</dd></div><div class="term"><dt>Router / gating network</dt><dd>The small learned layer that scores experts for each token and selects the top few to run.</dd></div><div class="term"><dt>Active parameters</dt><dd>The fraction of a MoE model&#x27;s parameters used for a given token. Determines compute cost, while total parameters determine memory.</dd></div><div class="term"><dt>AGI</dt><dd>Artificial general intelligence: a theoretical system able to complete all cognitive tasks as well as any human expert.</dd></div><div class="term"><dt>ASI</dt><dd>Artificial superintelligence: theoretical capability beyond human level, potentially able to redesign and improve itself recursively.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Two products use the same model. One is a chatbot and one is an agent. What actually differs?</summary>
+  <div class="answer"><p>The control flow around the call. The agent puts the model in a loop with tools and feeds each result back into context so the next turn can use it. Nothing about the model changed, which is why &#x27;is this agentic?&#x27; is a question about your code rather than about which model you bought.</p></div>
+</details><details class="q">
+  <summary>Why did reasoning models improve fastest on mathematics and code specifically?</summary>
+  <div class="answer"><p>Because their reinforcement learning needs a reward signal, and those domains have verifiable answers — a result that is right or wrong, code that compiles and passes tests. Where you cannot write a programmatic grader you cannot run the loop, so progress there is less direct.</p></div>
+</details><details class="q">
+  <summary>A RAG system returns a fluent, confident, wrong answer, and the logs show no errors. What has probably happened, and why won&#x27;t monitoring catch it?</summary>
+  <div class="answer"><p>Silent failure: retrieval returned plausible but incorrect passages, and the model answered from them. There is nothing to alert on because the request succeeded and the response is well formed. Detecting it requires a gold set of questions with known source passages and a recall measurement you run deliberately.</p></div>
+</details><details class="q">
+  <summary>Why does MCP change integration effort from a product into a sum?</summary>
+  <div class="answer"><p>Without a standard, each client-system pairing needs its own connector, so work grows as clients times systems. With MCP each system needs one server and each client speaks the protocol once, so work grows as clients plus systems — and a new client gets every existing server for free.</p></div>
+</details><details class="q">
+  <summary>An MoE model has 100B total and 10B active parameters. What does each number tell you, and which one is easy to misread?</summary>
+  <div class="answer"><p>Active parameters determine compute per token, so the model runs roughly as cheaply as a 10B dense model. Total parameters determine memory, because every expert must be resident — you cannot predict which tokens route where. The easy misreading is &#x27;only uses a fraction of its parameters&#x27;, which sounds like a hosting saving and is not: MoE saves FLOPs, not VRAM.</p></div>
+</details><details class="q">
+  <summary>Why is ASI treated as a different kind of claim from AGI rather than simply more of it?</summary>
+  <div class="answer"><p>Because of recursive self-improvement. AGI names a capability level — all cognitive tasks at expert standard. ASI supposes a system that can redesign and upgrade itself, so each version is better at producing the next. That is a qualitative difference in the shape of the claim, not a larger point on the same scale.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Write an MCP server for one internal system your team uses, and notice how much of the work is deciding what should be a tool versus a resource rather than writing the integration.</li><li>Read the original mixture-of-experts paper (Jacobs, Jordan, Nowlan and Hinton, 1991) and then a modern sparse-MoE transformer paper, and note that the routing idea barely changed while the scale did.</li><li>Instrument expert utilisation on an open MoE model and look for collapse — a few experts taking most of the tokens is the failure the balancing loss exists to prevent.</li><li>Take a task you currently send to a reasoning model and measure whether the thinking tokens change the answer; for classification and extraction they frequently do not, and the latency is pure cost.</li><li>Build the gold-set recall measurement for a RAG system you already run, before touching any prompt — that number is the ceiling on everything above it.</li><li>Trace one agent run end to end and mark which steps were the model and which were ordinary code; the ratio is usually a surprise and tells you where bugs will actually live.</li><li>The vector-database, RAG and agent entries here each have a full lesson elsewhere in this collection — use this page as the map and those for the depth.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

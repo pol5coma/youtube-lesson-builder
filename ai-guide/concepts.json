@@ -1,0 +1,2460 @@
+{
+  "clusters": [
+    {
+      "id": "foundations",
+      "title": "Foundations",
+      "order": 1,
+      "peripheral": false,
+      "blurb": "What AI is, and the kinds of intelligence a system can have."
+    },
+    {
+      "id": "neural-networks",
+      "title": "Neural Networks",
+      "order": 2,
+      "peripheral": false,
+      "blurb": "The learnable building blocks — from a single neuron to deep networks."
+    },
+    {
+      "id": "transformers",
+      "title": "Transformers & Generative Models",
+      "order": 3,
+      "peripheral": false,
+      "blurb": "The architectures behind modern generative AI — the Transformer that powers language models, and the diffusion process that powers images."
+    },
+    {
+      "id": "retrieval",
+      "title": "Retrieval & Context",
+      "order": 4,
+      "peripheral": false,
+      "blurb": "Getting the right knowledge into a model at answer time."
+    },
+    {
+      "id": "customization",
+      "title": "Model Customization",
+      "order": 5,
+      "peripheral": false,
+      "blurb": "Making a general model fit your task — by prompt, context, or weights."
+    },
+    {
+      "id": "evals",
+      "title": "AI Evaluation",
+      "order": 6,
+      "peripheral": false,
+      "blurb": "How you find out whether the thing you built is actually any good — rubrics, golden datasets, and judges you have earned the right to trust."
+    },
+    {
+      "id": "agents",
+      "title": "Agents",
+      "order": 7,
+      "peripheral": false,
+      "blurb": "Models that loop: perceive, decide, act, and use tools toward a goal."
+    },
+    {
+      "id": "security",
+      "title": "AI Security",
+      "order": 8,
+      "peripheral": false,
+      "blurb": "How agentic AI gets attacked, and how to defend it."
+    },
+    {
+      "id": "practice",
+      "title": "AI in Practice",
+      "order": 9,
+      "peripheral": true,
+      "blurb": "Applying AI to real software and operations work."
+    },
+    {
+      "id": "society",
+      "title": "Governance & Society",
+      "order": 10,
+      "peripheral": true,
+      "blurb": "Governing AI risk, and its effect on people and institutions."
+    }
+  ],
+  "concepts": [
+    {
+      "id": "ai-root",
+      "label": "Artificial Intelligence",
+      "cluster": "foundations",
+      "parent": null,
+      "abstract": true,
+      "summary": "Systems that perform tasks we associate with human intelligence — perceiving, predicting, reasoning, and acting.",
+      "explanation": "This is the root of the map. 'AI' is not one technique but a family of them, and the branches below trace how the field actually stacks up. Foundations asks what kind of intelligence a task needs. Neural Networks and Transformers explain how today's dominant models learn and run. Retrieval, Customization, and Agents are about making a general model useful on your problem. Security, Practice, and Governance are about deploying it responsibly. Expand any branch to move from the basics toward the engineering, and follow the dashed relationship edges to see how ideas in different branches connect.",
+      "keyPoints": [
+        "AI is an umbrella: rule systems, classical ML, deep neural networks, and generative/agentic LLMs are all 'AI' with very different mechanics.",
+        "The dominant paradigm today is the neural network — functions with millions to trillions of tunable weights learned from data.",
+        "The left-to-right depth of this map mirrors learning order: understand the model first, then how to feed, extend, and govern it.",
+        "The branches are laid out for learning order, not strict containment: neural networks are a kind of machine learning and Transformers are a kind of neural network, but each gets its own branch so you can go deep without descending through everything above it. The dashed relationship edges restore those 'is a kind of' connections.",
+        "Nodes marked ✎ were written for this guide to fill gaps the 36 lessons don't cover directly."
+      ],
+      "authored": true,
+      "lessons": [],
+      "links": []
+    },
+    {
+      "id": "kinds-of-intelligence",
+      "label": "Kinds of Intelligence",
+      "cluster": "foundations",
+      "parent": "ai-root",
+      "summary": "Four ways to make a decision at scale — humans, rules, classical ML, and generative AI — arranged on a spectrum of determinism, not a ladder.",
+      "explanation": "Before reaching for AI, it helps to see that automation has four distinct modes, each with a different trade-off. A human brings judgement, handles ambiguity, and can be held accountable, but does not scale. Hard-coded rules are exact, fast, and fully auditable, but brittle when reality doesn't match the rules. Classical machine learning finds statistical patterns in structured data, useful when the logic is too complex to write by hand. Generative AI handles unstructured input and produces flexible output, but is non-deterministic and hard to explain. The mistake is treating these as a ladder where the newest option is always best; they are options, and the right one depends on the task. The deciding question is how much non-determinism the use case can tolerate.",
+      "keyPoints": [
+        "Humans handle judgement, ambiguity and accountability; rules give exact, auditable, deterministic logic; ML finds patterns in structured data; generative AI handles unstructured input with flexible output.",
+        "The real design question is 'how much non-determinism can you tolerate?' — a fraud rule that must be explainable in court is a bad fit for a probabilistic model.",
+        "Most robust systems are hybrids: rules for the parts that must be exact, ML or LLMs for the parts that are fuzzy.",
+        "Every non-deterministic component adds cost you keep paying: monitoring for drift, a golden evaluation set, and a fallback when it is wrong."
+      ],
+      "authored": false,
+      "lessons": [
+        "Knowing When Not to Use AI: AI Agents vs Rules vs ML"
+      ],
+      "links": [
+        {
+          "to": "machine-learning",
+          "rel": "includes"
+        },
+        {
+          "to": "generative-vs-agentic",
+          "rel": "leads to"
+        },
+        {
+          "to": "when-not-to-use-ai",
+          "rel": "informs"
+        }
+      ]
+    },
+    {
+      "id": "machine-learning",
+      "label": "Machine Learning",
+      "cluster": "foundations",
+      "parent": "ai-root",
+      "summary": "Instead of writing rules by hand, you show a model examples and let it fit a function that maps inputs to outputs.",
+      "explanation": "Machine learning flips the usual logic of programming. Rather than a human writing the rules, you provide examples and an algorithm searches for a function that reproduces them and generalises to new cases. It comes in three main flavours: supervised learning trains on labelled input-output pairs; unsupervised learning finds hidden structure in unlabelled data (clustering, dimensionality reduction); reinforcement learning learns from reward signals earned by acting in an environment. A model has parameters, which are learned from data, and hyperparameters, which you set; training adjusts the parameters to minimise a loss that measures error. The central challenge is generalisation — a model that merely memorises the training set (overfitting) will fail on new data, which is why you always evaluate on a held-out test set. Classical ML methods like gradient-boosted trees still beat neural networks on tabular data; deep learning took over for perception and language.",
+      "keyPoints": [
+        "Supervised learning trains on labelled pairs (input → correct output); unsupervised learning finds structure with no labels; reinforcement learning learns from reward signals.",
+        "A model has parameters (learned from data) and hyperparameters (set by you). Training minimises a loss function that measures how wrong the predictions are.",
+        "The core risk is generalisation: a model that memorises the training set (overfits) fails on new data. You hold out a test set to measure real performance.",
+        "Classical ML (linear/logistic regression, decision trees, gradient boosting, SVMs) still wins on tabular data; neural networks dominate perception and language."
+      ],
+      "authored": true,
+      "lessons": [],
+      "links": [
+        {
+          "to": "neuron",
+          "rel": "generalizes to"
+        },
+        {
+          "to": "reinforcement-learning",
+          "rel": "includes"
+        },
+        {
+          "to": "training-pipeline",
+          "rel": "precedes"
+        },
+        {
+          "to": "evaluation",
+          "rel": "measured by"
+        }
+      ]
+    },
+    {
+      "id": "reinforcement-learning",
+      "label": "Reinforcement Learning (RLHF & RLVR)",
+      "cluster": "foundations",
+      "parent": "machine-learning",
+      "summary": "Learning from consequences rather than labelled answers — the paradigm that now shapes an LLM's behaviour and, increasingly, its reasoning.",
+      "explanation": "Reinforcement learning is the third paradigm of machine learning, and it has become the decisive one for frontier models. Instead of learning from labelled input-output pairs, an agent takes actions in an environment, receives a reward signal, and adjusts its policy to earn more reward over time — learning from consequences rather than from a teacher's answer key. Classic RL powered game-playing systems like AlphaGo; for language models it now appears in two forms that matter enormously. RLHF (reinforcement learning from human feedback) trains a reward model on human preference comparisons and then optimises the LLM against it, which is what actually instils helpfulness, tone, and refusal behaviour — the step that turned a raw pretrained model into a usable assistant. RLVR (RL from verifiable rewards) goes further and is the engine behind modern reasoning models: instead of a learned reward model, the reward comes from automatically checkable outcomes — did the maths come out right, did the code pass its tests — which lets the model be trained to reason through problems without anyone hand-labelling the reasoning steps. This is why post-training is now treated as a pillar of model development alongside pretraining, not an afterthought.",
+      "keyPoints": [
+        "RL learns from a reward signal earned by acting, not from labelled answers: the model tries something, sees the consequence, and updates its policy.",
+        "RLHF trains a reward model on human preference comparisons, then optimises the LLM against it — this is what produces helpfulness, tone and refusals.",
+        "RLVR (verifiable rewards) uses automatically checkable outcomes — maths that checks out, code that passes tests — and is how modern reasoning models are trained to think.",
+        "Because reasoning ability can be trained this way, post-training is now a pillar of frontier model development alongside pretraining, not a finishing touch."
+      ],
+      "authored": true,
+      "lessons": [],
+      "links": [
+        {
+          "to": "training-pipeline",
+          "rel": "aligns"
+        },
+        {
+          "to": "reasoning-models",
+          "rel": "produces"
+        },
+        {
+          "to": "fine-tuning",
+          "rel": "form of"
+        }
+      ]
+    },
+    {
+      "id": "neurosymbolic",
+      "label": "Neurosymbolic AI",
+      "cluster": "foundations",
+      "parent": "ai-root",
+      "summary": "Combining neural pattern recognition with symbolic logic: neural perception feeds a reasoning engine that follows explicit rules.",
+      "explanation": "Neural networks and symbolic AI have opposite strengths and weaknesses. A neural network learns statistical patterns from data — it is robust to messy input but opaque, and it recognises patterns without genuinely 'understanding' or reasoning about them. Symbolic AI encodes knowledge as explicit rules and logic — it is transparent and exact, but it shatters on exceptions the rules never anticipated. Neurosymbolic AI stitches the two together: the neural part turns raw, unstructured input into clean symbols, and a symbolic reasoning engine then applies logic to those symbols. This gives a system both the flexibility of learning and the explainability of rules. Meta-learning takes it further, letting the symbolic layer revise its own rules through reasoning rather than requiring the whole network to be retrained.",
+      "keyPoints": [
+        "Symbolic AI encodes knowledge as explicit rules and logic — transparent and exact, but brittle when reality does not match the rules.",
+        "Neural networks learn statistical patterns from data — robust to messy input, but opaque and prone to confident mistakes.",
+        "The hybrid uses the network to turn raw input into symbols, then a logic engine reasons over them, giving both flexibility and explainability.",
+        "Meta-learning lets the symbolic layer update its own rules through reasoning, rather than needing everything retrained."
+      ],
+      "authored": false,
+      "lessons": [
+        "What Is NeuroSymbolic AI? Bridging Reasoning & Neural Networks"
+      ],
+      "links": [
+        {
+          "to": "neuron",
+          "rel": "combines"
+        },
+        {
+          "to": "reasoning-models",
+          "rel": "contrasts with"
+        },
+        {
+          "to": "explainability",
+          "rel": "improves"
+        }
+      ]
+    },
+    {
+      "id": "neuron",
+      "label": "The Neuron",
+      "cluster": "neural-networks",
+      "parent": "ai-root",
+      "summary": "The atom of a neural network: it weights its inputs, sums them with a bias, and passes the result through an activation function.",
+      "explanation": "A neuron is a small mathematical function, and every neural network is built entirely from copies of it. It receives a vector of input numbers, multiplies each by a learned weight, adds them together with a learned bias, and pushes that sum through an activation function to produce a single output number — compactly, output = activation(w·x + b). The weights are where learning lives: a large weight means that input strongly influences the neuron's output, so the pattern of weights encodes what the neuron has learned to care about. Before any of this can happen, real-world data (an image, a word, a row of a spreadsheet) must be converted into a numeric vector the neuron can multiply. The bias shifts the threshold at which the neuron activates, and the activation function decides how the raw weighted sum is squashed into an output.",
+      "keyPoints": [
+        "A neuron is just a function: output = activation(w·x + b), where w are weights, x is the input vector, and b is the bias.",
+        "Weights encode learned importance — a large weight means that input strongly moves the neuron's output.",
+        "Real-world data must first be turned into a vector of numbers (a feature vector) before a neuron can process it.",
+        "The bias shifts the threshold at which the neuron 'fires'; the activation function decides how the weighted sum is squashed into an output."
+      ],
+      "authored": false,
+      "lessons": [
+        "Inside a Neuron: The Building Blocks of a Neural Network & AI"
+      ],
+      "links": [
+        {
+          "to": "layers",
+          "rel": "stacks into"
+        },
+        {
+          "to": "embeddings",
+          "rel": "produces"
+        }
+      ]
+    },
+    {
+      "id": "layers",
+      "label": "Layers & Nonlinearity",
+      "cluster": "neural-networks",
+      "parent": "neuron",
+      "summary": "Stacking layers of neurons lets a network compose simple features into complex ones — but only because activations are nonlinear.",
+      "explanation": "A single neuron can only draw a straight-line boundary, which is far too simple for real problems. Networks get their power by organising neurons into layers — an input layer, one or more hidden layers, and an output layer — where each layer's outputs feed the next. Within a layer, different neurons specialise on different features; across layers, the network composes those features into progressively more abstract concepts (edges, then shapes, then objects). The crucial ingredient is nonlinearity: if the activation function were linear, stacking layers would mathematically collapse into a single linear function and depth would buy nothing. Nonlinear activations like ReLU or sigmoid let each layer bend the representation, which is what allows a deep network to approximate extremely complex relationships.",
+      "keyPoints": [
+        "Without a nonlinear activation, stacking layers collapses to a single linear function — depth would add nothing.",
+        "Nonlinear activations (sigmoid, ReLU) let each layer bend the representation, so deep networks can approximate very complex functions.",
+        "Neurons in one layer learn to detect different patterns; later layers combine those into higher-level concepts.",
+        "A network is organised as an input layer, one or more hidden layers, and an output layer."
+      ],
+      "authored": false,
+      "lessons": [
+        "Inside a Neuron: The Building Blocks of a Neural Network & AI"
+      ],
+      "links": [
+        {
+          "to": "backprop",
+          "rel": "trained by"
+        },
+        {
+          "to": "cnn-rnn",
+          "rel": "specializes into"
+        }
+      ]
+    },
+    {
+      "id": "backprop",
+      "label": "Backpropagation & Gradient Descent",
+      "cluster": "neural-networks",
+      "parent": "neuron",
+      "summary": "How a network learns: measure the error, compute each weight's contribution to it, and nudge every weight to reduce it.",
+      "explanation": "Training a network means finding weights that make its outputs match the desired ones, and this is done by a two-part loop. First, a loss function measures how wrong the current output is — cross-entropy is the standard choice for classification and next-token prediction because it punishes confident wrong answers heavily. Second, gradient descent adjusts the weights: it computes the gradient of the loss with respect to each weight (the direction that would increase error) and steps each weight the opposite way, scaled by a learning rate. Backpropagation is the efficient algorithm that computes all those gradients at once by applying the chain rule from calculus, propagating the error backwards from the output through every layer so each weight gets its exact share of the blame. This loop runs over mini-batches of data for many epochs, and it is the same procedure that trains everything from a single neuron to a trillion-parameter language model.",
+      "keyPoints": [
+        "Gradient descent: compute the gradient of the loss with respect to each weight, then step each weight a little way downhill (scaled by the learning rate).",
+        "Backpropagation applies the chain rule from calculus to propagate the error backwards through the layers, giving every weight its share of the blame efficiently.",
+        "Cross-entropy loss is the standard for classification and next-token prediction; it punishes confident wrong answers heavily.",
+        "Training runs in mini-batches over many epochs; too high a learning rate diverges, too low is slow. This same loop trains everything from one neuron to a trillion-parameter LLM."
+      ],
+      "authored": true,
+      "lessons": [],
+      "links": [
+        {
+          "to": "training-pipeline",
+          "rel": "powers"
+        },
+        {
+          "to": "fine-tuning",
+          "rel": "is the mechanism of"
+        }
+      ]
+    },
+    {
+      "id": "cnn-rnn",
+      "label": "CNNs & RNNs",
+      "cluster": "neural-networks",
+      "parent": "layers",
+      "summary": "The two architectures that dominated deep learning before Transformers: CNNs for spatial data, RNNs for sequences.",
+      "explanation": "Before the Transformer, two specialised architectures carried deep learning. Convolutional neural networks (CNNs) exploit spatial structure: they slide small learned filters across an image and share those weights across every position, so a feature like an edge is detected wherever it appears. Stacking convolutions builds up from edges to textures to whole objects, which made CNNs the backbone of computer vision. Recurrent neural networks (RNNs) handle sequences — text, audio, time series — by carrying a hidden state from one time step to the next, letting earlier inputs influence later ones. Their weakness is that they process a sequence strictly in order and struggle to connect distant elements (the vanishing-gradient problem); LSTMs and GRUs eased this but the sequential bottleneck capped their speed and scale. The Transformer replaced recurrence with attention, processing an entire sequence in parallel, which is exactly why it scaled where RNNs plateaued.",
+      "keyPoints": [
+        "Convolutional neural networks slide small learned filters across an image, sharing weights to detect edges, textures and shapes regardless of position.",
+        "Recurrent neural networks carry a hidden state from one time step to the next, letting them model sequences — but they process tokens strictly in order.",
+        "RNNs struggle with long-range dependencies (the vanishing-gradient problem); LSTMs and GRUs helped, but sequential processing still capped their speed.",
+        "The Transformer replaced recurrence with attention, processing a whole sequence in parallel — which is why it scaled where RNNs stalled."
+      ],
+      "authored": true,
+      "lessons": [],
+      "links": [
+        {
+          "to": "transformer-arch",
+          "rel": "superseded by"
+        },
+        {
+          "to": "gnn",
+          "rel": "related to"
+        }
+      ]
+    },
+    {
+      "id": "gnn",
+      "label": "Graph Neural Networks",
+      "cluster": "neural-networks",
+      "parent": "layers",
+      "summary": "Networks that learn from connected data — nodes joined by edges — by passing messages between neighbours.",
+      "explanation": "Much real-world data is neither a grid (like an image) nor a sequence (like text) but a graph: social networks, molecules, knowledge bases, road maps. A graph is a set of nodes joined by edges, typically encoded as an adjacency matrix. Graph neural networks learn a vector embedding for each node that captures both the node's own features and the structure of its neighbourhood. The core operation is message passing: each node gathers ('aggregates') information from its neighbours and updates its own representation, and repeating this over several layers lets information travel further across the graph. The main architectures differ in how they aggregate — GCN averages neighbour features, GraphSAGE samples a fixed number of neighbours to scale to huge graphs, GAT weights neighbours using attention, and GIN sums them, which is provably the most expressive at telling graph structures apart. Graph Transformers apply attention across the whole graph, using the same query/key/value machinery found in language models.",
+      "keyPoints": [
+        "A graph is nodes + edges, encoded as an adjacency matrix; GNNs learn an embedding for each node that reflects both its features and its neighbourhood.",
+        "Message passing is the core operation: each node aggregates information from neighbours, then updates itself — repeated for several layers to reach further out.",
+        "Architectures differ by how they aggregate: GCN averages, GraphSAGE samples neighbours to scale, GAT weights neighbours with attention, GIN sums (the most expressive).",
+        "Graph Transformers apply attention across the whole graph, and the query/key/value machinery is the same idea used in language Transformers."
+      ],
+      "authored": false,
+      "lessons": [
+        "Graph Neural Networks Explained: A Clear Guide to GNN Basics & Models"
+      ],
+      "links": [
+        {
+          "to": "attention",
+          "rel": "uses"
+        },
+        {
+          "to": "embeddings",
+          "rel": "produces"
+        }
+      ]
+    },
+    {
+      "id": "transformer-arch",
+      "label": "Transformer Architecture",
+      "cluster": "transformers",
+      "parent": "ai-root",
+      "summary": "The architecture behind essentially every modern LLM: it drops recurrence and processes a whole sequence at once via self-attention.",
+      "explanation": "The Transformer is the design that made modern language models possible. Its key move is abandoning the step-by-step recurrence of RNNs: instead of reading a sequence one token at a time, it takes the whole sequence at once and uses self-attention to let every token look at every other token directly. Input tokens are turned into embeddings, combined with positional information (so order isn't lost), and passed through a stack of identical layers, each containing a self-attention block and a feed-forward block. Because attention is computed in parallel across the sequence, Transformers train dramatically faster on GPUs than sequential RNNs — the practical reason they could be scaled to billions of parameters. The 'decoder-only' variant used by the GPT family adds causal masking so each token can only attend to earlier tokens, which is precisely what enables left-to-right text generation. Depth, width, and enormous training data are what turn this architecture into a capable model.",
+      "keyPoints": [
+        "Input tokens become embeddings plus positional information, then flow through a stack of identical layers, each with a self-attention block and a feed-forward block.",
+        "Because attention sees the whole sequence in parallel, Transformers train far faster on modern GPUs than sequential RNNs — the key to scaling to billions of parameters.",
+        "'Decoder-only' models (the GPT family) use causal (masked) attention so each token attends only to earlier tokens, which is what makes next-token generation possible.",
+        "Depth (many layers) plus width (large hidden size) plus scale of data is what turns this architecture into a capable language model."
+      ],
+      "authored": true,
+      "lessons": [],
+      "links": [
+        {
+          "to": "attention",
+          "rel": "built on"
+        },
+        {
+          "to": "tokens",
+          "rel": "operates on"
+        },
+        {
+          "to": "training-pipeline",
+          "rel": "trained by"
+        },
+        {
+          "to": "moe",
+          "rel": "scaled by"
+        },
+        {
+          "to": "multimodal",
+          "rel": "extends to"
+        }
+      ]
+    },
+    {
+      "id": "attention",
+      "label": "Attention (Q·K·V)",
+      "cluster": "transformers",
+      "parent": "transformer-arch",
+      "summary": "The mechanism that lets each token decide which other tokens matter to it, using queries, keys, and values.",
+      "explanation": "Attention is the engine of the Transformer, and the idea is intuitive once broken down. Every token produces three vectors: a query (what am I looking for?), a key (what do I offer?), and a value (what content do I carry?). To build a token's new, context-aware representation, its query is compared against the keys of all tokens to produce a set of scores; those scores are normalised with a softmax into weights that sum to one; and the token's output becomes a weighted blend of everyone's values. High weight means 'this other token is relevant to me', which is how a model resolves what 'it' refers to, or links a question to the answer that appeared earlier in the text. Multi-head attention runs several of these operations in parallel, each free to learn a different kind of relationship, then concatenates the results. The one catch is cost: comparing every token to every other makes attention scale with the square of sequence length, which is exactly why long context is expensive and why optimisations like the KV cache exist.",
+      "keyPoints": [
+        "For each token: score its query against all keys, softmax the scores into weights that sum to 1, then take a weighted sum of the values.",
+        "This is how a model resolves 'it' to the right noun or links a question to its answer earlier in the text — relevant tokens get high weight.",
+        "Multi-head attention runs several attention operations in parallel, each learning a different kind of relationship, then concatenates them.",
+        "Attention cost grows with the square of sequence length, which is why long context is expensive and why the KV cache and PagedAttention exist."
+      ],
+      "authored": false,
+      "lessons": [
+        "How KV Cache Speeds Up LLMs for Faster AI Models on GPUs",
+        "Graph Neural Networks Explained: A Clear Guide to GNN Basics & Models"
+      ],
+      "links": [
+        {
+          "to": "kv-cache",
+          "rel": "is optimized by"
+        },
+        {
+          "to": "context-window",
+          "rel": "bounded by"
+        },
+        {
+          "to": "attention-dilution",
+          "rel": "weakens with"
+        }
+      ]
+    },
+    {
+      "id": "tokens",
+      "label": "Tokens & Next-Token Prediction",
+      "cluster": "transformers",
+      "parent": "transformer-arch",
+      "summary": "An LLM splits text into tokens and repeatedly predicts the most likely next one; fluent output is that loop run thousands of times.",
+      "explanation": "An LLM never sees words the way we do, and it does not 'understand' in the human sense. Text is first broken into tokens — sub-word fragments — and the model's entire job is to output a probability distribution over its vocabulary for the next token given everything so far. Generation is autoregressive: sample one token, append it, feed the longer sequence back in, and predict again, repeating until the response is complete. Because the objective is simply 'what token likely comes next', the model is fundamentally syntactic — it captures the statistical form of language, not grounded truth — which is the deep reason it can produce fluent, confident, and wrong output. A sampling parameter called temperature controls how much randomness is allowed: low temperature makes the model focused and repetitive, high temperature makes it more creative and more error-prone.",
+      "keyPoints": [
+        "Text is tokenised into sub-word units; the model outputs a probability distribution over its whole vocabulary for the next token.",
+        "Generation is autoregressive: sample one token, append it, feed the longer sequence back in, predict again.",
+        "Because it predicts statistically likely continuations, an LLM is syntactic — it models the form of language, not grounded meaning, which is the root of hallucination.",
+        "Temperature controls randomness in sampling: low is focused and repetitive, high is creative and riskier."
+      ],
+      "authored": false,
+      "lessons": [
+        "Generative vs Agentic AI: Shaping the Future of AI Collaboration",
+        "What is an AI Code Generator? LLM Coding, Productivity, & Risk",
+        "Why AI Makes the Humanities More Important Than Ever"
+      ],
+      "links": [
+        {
+          "to": "hallucination",
+          "rel": "causes"
+        },
+        {
+          "to": "context-window",
+          "rel": "fills"
+        },
+        {
+          "to": "reasoning-models",
+          "rel": "extended by"
+        }
+      ]
+    },
+    {
+      "id": "training-pipeline",
+      "label": "LLM Training Pipeline",
+      "cluster": "transformers",
+      "parent": "transformer-arch",
+      "summary": "How a raw Transformer becomes a helpful assistant: pretraining, supervised fine-tuning, then alignment from feedback.",
+      "explanation": "A freshly initialised Transformer knows nothing; turning it into a useful assistant happens in three stages. Pretraining runs next-token prediction over trillions of tokens of text, and in the process the model absorbs grammar, facts, and reasoning patterns — this stage consumes almost all of the compute and happens once. Supervised fine-tuning (SFT) then continues training on a smaller, curated set of instruction-and-ideal-response pairs, teaching the model to follow instructions rather than merely autocomplete. Finally, alignment (RLHF, or its AI-feedback variant RLAIF) trains a reward model on human preferences and optimises the LLM to produce answers people rate more highly; this is what shapes its tone, helpfulness, safety, and refusal behaviour. A crucial consequence of all this is that the model's knowledge is frozen at its training cutoff — anything newer, or anything private to you, has to arrive through retrieval or context at run time, not through the weights.",
+      "keyPoints": [
+        "Pretraining: next-token prediction over trillions of tokens teaches grammar, facts and reasoning patterns — this is where almost all the compute goes, once.",
+        "Supervised fine-tuning (SFT): continue training on curated (instruction, ideal response) pairs so the model follows instructions instead of just autocompleting.",
+        "Alignment (RLHF / RLAIF): train a reward model on preferences, then optimise the LLM to produce responses humans (or another AI) rate higher — this shapes tone, safety and refusals.",
+        "Everything after pretraining is called post-training, and it is now a pillar in its own right: RLVR on verifiable rewards is what trains reasoning ability, not just manners.",
+        "Knowledge is frozen at the training cutoff; anything newer must arrive via retrieval or context, not the weights."
+      ],
+      "authored": true,
+      "lessons": [],
+      "links": [
+        {
+          "to": "backprop",
+          "rel": "runs on"
+        },
+        {
+          "to": "reinforcement-learning",
+          "rel": "aligned by"
+        },
+        {
+          "to": "scaling-laws",
+          "rel": "sized by"
+        },
+        {
+          "to": "fine-tuning",
+          "rel": "continued by"
+        },
+        {
+          "to": "rag",
+          "rel": "complemented by"
+        },
+        {
+          "to": "evaluation",
+          "rel": "checked by"
+        }
+      ]
+    },
+    {
+      "id": "scaling-laws",
+      "label": "Scaling Laws",
+      "cluster": "transformers",
+      "parent": "training-pipeline",
+      "summary": "Model quality improves as a predictable power law in parameters, data, and compute — the empirical result that justified spending billions on bigger models.",
+      "explanation": "Scaling laws are the reason the industry bet so heavily on making models larger. Kaplan et al. found in 2020 that a language model's loss falls as a smooth power law in three quantities — the number of parameters, the size of the training dataset, and the compute spent — with the trend holding across many orders of magnitude. That predictability changed model development from guesswork into planning: you could estimate the capability of a model before training it, and justify the expense. Hoffmann et al.'s 2022 'Chinchilla' work then corrected an influential mistake in how that budget was being spent, showing that models of the day were badly undertrained — for compute-optimal training, parameters and training tokens should scale roughly together, so a smaller model trained on far more data beats a larger, data-starved one. This is why model sizes stopped simply ballooning and training sets exploded instead. More recently the field has added a second axis, inference-time scaling: spending more compute at answer time, by letting a model think for longer, buys accuracy much as training-time scale does — the principle underneath reasoning models.",
+      "keyPoints": [
+        "Kaplan et al. (2020): loss falls as a smooth power law in parameters, data and compute — predictable across many orders of magnitude.",
+        "This made capability forecastable before training, which is what justified enormous capital spending on frontier runs.",
+        "Chinchilla (Hoffmann et al., 2022) showed models were undertrained: for a fixed compute budget, scale parameters and tokens together — smaller model, far more data.",
+        "Inference-time scaling is the newer axis: spending more compute at answer time (thinking longer) also buys accuracy, which is the basis of reasoning models."
+      ],
+      "authored": true,
+      "lessons": [],
+      "links": [
+        {
+          "to": "training-pipeline",
+          "rel": "budgets"
+        },
+        {
+          "to": "reasoning-models",
+          "rel": "extended by"
+        },
+        {
+          "to": "moe",
+          "rel": "bent by"
+        }
+      ]
+    },
+    {
+      "id": "kv-cache",
+      "label": "KV Cache & PagedAttention",
+      "cluster": "transformers",
+      "parent": "transformer-arch",
+      "summary": "An inference optimisation that stores past tokens' keys and values so each new token is cheap to generate — memory traded for speed.",
+      "explanation": "LLM inference happens in two phases: a parallel 'prefill' that processes the whole prompt at once, and a token-by-token 'decode' that generates the answer. Without help, every new token during decode would recompute attention against all previous tokens, which is enormously wasteful. The KV cache fixes this by storing the keys and values of every token already processed, so generating the next token only requires computing its own query — trading GPU memory for a large speed-up. The problem is that a naive cache reserves a big fixed block of memory per request and wastes much of it to fragmentation. PagedAttention, introduced by the vLLM serving engine, manages the cache like operating-system virtual memory: it splits it into small pages tracked by a block table, so many requests share memory efficiently and total throughput rises sharply. Related tricks build on this — prefix caching reuses a shared prompt across requests, chunked prefill smooths latency, and speculative decoding drafts several tokens with a small model and verifies them with the large one.",
+      "keyPoints": [
+        "LLM inference has two phases: a parallel prefill of the prompt, then token-by-token decode. The cache makes decode cheap by reusing past keys/values.",
+        "Naive cache allocation reserves a fixed block per request and wastes GPU memory through fragmentation.",
+        "PagedAttention (from vLLM) manages the cache like virtual memory — small pages via a block table — so many requests share memory efficiently and throughput rises.",
+        "Related tricks: prefix caching reuses a shared prompt, chunked prefill smooths latency, and speculative decoding drafts tokens with a small model and verifies with the big one."
+      ],
+      "authored": false,
+      "lessons": [
+        "How KV Cache Speeds Up LLMs for Faster AI Models on GPUs"
+      ],
+      "links": [
+        {
+          "to": "prompt-caching",
+          "rel": "generalized by"
+        },
+        {
+          "to": "context-window",
+          "rel": "sized by"
+        }
+      ]
+    },
+    {
+      "id": "prompt-caching",
+      "label": "Prompt Caching",
+      "cluster": "transformers",
+      "parent": "kv-cache",
+      "summary": "Caching the processed form of a long, reused prompt prefix so the model skips re-encoding it on every call.",
+      "explanation": "When you send the same long prefix to a model repeatedly — a big system prompt, a reference document, a set of few-shot examples — re-encoding it every time is pure waste. Prompt caching stores the internal KV representation produced during the prefill phase for that prefix, so identical content reuses the earlier work instead of being processed again, cutting both latency and cost. It caches the model's internal state, not its final answer, which is a distinct idea from ordinary output caching. What gets reused is decided by prefix matching: the cache is valid only up to the first token that differs, so anything stable must appear at the very start of the prompt and anything variable (like the user's actual question) at the end. There is usually a minimum cacheable size and an expiration window, and some providers offer explicit rather than automatic caching. The practical upshot is a prompt-ordering discipline: put shared, unchanging context first.",
+      "keyPoints": [
+        "It caches the KV pairs from the prefill phase, not the model's output — the same prefix produces the same internal state, so that work is reused.",
+        "Prefix matching decides what to reuse: the cache hits only up to the first token that differs, so stable content must come first in the prompt.",
+        "It pays off most with long context reused across many requests; there is usually a minimum cacheable size and an expiration window.",
+        "Practical impact: put system prompts and shared documents at the top of the prompt, and keep the variable part (the user's question) at the end."
+      ],
+      "authored": false,
+      "lessons": [
+        "What is Prompt Caching? Optimize LLM Latency with AI Transformers"
+      ],
+      "links": [
+        {
+          "to": "context-window",
+          "rel": "operates within"
+        },
+        {
+          "to": "long-context",
+          "rel": "makes affordable"
+        }
+      ]
+    },
+    {
+      "id": "moe",
+      "label": "Mixture of Experts",
+      "cluster": "transformers",
+      "parent": "transformer-arch",
+      "summary": "Grow a model's parameter count without paying to run all of it per token: a router activates only a few 'expert' sub-networks at a time.",
+      "explanation": "There is a tension in scaling models: more parameters generally means more capability, but also more compute for every token. Mixture of Experts breaks that link. The network contains many parallel 'expert' sub-networks, and for each token a small router (or gating network) selects just the top few experts to actually run. As a result, the model's total parameter count can be enormous while the active parameters — the ones that determine per-token compute cost — stay modest. This is a major reason frontier models can be both very large and reasonably fast to serve. The experts tend to specialise, though not always in ways humans can interpret. The trade-off is added routing complexity and a memory cost, since all experts must be held in memory even though only a fraction fire on any given token.",
+      "keyPoints": [
+        "A gating/router network selects the top-k experts for each token, so total parameters can be huge while active parameters (the compute cost) stay modest.",
+        "This decouples capacity from inference cost — a big reason frontier models can be both very large and reasonably fast.",
+        "Experts tend to specialise, though not always in human-interpretable ways.",
+        "The trade-off is routing complexity and memory: all experts must be held in memory even though only a few run per token."
+      ],
+      "authored": false,
+      "lessons": [
+        "7 AI Terms You Need to Know: Agents, RAG, ASI & More"
+      ],
+      "links": [
+        {
+          "to": "transformer-arch",
+          "rel": "extends"
+        }
+      ]
+    },
+    {
+      "id": "reasoning-models",
+      "label": "Reasoning Models & Chain-of-Thought",
+      "cluster": "transformers",
+      "parent": "transformer-arch",
+      "summary": "Models trained to spend extra tokens 'thinking' before answering, which measurably improves hard multi-step problems.",
+      "explanation": "A plain LLM commits to an answer immediately, which hurts it on problems that need several steps. Chain-of-thought prompting improves this by asking the model to write out its intermediate reasoning before the final answer, and on maths, logic, and multi-step tasks this reliably raises accuracy. Large reasoning models bake the behaviour in: they are trained to produce this deliberation automatically and to allocate a variable 'step budget' of extra inference compute to harder questions. The mechanism that trains it is reinforcement learning on verifiable rewards (RLVR) — the model is rewarded for reaching a checkably correct answer, so useful reasoning strategies like self-checking and backtracking emerge from the reward rather than from anyone labelling the steps. This is also the clearest example of inference-time scaling: thinking longer buys accuracy in the same way that training-time scale does. An important caveat is that the written chain is not a faithful readout of the model's internal computation — it can be a plausible-sounding, post-hoc rationalisation — so you cannot literally 'watch it think', even though the extra tokens help. Because more thinking tokens cost more latency and money, reasoning effort is a dial you tune to the difficulty of the task.",
+      "keyPoints": [
+        "Chain-of-thought prompts the model to lay out intermediate reasoning, which improves accuracy on maths, logic and multi-step tasks.",
+        "Large reasoning models are trained to do this automatically and allocate a 'step budget' of extra inference compute to harder questions.",
+        "The training mechanism is RL on verifiable rewards (RLVR): reward a checkably correct final answer, and strategies like self-checking and backtracking emerge without labelling the steps.",
+        "A caveat: the written chain is not a faithful trace of the model's internals — it can be a post-hoc rationalisation, so you cannot literally 'watch it think'.",
+        "More thinking tokens cost more latency and money, so reasoning effort is a dial you tune to the task's difficulty."
+      ],
+      "authored": false,
+      "lessons": [
+        "7 AI Terms You Need to Know: Agents, RAG, ASI & More",
+        "5 AI Myths & The Truth Behind Them: ML, Context, Agents & More",
+        "Generative vs Agentic AI: Shaping the Future of AI Collaboration"
+      ],
+      "links": [
+        {
+          "to": "tokens",
+          "rel": "spends"
+        },
+        {
+          "to": "reinforcement-learning",
+          "rel": "trained by"
+        },
+        {
+          "to": "scaling-laws",
+          "rel": "scales at inference"
+        },
+        {
+          "to": "agent-loop",
+          "rel": "enables"
+        }
+      ]
+    },
+    {
+      "id": "multimodal",
+      "label": "Multimodal Models (VLMs)",
+      "cluster": "transformers",
+      "parent": "transformer-arch",
+      "summary": "Models that take images, audio, or video alongside text by projecting every modality into the same embedding space the language model already reasons in.",
+      "explanation": "Frontier assistants are no longer text-only: they read screenshots, diagrams, documents, and video. The trick that makes this work is that a Transformer does not actually care whether its input vectors came from words. An image is cut into patches, each patch is encoded into a vector, and those vectors are projected into the same embedding space as text tokens — so the language model can attend across words and pixels together with the exact same attention machinery. CLIP established the foundation by training an image encoder and a text encoder jointly on 400 million image-caption pairs, so that a picture of a dog and the phrase 'a photo of a dog' land near each other; that shared space is what lets images be described in language at all. Flamingo and its successors then wired a vision encoder into a pretrained LLM so it could converse about what it sees. Note the direction of travel: this is multimodal *understanding*, the input side, and it complements diffusion, which handles generation on the output side. The practical catch is cost — images consume a surprising number of tokens from the same context window everything else shares.",
+      "keyPoints": [
+        "Images are split into patches, encoded as vectors, and projected into the same embedding space as text — so one Transformer attends over both.",
+        "CLIP trained image and text encoders jointly on 400M captioned images, creating the shared space that links pictures to language.",
+        "Flamingo-style models connect a vision encoder to a pretrained LLM, giving it the ability to discuss what it sees.",
+        "This is the understanding (input) side of multimodality; diffusion covers the generation (output) side. Images are token-expensive and share the same context window."
+      ],
+      "authored": true,
+      "lessons": [],
+      "links": [
+        {
+          "to": "embeddings",
+          "rel": "shares space with"
+        },
+        {
+          "to": "diffusion",
+          "rel": "complements"
+        },
+        {
+          "to": "context-window",
+          "rel": "consumes"
+        }
+      ]
+    },
+    {
+      "id": "diffusion",
+      "label": "Diffusion Models",
+      "cluster": "transformers",
+      "parent": "ai-root",
+      "summary": "The generative approach behind most image and video models: learn to remove noise, then denoise from scratch guided by a prompt.",
+      "explanation": "Diffusion models generate images and video through a strikingly different mechanism from language models. During training, they take real images and progressively add Gaussian noise until each is pure static, and the network learns to reverse a single step of that corruption. To generate something new, the process runs backwards: start from random noise and repeatedly denoise it, at each step nudging the image toward something coherent and, crucially, toward the meaning of a text prompt. That text conditioning is supplied as an embedding, the same 'meaning as a vector' idea used throughout language models, which is what ties vision and language generation together. Unlike an autoregressive LLM that emits one token at a time, a diffusion model refines the entire output at once over many steps. That makes it a genuine peer of the Transformer rather than a variant of it: this branch holds both of the paradigms behind modern generative AI, autoregressive prediction for language and iterative denoising for images. The two are not isolated — modern image models often use a Transformer as the denoising backbone (a diffusion Transformer, or DiT), and they take their text conditioning from the same embedding space multimodal models use.",
+      "keyPoints": [
+        "Forward process: progressively add Gaussian noise to training images until they are static. The model learns to reverse each step.",
+        "Generation: begin with random noise and iteratively denoise, conditioned on a text embedding, to produce an image matching the prompt.",
+        "Unlike an autoregressive LLM (one token at a time), diffusion refines the whole output over many steps — a peer paradigm, not a Transformer variant.",
+        "The two do meet in practice: modern image models often use a Transformer as the denoising backbone (DiT).",
+        "The text conditioning reuses the same embedding idea as language models, linking vision and language generation."
+      ],
+      "authored": true,
+      "lessons": [],
+      "links": [
+        {
+          "to": "embeddings",
+          "rel": "conditioned on"
+        },
+        {
+          "to": "tokens",
+          "rel": "contrasts with"
+        }
+      ]
+    },
+    {
+      "id": "context-window",
+      "label": "Context Window",
+      "cluster": "transformers",
+      "parent": "transformer-arch",
+      "summary": "The maximum span of tokens a model can attend to at once — its working memory, shared by everything in a single call.",
+      "explanation": "The context window is the model's field of view, measured in tokens, and it is one of the most important practical limits to understand. Everything the model can use in a single call has to fit inside it: the system prompt, the running conversation, any retrieved documents, and the answer being generated all count against the same budget. It is the model's only short-term memory — anything outside the window simply does not exist to the model unless it is re-supplied. Larger windows let you paste in more, but they are not a free lunch: attention dilutes as the window fills and cost rises with length, so 'just use a huge context' has real downsides. Because it is the shared bottleneck, an entire ecosystem of techniques exists to manage it well — RAG to fetch only what's relevant, prompt caching to make reuse cheap, context engineering to curate the payload, and agent memory to persist information across calls.",
+      "keyPoints": [
+        "Measured in tokens; both the input and the generated output count against it.",
+        "It is the model's only short-term memory — nothing outside the window exists to the model unless re-supplied.",
+        "Bigger windows let you paste more in, but attention dilutes and cost rises with length, so 'just use a huge context' is not free.",
+        "It is the shared bottleneck that RAG, prompt caching, context engineering, and agent memory all exist to manage."
+      ],
+      "authored": false,
+      "lessons": [
+        "Is RAG Still Needed? Choosing the Best Approach for LLMs",
+        "MCP vs Skills: Which Is Right for Your AI Agent and LLMs?",
+        "What is Prompt Caching? Optimize LLM Latency with AI Transformers"
+      ],
+      "links": [
+        {
+          "to": "rag",
+          "rel": "managed by"
+        },
+        {
+          "to": "long-context",
+          "rel": "expanded by"
+        },
+        {
+          "to": "working-memory",
+          "rel": "is"
+        },
+        {
+          "to": "context-engineering",
+          "rel": "curated by"
+        }
+      ]
+    },
+    {
+      "id": "hallucination",
+      "label": "Hallucination",
+      "cluster": "transformers",
+      "parent": "transformer-arch",
+      "summary": "When a model states something fluent and confident but false — a direct consequence of predicting likely text, not retrieving facts.",
+      "explanation": "Hallucination is not a bolted-on defect; it falls straight out of how an LLM works. Because the model is trained to produce statistically likely continuations, a well-formed but false statement can score just as highly as a true one — it has no internal notion of truth, only plausibility. In practice, most hallucinations are really design flaws: asking the model about data it was never given, or feeding it a document set full of contradictions, is an open invitation to invent. The defences all reduce the model's freedom to make things up — grounding it in retrieved sources (RAG), calibrating its expressed confidence to what the evidence actually supports, and inserting a clarification step for vague questions. The organisational danger is 'hallucination laundering', where a confident wrong answer gets pasted into a report or decision and is then treated as established fact.",
+      "keyPoints": [
+        "The model optimises for plausible continuations, so a well-formed wrong answer can score as highly as a right one.",
+        "It is often a design flaw, not model stupidity: asking about data the model was never given, or about contradictory documents, invites invention.",
+        "Grounding the model in retrieved sources (RAG), calibrating its confidence, and adding a clarification step all reduce it.",
+        "'Hallucination laundering' is the organisational risk: a confident wrong answer gets copied into a report and treated as fact."
+      ],
+      "authored": false,
+      "lessons": [
+        "5 AI Myths & The Truth Behind Them: ML, Context, Agents & More",
+        "Why RAG Solutions Fail with Complex Documents & Vector Databases",
+        "Why AI Makes the Humanities More Important Than Ever"
+      ],
+      "links": [
+        {
+          "to": "rag",
+          "rel": "reduced by"
+        },
+        {
+          "to": "grounding",
+          "rel": "prevented by"
+        },
+        {
+          "to": "why-rag-fails",
+          "rel": "explored in"
+        }
+      ]
+    },
+    {
+      "id": "embeddings",
+      "label": "Embeddings",
+      "cluster": "retrieval",
+      "parent": "ai-root",
+      "summary": "Turning text, images, or code into vectors of numbers that place similar meanings close together in space.",
+      "explanation": "An embedding is how a machine represents meaning as geometry. An embedding model maps a piece of input — a sentence, a document, an image, a code snippet — to a fixed-length vector of numbers, arranged so that things with similar meaning land close together and unrelated things land far apart. This is powerful because it captures meaning rather than surface wording: 'car' and 'automobile' share no letters yet sit near each other, which is exactly what makes semantic search possible. Closeness is quantified with a similarity measure — cosine similarity, dot product, or Euclidean distance — and vectors are often L2-normalised first so only their direction matters. A distinction worth knowing: static embeddings assign one fixed vector per word, while the contextual embeddings produced by Transformers give a word a different vector depending on the sentence it appears in.",
+      "keyPoints": [
+        "An embedding model maps input to a fixed-length vector; distance between vectors reflects semantic similarity, not surface wording.",
+        "Two documents that share no keywords ('car' vs 'automobile') can sit close together, which is what makes semantic search possible.",
+        "Similarity is measured by cosine similarity, dot product, or Euclidean distance; vectors are often L2-normalised first.",
+        "Static embeddings give one vector per word; contextual embeddings (from Transformers) give a vector that depends on the surrounding sentence."
+      ],
+      "authored": false,
+      "lessons": [
+        "What is a Vector Database? Powering Semantic Search & AI Applications",
+        "RAG's Evolution: From Simple Retrieval to Agentic AI",
+        "RAG vs Fine-Tuning vs Prompt Engineering: Optimizing AI Models"
+      ],
+      "links": [
+        {
+          "to": "vector-db",
+          "rel": "stored in"
+        },
+        {
+          "to": "semantic-search",
+          "rel": "enables"
+        }
+      ]
+    },
+    {
+      "id": "vector-db",
+      "label": "Vector Databases (ANN, HNSW)",
+      "cluster": "retrieval",
+      "parent": "embeddings",
+      "summary": "A database that stores embeddings and finds the nearest vectors to a query fast, using approximate nearest-neighbour indexes.",
+      "explanation": "Once you can turn text into embedding vectors, you need somewhere to store millions of them and a way to find the closest ones to a query quickly — that is what a vector database does. At query time it embeds the query into the same space and returns the stored vectors nearest to it, which is the mechanical heart of semantic search. The catch is scale: exact nearest-neighbour search compares the query against every stored vector, which is linear in the collection size and far too slow for large corpora. Vector databases therefore use approximate nearest neighbour (ANN) indexes that trade a small amount of accuracy for a huge speed gain. HNSW builds a navigable small-world graph that can be traversed quickly toward the nearest points; IVF partitions the space into clusters and searches only the most promising ones. Tuning knobs (ef_search for HNSW, nprobe for IVF) and quantisation let you trade recall against speed and memory, and the recall@k metric tells you how many of the true nearest neighbours you actually found.",
+      "keyPoints": [
+        "The query is embedded into the same space, then the DB returns the closest stored vectors by similarity — the 'semantic search' step.",
+        "Exact nearest-neighbour search is O(n) per query and does not scale; approximate nearest neighbour (ANN) trades a little accuracy for large speed-ups.",
+        "HNSW builds a navigable small-world graph for fast traversal; IVF partitions the space into clusters and searches only the nearest ones.",
+        "Tuning knobs (ef_search, nprobe) and quantisation trade recall against speed and memory; recall@k measures how many true neighbours you found."
+      ],
+      "authored": false,
+      "lessons": [
+        "What is a Vector Database? Powering Semantic Search & AI Applications"
+      ],
+      "links": [
+        {
+          "to": "rag",
+          "rel": "backs"
+        },
+        {
+          "to": "semantic-search",
+          "rel": "implements"
+        }
+      ]
+    },
+    {
+      "id": "semantic-search",
+      "label": "Semantic vs Lexical Search",
+      "cluster": "retrieval",
+      "parent": "embeddings",
+      "summary": "Two ways to find relevant documents — matching words versus matching meaning — best combined as hybrid retrieval.",
+      "explanation": "There are two fundamentally different ways to find relevant documents, and mature systems use both. Lexical search matches words: techniques like inverted indices, TF-IDF, and BM25 rank documents by keyword overlap, which is fast, precise, and unbeatable for exact terms like names, product codes, or error strings. Semantic search matches meaning: it embeds the query and the documents and compares their vectors, so it catches paraphrases and synonyms that share no words with the query. Each approach fails exactly where the other excels — lexical misses 'automobile' when you searched 'car', while semantic can drift on a precise identifier. Hybrid retrieval fuses their rankings, often with a method like Reciprocal Rank Fusion, to get both precision and recall. A reranker can then take the combined shortlist and reorder it by reading the query and each document together for a final boost in quality.",
+      "keyPoints": [
+        "Lexical search (inverted indices, TF-IDF, BM25) ranks by keyword overlap — great for names, codes and exact phrases.",
+        "Semantic search embeds query and documents and compares vectors, catching paraphrases and synonyms lexical search misses.",
+        "Each fails where the other shines, so hybrid retrieval fuses their rankings (e.g. Reciprocal Rank Fusion) for both precision and recall.",
+        "A reranker (a cross-encoder) can then reorder the top candidates by reading query and document together for higher precision."
+      ],
+      "authored": false,
+      "lessons": [
+        "RAG's Evolution: From Simple Retrieval to Agentic AI"
+      ],
+      "links": [
+        {
+          "to": "reranker",
+          "rel": "refined by"
+        },
+        {
+          "to": "rag",
+          "rel": "feeds"
+        }
+      ]
+    },
+    {
+      "id": "rag",
+      "label": "Retrieval-Augmented Generation",
+      "cluster": "retrieval",
+      "parent": "ai-root",
+      "summary": "Give a model knowledge it never learned by retrieving relevant documents at query time and adding them to the prompt.",
+      "explanation": "Retrieval-augmented generation is the standard way to make an LLM answer about knowledge it was never trained on — your private documents, or facts newer than its training cutoff. The pattern is three steps: retrieve documents relevant to the question (usually by embedding similarity in a vector database), augment the prompt by inserting that retrieved text, and generate an answer grounded in it rather than in the model's memory alone. This directly patches the two biggest gaps of a bare LLM: stale knowledge and no access to proprietary data. To make retrieval precise, documents are chunked into passages before indexing, so the system fetches focused snippets instead of whole files. The costs are real — per-query latency and a permanent retrieval stack to maintain — and there is a subtle failure mode called silent failure, where retrieval quietly returns the wrong passage and the model answers confidently on top of it. RAG is one of three main customisation strategies, sitting alongside fine-tuning and prompt engineering, and it competes with simply using a very long context window.",
+      "keyPoints": [
+        "Three steps: retrieve documents relevant to the question, augment the prompt with them, generate an answer grounded in that text.",
+        "It fixes the two big LLM gaps: stale knowledge (frozen at training cutoff) and no access to your private data.",
+        "Documents are chunked before indexing so retrieval returns focused passages, not whole files.",
+        "The cost is per-query latency and permanent retrieval infrastructure — and a 'silent failure' mode where retrieval returns the wrong passage and the model answers confidently anyway."
+      ],
+      "authored": false,
+      "lessons": [
+        "RAG vs Fine-Tuning vs Prompt Engineering: Optimizing AI Models",
+        "Is RAG Still Needed? Choosing the Best Approach for LLMs",
+        "Why RAG Solutions Fail with Complex Documents & Vector Databases",
+        "ADK vs RAG: How to Choose the Right AI Stack"
+      ],
+      "links": [
+        {
+          "to": "chunking",
+          "rel": "depends on"
+        },
+        {
+          "to": "vector-db",
+          "rel": "queries"
+        },
+        {
+          "to": "grounding",
+          "rel": "achieves"
+        },
+        {
+          "to": "fine-tuning",
+          "rel": "alternative to"
+        },
+        {
+          "to": "long-context",
+          "rel": "competes with"
+        },
+        {
+          "to": "agentic-rag",
+          "rel": "evolves into"
+        }
+      ]
+    },
+    {
+      "id": "chunking",
+      "label": "Chunking & Grounding",
+      "cluster": "retrieval",
+      "parent": "rag",
+      "summary": "Chunking splits documents into retrievable passages; grounding ties the model's answer to those passages so claims are traceable.",
+      "explanation": "Two RAG fundamentals live here. Chunking is the preprocessing step of splitting documents into passages small enough to retrieve precisely and to fit inside the context window. Chunk size is a genuine tuning decision: chunks that are too large retrieve imprecisely and waste context, while chunks that are too small lose the surrounding meaning that makes a passage useful — good chunking respects the document's natural structure (sections, paragraphs) rather than cutting blindly at a fixed length. Grounding is the payoff of doing retrieval at all: the model's answer is tied to the specific passages that were retrieved, so each claim can be traced back to a source and checked. That traceability is what lets a RAG system cite its evidence, and grounding is the primary defence against hallucination, because an answer anchored to supplied text has far less room to invent.",
+      "keyPoints": [
+        "Chunk too large and retrieval is imprecise and wastes context; chunk too small and you lose the surrounding meaning — chunk size is a real tuning decision.",
+        "Grounding means the answer is supported by supplied text, which is what lets a system cite sources and be checked.",
+        "Good chunking respects document structure (sections, paragraphs) rather than cutting blindly at a fixed length.",
+        "Grounding is the main defence against hallucination in a RAG system."
+      ],
+      "authored": false,
+      "lessons": [
+        "RAG vs Fine-Tuning vs Prompt Engineering: Optimizing AI Models",
+        "Why RAG Solutions Fail with Complex Documents & Vector Databases"
+      ],
+      "links": [
+        {
+          "to": "context-window",
+          "rel": "fits"
+        },
+        {
+          "to": "hallucination",
+          "rel": "reduces"
+        }
+      ]
+    },
+    {
+      "id": "reranker",
+      "label": "Reranking",
+      "cluster": "retrieval",
+      "parent": "rag",
+      "summary": "A second-stage filter that reads each candidate together with the query and reorders them by true relevance.",
+      "explanation": "Retrieval and reranking optimise for different things, and a good pipeline uses them in sequence. The first-stage retriever is built for recall and speed: it uses a bi-encoder that embeds the query and every document separately, so it can search millions of vectors quickly and return a broad set of rough candidates without missing much. The reranker then optimises for precision: it takes that shortlist and, for each candidate, processes the query and the document jointly with a cross-encoder, which reads them together and judges true relevance far more accurately — but is too slow to run over the whole corpus, which is why it only sees the shortlist. Reranking is a defining part of 'advanced RAG', alongside query rewriting and hybrid retrieval, and it directly attacks the silent-failure problem where the right passage was retrieved but ranked too low for the model to use.",
+      "keyPoints": [
+        "Retrieval optimises for recall (don't miss anything) and speed; reranking optimises for precision (put the truly relevant first).",
+        "A bi-encoder embeds query and documents separately for fast search; a cross-encoder reranker processes them jointly for accuracy but is slower, so it runs only on the shortlist.",
+        "Reranking is a key part of 'advanced RAG', alongside query rewriting and hybrid retrieval.",
+        "It directly attacks the silent-failure problem where the right passage was retrieved but ranked too low to be used."
+      ],
+      "authored": false,
+      "lessons": [
+        "RAG's Evolution: From Simple Retrieval to Agentic AI"
+      ],
+      "links": [
+        {
+          "to": "semantic-search",
+          "rel": "improves"
+        },
+        {
+          "to": "rag-evolution",
+          "rel": "part of"
+        }
+      ]
+    },
+    {
+      "id": "rag-evolution",
+      "label": "RAG's Evolution",
+      "cluster": "retrieval",
+      "parent": "rag",
+      "summary": "Retrieval grew from keyword to semantic to hybrid, and RAG grew from a fixed pipeline to a tool inside a reasoning loop.",
+      "explanation": "Retrieval-augmented generation did not arrive fully formed; it evolved along two tracks. On the search side, retrieval progressed from keyword matching (inverted indices, BM25) to semantic search over embeddings to hybrid approaches that combine both. On the RAG side, the architecture matured through three stages. Naive RAG is a straight line — embed the question, retrieve the top-k passages, stuff them into the prompt, and generate — with no way to recover if retrieval is poor. Advanced RAG improves the quality of what reaches the model by adding rerankers, query rewriting, and hybrid retrieval. Agentic RAG goes furthest, turning retrieval into a tool the model can call repeatedly, letting it reformulate the query, search again, and reason across multiple hops. That last stage is the bridge from the retrieval branch to the agents branch: it is the same LLM, now deciding for itself when and how to fetch.",
+      "keyPoints": [
+        "Naive RAG is a straight line: embed the question, retrieve top-k, stuff into the prompt, generate — one shot, no recovery if retrieval is poor.",
+        "Advanced RAG adds rerankers, query rewriting and hybrid retrieval to raise the quality of what reaches the model.",
+        "Agentic RAG makes retrieval a tool the model can call repeatedly — reformulating the query, searching again, and reasoning across multiple hops.",
+        "This is the bridge from the retrieval cluster to the agents cluster: the same LLM, now deciding when and how to fetch."
+      ],
+      "authored": false,
+      "lessons": [
+        "RAG's Evolution: From Simple Retrieval to Agentic AI"
+      ],
+      "links": [
+        {
+          "to": "agentic-rag",
+          "rel": "culminates in"
+        },
+        {
+          "to": "agent-loop",
+          "rel": "adopts"
+        }
+      ]
+    },
+    {
+      "id": "long-context",
+      "label": "Long Context vs RAG",
+      "cluster": "retrieval",
+      "parent": "rag",
+      "summary": "As context windows grew enormously, pasting everything in became a real alternative to retrieval — with genuine trade-offs.",
+      "explanation": "Context windows have grown by orders of magnitude, which raises a real question: instead of building a retrieval system, why not just paste the whole document set into the prompt? Long context is genuinely appealing — there is no retrieval stack to build, no chunking to tune, and the model can reason about what is absent from a document because it sees all of it at once. But it has two costs that don't go away: you re-read, and pay for, the entire context on every single query, and attention dilutes as the window fills, so the model's ability to pull out one specific fact can drop (the needle-in-a-haystack problem). RAG, by contrast, scales to an effectively unlimited corpus and only pays to read what it retrieves, at the price of a retrieval stack that can silently fetch the wrong thing. The rule of thumb: reach for long context when the document set is bounded and reused, and for RAG when the knowledge base is large or constantly growing. Prompt caching narrows long context's cost disadvantage considerably.",
+      "keyPoints": [
+        "Long context is simple — no retrieval stack, no chunking, and the model can reason about what is absent from a whole document.",
+        "But you re-read (and pay for) the entire context on every single query, and attention dilutes as the window fills, so recall of a specific fact can drop.",
+        "RAG scales to an effectively infinite corpus and only pays to read what it retrieves, but adds a retrieval stack that can silently fetch the wrong thing.",
+        "Rule of thumb: long context for a bounded, reused document set; RAG for large or ever-growing knowledge bases. Prompt caching narrows the cost gap."
+      ],
+      "authored": false,
+      "lessons": [
+        "Is RAG Still Needed? Choosing the Best Approach for LLMs"
+      ],
+      "links": [
+        {
+          "to": "context-window",
+          "rel": "relies on"
+        },
+        {
+          "to": "attention-dilution",
+          "rel": "limited by"
+        },
+        {
+          "to": "prompt-caching",
+          "rel": "cheapened by"
+        }
+      ]
+    },
+    {
+      "id": "attention-dilution",
+      "label": "Attention Dilution",
+      "cluster": "retrieval",
+      "parent": "long-context",
+      "summary": "As you cram more into the context window, attention spreads thinner and a specific fact can get lost — the needle in a haystack.",
+      "explanation": "Attention dilution is the reason 'just use a bigger context window' does not automatically mean better answers. A model's attention is a finite budget spread across all the tokens in the window, so the more tokens you add, the less focus each one receives on average — and a single crucial fact buried in a very long context can effectively get lost. This is measured by the needle-in-a-haystack test, which checks whether a model can still retrieve one planted fact from a large context; multi-needle variants raise the difficulty by planting several. The phenomenon is a core argument in favour of retrieval: by fetching only a handful of genuinely relevant passages, RAG keeps the model's attention concentrated where it matters instead of asking it to find a needle in an ever-larger haystack.",
+      "keyPoints": [
+        "Attention weight is a finite budget shared across all tokens; more tokens means each gets less focus on average.",
+        "The needle-in-a-haystack test measures whether a model can still retrieve one planted fact from a very long context; multi-needle tests raise the bar.",
+        "This is a core argument for RAG: retrieving a few relevant passages keeps the model's attention concentrated where it matters.",
+        "It is also why 'just use a bigger context window' does not fully replace good retrieval."
+      ],
+      "authored": false,
+      "lessons": [
+        "Is RAG Still Needed? Choosing the Best Approach for LLMs"
+      ],
+      "links": [
+        {
+          "to": "attention",
+          "rel": "property of"
+        },
+        {
+          "to": "rag",
+          "rel": "argues for"
+        }
+      ]
+    },
+    {
+      "id": "why-rag-fails",
+      "label": "Why RAG Fails",
+      "cluster": "retrieval",
+      "parent": "rag",
+      "summary": "Real document sets accumulate contradictions and stale versions, and vague questions make naive RAG return wrong context confidently.",
+      "explanation": "RAG works beautifully in demos and then disappoints on real corpora, and the reasons are instructive. Real document sets are messy — they accumulate contradictions and superseded versions over time — so the very same question can have two 'correct' answers depending on which document retrieval happens to surface, and a naive pipeline has no idea which is authoritative. On top of that, users ask underspecified questions, and the system answers them literally. The fixes are practical rather than magical. First, keep stale documents out of the index using supersession metadata, so retrieval physically cannot surface them — letting them in is an unforced error. Second, add a clarification loop that catches vague or ambiguous questions before answering. Third, calibrate the model's confidence to what the retrieved data actually supports, so it hedges when the evidence is thin. The underlying lesson is that you must know your data before you build, because in most of these cases the 'hallucination' is really a design flaw.",
+      "keyPoints": [
+        "The same question can have two correct answers if the corpus contains superseded and current documents both — retrieval has no idea which is authoritative.",
+        "Fix 1: keep stale documents out of the index (supersession metadata) so retrieval cannot surface them — an 'unforced error' if you don't.",
+        "Fix 2: add a clarification loop to catch vague or ambiguous questions before answering.",
+        "Fix 3: calibrate the model's confidence to what the retrieved data actually supports — and know your data before you build, because 'hallucination' here is usually a design flaw."
+      ],
+      "authored": false,
+      "lessons": [
+        "Why RAG Solutions Fail with Complex Documents & Vector Databases"
+      ],
+      "links": [
+        {
+          "to": "hallucination",
+          "rel": "produces"
+        },
+        {
+          "to": "grounding",
+          "rel": "requires"
+        }
+      ]
+    },
+    {
+      "id": "grounding",
+      "label": "Grounding",
+      "cluster": "retrieval",
+      "parent": "rag",
+      "abstract": true,
+      "summary": "Anchoring a model's output in verifiable source material so claims can be traced and trusted.",
+      "explanation": "Grounding is the property that separates a citable assistant from a plausible talker. A grounded answer is one whose claims point back to specific source passages that support them, so a reader can trace and verify each statement rather than taking the model's word for it. Ungrounded generation, by contrast, relies purely on the model's parametric memory — the knowledge baked into its weights — which is precisely where hallucination lives. Grounding is the shared goal that several retrieval techniques serve: retrieval supplies the sources, chunking makes them precise, and confidence calibration keeps the model from over-claiming beyond what those sources say. In short, grounding is what turns raw generative fluency into something an organisation can actually rely on.",
+      "keyPoints": [
+        "A grounded answer points back to the passages that support it, making it checkable.",
+        "Ungrounded generation relies on the model's parametric memory, which is exactly where hallucination lives.",
+        "Grounding is what turns an LLM from a plausible talker into a citable assistant.",
+        "It is the shared goal of retrieval, chunking and confidence calibration."
+      ],
+      "authored": false,
+      "lessons": [
+        "RAG vs Fine-Tuning vs Prompt Engineering: Optimizing AI Models",
+        "Why RAG Solutions Fail with Complex Documents & Vector Databases"
+      ],
+      "links": [
+        {
+          "to": "hallucination",
+          "rel": "counters"
+        }
+      ]
+    },
+    {
+      "id": "prompt-engineering",
+      "label": "Prompt Engineering",
+      "cluster": "customization",
+      "parent": "ai-root",
+      "summary": "The cheapest way to steer a model: change what you ask, aiming its attention at capability it already has.",
+      "explanation": "Prompt engineering is the first and cheapest lever for improving an LLM's output, because it changes the request rather than the model. A well-constructed prompt gives clear instructions, useful structure, and often worked examples — few-shot prompting includes several input-output examples so the model infers the pattern you want. The important mental model is that prompting unlocks capability the model already possesses; it aims the model's attention at latent skill, but it cannot add knowledge the model never learned or grant access to your private data. That is why it is the right thing to try first: it is instant and essentially free compared with standing up a retrieval system or running a fine-tune. And when prompting stops yielding improvements — when you've phrased the task as clearly as it can be phrased and results have plateaued — that plateau is the signal to move up to context engineering, RAG, or fine-tuning.",
+      "keyPoints": [
+        "Few-shot prompting includes worked examples in the prompt so the model infers the pattern you want.",
+        "Prompt engineering unlocks existing capability; it cannot add knowledge the model never learned or give it your private data.",
+        "It is the first thing to try because it is instant and free relative to fine-tuning or building a retrieval stack.",
+        "When prompting stops improving results, that is the signal to reach for context engineering, RAG, or fine-tuning."
+      ],
+      "authored": false,
+      "lessons": [
+        "RAG vs Fine-Tuning vs Prompt Engineering: Optimizing AI Models"
+      ],
+      "links": [
+        {
+          "to": "context-engineering",
+          "rel": "grows into"
+        },
+        {
+          "to": "rag",
+          "rel": "precedes"
+        },
+        {
+          "to": "fine-tuning",
+          "rel": "alternative to"
+        }
+      ]
+    },
+    {
+      "id": "context-engineering",
+      "label": "Context Engineering",
+      "cluster": "customization",
+      "parent": "prompt-engineering",
+      "summary": "Deciding exactly what goes into the context window on each call — instructions, tools, retrieved data, memory — and in what order.",
+      "explanation": "Context engineering is what prompt engineering grew into once models gained tools, memory, and retrieval. Where prompt engineering is about wording a single instruction, context engineering is about assembling the entire payload that goes into the context window on each call — which instructions, which tool definitions, which retrieved documents, which pieces of past interaction — and arranging them in the right order. It matters because the model can only reason over what you actually put in the window; the best information in the world is useless if it isn't there, and irrelevant filler actively hurts by diluting attention. This is the umbrella discipline that ties together several other ideas on this map: RAG decides which documents to include, agent memory decides which history to recall, skills decide which procedures to load, and prompt caching decides how to make reused context cheap. Done well, it is the single highest-leverage form of tuning available short of changing the model.",
+      "keyPoints": [
+        "As models gained tools and memory, the job shifted from wording a single prompt to assembling the right bundle of context dynamically.",
+        "It governs which documents, tool results, and past interactions the model sees — the model can only reason over what you put in the window.",
+        "It is the umbrella that ties RAG, agent memory, skills, and prompt caching together: all of them are ways to fill the context well.",
+        "Done badly, it wastes the window on irrelevant content and dilutes attention; done well, it is the highest-leverage tuning available."
+      ],
+      "authored": false,
+      "lessons": [
+        "MCP vs Skills: Which Is Right for Your AI Agent and LLMs?",
+        "Is Fine-Tuning Still Needed? LLMs, RAG, & LoRA"
+      ],
+      "links": [
+        {
+          "to": "context-window",
+          "rel": "fills"
+        },
+        {
+          "to": "skills",
+          "rel": "uses"
+        },
+        {
+          "to": "agent-memory",
+          "rel": "draws on"
+        }
+      ]
+    },
+    {
+      "id": "fine-tuning",
+      "label": "Fine-Tuning",
+      "cluster": "customization",
+      "parent": "ai-root",
+      "summary": "Change the model itself by continuing training on a narrow dataset, so a style, format, or domain becomes part of the weights.",
+      "explanation": "Fine-tuning is the heaviest customisation lever: instead of changing the prompt or the context, you change the model. You continue the training process on a curated, narrow dataset, and backpropagation actually moves the weights so the desired behaviour — a house style, a strict output format, a specialised domain — becomes internalised rather than instructed. The power comes with recurring costs that are easy to underestimate: preparing high-quality training data, paying for GPUs, and re-tuning as the base model keeps improving underneath you, plus the risk of catastrophic forgetting, where teaching the model something new erodes abilities it already had. Fine-tuning genuinely shines in a few places: durable style or format, narrow domains, low-latency needs (no retrieval step at inference), and distilling a big model's behaviour into a smaller, cheaper one. But the practical decision order is to exhaust prompt engineering and context/RAG first, and fine-tune only when those plateau — because general models keep catching up to yesterday's fine-tunes.",
+      "keyPoints": [
+        "Supervised fine-tuning continues backprop on curated examples; the weights actually move, so the behaviour becomes part of the model.",
+        "Costs are real and recurring: data preparation, GPUs, and re-tuning as the base model improves — plus catastrophic forgetting, where new training erodes old abilities.",
+        "It shines for durable style/format, narrow domains, latency (no retrieval step), and distilling a big model's behaviour into a small one.",
+        "Decision order in practice: try prompt engineering, then context/RAG, and fine-tune only when those plateau."
+      ],
+      "authored": false,
+      "lessons": [
+        "Is Fine-Tuning Still Needed? LLMs, RAG, & LoRA",
+        "RAG vs Fine-Tuning vs Prompt Engineering: Optimizing AI Models"
+      ],
+      "links": [
+        {
+          "to": "lora",
+          "rel": "made cheap by"
+        },
+        {
+          "to": "backprop",
+          "rel": "runs"
+        },
+        {
+          "to": "rag",
+          "rel": "alternative to"
+        },
+        {
+          "to": "synthetic-data",
+          "rel": "fed by"
+        }
+      ]
+    },
+    {
+      "id": "lora",
+      "label": "LoRA & PEFT",
+      "cluster": "customization",
+      "parent": "fine-tuning",
+      "summary": "Parameter-efficient fine-tuning: train a small number of added weights instead of all of them, cutting cost by orders of magnitude.",
+      "explanation": "Full fine-tuning updates every weight in a model, which needs a lot of memory and compute and produces a whole new copy of the model per task. Parameter-efficient fine-tuning (PEFT) avoids this by freezing the base model and training only a small set of added parameters. LoRA, the most popular PEFT method, inserts tiny low-rank adapter matrices alongside the existing weights and trains only those; a single number called the rank (r) controls how much capacity the adapter has. Because the adapters are small, you get two big wins: training is far cheaper in memory and compute, and you can keep many task-specific adapters for one shared base model instead of many full copies. Related advanced techniques in the same family include distillation, which trains a small model to imitate a large one, and reinforcement fine-tuning, which optimises against a grader that scores the model's outputs.",
+      "keyPoints": [
+        "PEFT freezes the base model and trains only a small set of added parameters, so you need far less memory and compute.",
+        "LoRA adds low-rank matrices (controlled by a rank r) alongside existing weights; only these adapters are trained and stored.",
+        "Adapters are small and swappable — you can keep many task-specific adapters for one base model instead of many full copies.",
+        "Related advanced options include distillation (train a small model to mimic a big one) and reinforcement fine-tuning with a grader."
+      ],
+      "authored": false,
+      "lessons": [
+        "Is Fine-Tuning Still Needed? LLMs, RAG, & LoRA"
+      ],
+      "links": [
+        {
+          "to": "fine-tuning",
+          "rel": "efficient form of"
+        }
+      ]
+    },
+    {
+      "id": "synthetic-data",
+      "label": "Synthetic Data",
+      "cluster": "customization",
+      "parent": "fine-tuning",
+      "summary": "When you lack labelled data to customise a model, generate it — then validate it before you trust it.",
+      "explanation": "Customising a model often stalls on a shortage of good training data, and synthetic data generation is the workaround: you manufacture the examples you need. It starts with extraction, because you can't just point a model at a raw PDF — documents must first be parsed into clean, structured context using OCR and tools like Docling. From a small set of seed examples, a generator then produces many more synthetic samples that match the shape and distribution you want. The non-negotiable step is validation: synthetic data must be checked for faithfulness, relevance, and diversity before it is used, or you risk training the model on its own errors and amplifying them. The reward for doing this well is control — you can deliberately balance classes, protect privacy by not using real records, and get reproducibility that scraped or found data can never offer.",
+      "keyPoints": [
+        "You can't just point a model at a PDF: raw documents must first be parsed into structured context (OCR and tools like Docling).",
+        "From a handful of seed examples, a generator produces many synthetic training samples that match the desired shape.",
+        "Validation is mandatory: check faithfulness, relevance and diversity before using synthetic data, or you train on the model's own errors.",
+        "The payoff is control — you can balance classes, protect privacy, and get reproducibility that scraped data cannot give."
+      ],
+      "authored": false,
+      "lessons": [
+        "Synthetic Data Generation for Smarter AI Workflows"
+      ],
+      "links": [
+        {
+          "to": "fine-tuning",
+          "rel": "supplies"
+        },
+        {
+          "to": "evaluation",
+          "rel": "requires"
+        }
+      ]
+    },
+    {
+      "id": "evaluation",
+      "label": "AI Evaluation",
+      "cluster": "evals",
+      "parent": "ai-root",
+      "summary": "The systematic measurement of whether your AI system is actually good — and the only thing that turns changing a prompt from guesswork into engineering.",
+      "explanation": "Because a language model produces fluent output whether or not that output is correct, 'is this good?' cannot be answered by reading a couple of responses and feeling reassured. Evaluation is the instrument panel you steer by: a fixed set of measurements you re-run after every change, so you can tell whether you improved the system or quietly broke a case you were not looking at.\n\nThe practice is less glamorous than it sounds. It starts with a human reading model outputs one at a time in a spreadsheet, grading them against written criteria, and arguing with a teammate about the borderline ones. Everything automated is built on top of that: you encode the criteria as a judge prompt, check that the judge agrees with your humans, and only then trust it at scale. Skip the human step and you get metrics that look rigorous and measure nothing.\n\nThe classic machine-learning version of this — hold out a test set, score with accuracy, precision/recall, F1, recall@k — still applies wherever a single correct answer exists. Generative output usually has no single correct answer, which is why the branch below is mostly about how to measure quality when you cannot simply diff against a reference. Throughout, the hazard is Goodhart's Law: once a metric becomes the target it stops being a good metric, so measure what you actually care about rather than whatever is easiest to count.",
+      "keyPoints": [
+        "An eval is a systematic measurement of one specific aspect of quality; a real system has many of them, not one overall score.",
+        "The purpose is regression safety: a fixed set of cases you re-run so 'I fixed it' becomes 'I fixed it and nothing else broke'.",
+        "Everything automated is built on hand-labelled human judgement — that foundation determines the ceiling of everything above it.",
+        "Classic ML metrics (accuracy, precision/recall, F1, recall@k) apply where one correct answer exists; generative output needs judges and rubrics.",
+        "Evals are operationalised three ways: background monitoring, real-time guardrails, and improvement tooling for labelling and datasets.",
+        "Beware Goodhart's Law: once a metric becomes the target it stops being a good metric."
+      ],
+      "authored": false,
+      "lessons": [
+        "How to Actually Run AI Evals: Rubrics, Golden Datasets & LLM-as-a-Judge",
+        "LLM-as-a-Judge: Direct Assessment, Pairwise Comparison & the Biases That Skew Both",
+        "The Three Levels of LLM Evals: Unit Tests, Aligned Judges & AB Testing"
+      ],
+      "links": [
+        {
+          "to": "when-not-to-use-ai",
+          "rel": "informs"
+        },
+        {
+          "to": "hallucination",
+          "rel": "detects"
+        },
+        {
+          "to": "eval-driven-workflow",
+          "rel": "practised as"
+        }
+      ]
+    },
+    {
+      "id": "eval-types",
+      "label": "The Four Types of Eval",
+      "cluster": "evals",
+      "parent": "evaluation",
+      "summary": "Code-based, human, LLM-as-a-judge, and user evals — a ladder from cheap and narrow to expensive and real, where each level is validated by the one below it.",
+      "explanation": "Essentially every evaluation falls into one of four buckets, and naming which one you are reaching for stops you from using an expensive tool on a cheap problem.\n\nCode-based evals are deterministic pass/fail assertions: checking for the presence of a string, validating a format, confirming a field holds an allowed value. They are level zero, nearly free, and fast to write. The canonical case is a competitor check — if you are United, a reply explaining how to book on Delta is a failure a substring match catches, with no judgement required.\n\nHuman evals are a person, ideally the product owner or a domain expert, reading an interaction and grading it. This is the slowest and most expensive form per example, and it is also the only one that defines what 'good' means in the first place. LLM-as-a-judge scales that judgement by having a model apply the same rubric, and is the most common way to evaluate at volume. User evals are the closest thing to a business metric: real feedback from real people, from an explicit thumbs-down to a downstream conversion number.\n\nThe ordering matters more than the list. Each level is validated by the one before it — the judge is trustworthy only because humans checked it, and human labels are meaningful only because someone defined criteria worth grading against.",
+      "keyPoints": [
+        "Code-based: deterministic pass/fail assertions — string presence, format checks, allowed values. Cheap and unambiguous.",
+        "Human: a product owner or domain expert grading by hand. Slowest per example, and the source of truth for everything else.",
+        "LLM-as-a-judge: a model applying your rubric at scale, imitating how a human would label.",
+        "User: real-world signal from actual users — thumbs up/down, complaints, downstream business metrics.",
+        "Do not fully outsource human eval to contractors: whoever owns the product judgement has to be in the spreadsheet."
+      ],
+      "authored": false,
+      "lessons": [
+        "How to Actually Run AI Evals: Rubrics, Golden Datasets & LLM-as-a-Judge"
+      ],
+      "links": [
+        {
+          "to": "llm-as-judge",
+          "rel": "scales via"
+        },
+        {
+          "to": "eval-unit-tests",
+          "rel": "implemented as"
+        }
+      ]
+    },
+    {
+      "id": "eval-rubric",
+      "label": "Rubrics & Criteria",
+      "cluster": "evals",
+      "parent": "evaluation",
+      "summary": "Turning 'is this good?' into named dimensions with written definitions, so two people grading the same output reach the same label for the same reason.",
+      "explanation": "A rubric is the bridge between a vague sense of quality and a number you can act on. Rather than grading an output as good or bad overall, you name the dimensions that matter for your product and grade each separately.\n\nFor a customer-support agent, three dimensions fall out of what can go wrong: product knowledge (does it actually know the catalogue?), policy compliance (is it following the rules it was given?), and tone (does it sound the way this brand should?). Each is graded good, average, or bad — and each grade needs a written definition, so that 'average tone' means the same thing to everyone.\n\nSplitting the dimensions apart is what makes a rubric diagnostic. One overall score tells you the output was bad; three dimensions tell you it was bad because it violated policy while its product knowledge was fine — and those two failures have completely different fixes. Writing the rubric before labelling begins matters too, because criteria invented mid-grading drift as you go.\n\nExpect the rubric to evolve anyway. As you see more data you discover that what you care about is more specific than what you first wrote down, and refining the criterion is a normal part of the process rather than evidence you got it wrong.",
+      "keyPoints": [
+        "Name dimensions rather than grading one overall 'good' — for a support agent: product knowledge, policy compliance, tone.",
+        "Write explicit definitions of good/average/bad per dimension so labels are consistent between people.",
+        "Separate dimensions are diagnostic: they point at which part of the system to fix.",
+        "Write the rubric before labelling starts; one invented while grading drifts.",
+        "Criteria legitimately shift as you see more data — refinement is expected, not a failure."
+      ],
+      "authored": false,
+      "lessons": [
+        "How to Actually Run AI Evals: Rubrics, Golden Datasets & LLM-as-a-Judge",
+        "LLM-as-a-Judge: Direct Assessment, Pairwise Comparison & the Biases That Skew Both"
+      ],
+      "links": [
+        {
+          "to": "golden-dataset",
+          "rel": "graded into"
+        },
+        {
+          "to": "llm-as-judge",
+          "rel": "encoded as"
+        }
+      ]
+    },
+    {
+      "id": "golden-dataset",
+      "label": "Golden Datasets",
+      "cluster": "evals",
+      "parent": "evaluation",
+      "summary": "A hand-labelled set of real examples that serves as the reference standard — the foundation every automated eval inherits its quality from.",
+      "explanation": "The golden dataset is a table: one row per interaction, columns for the input, the system's output, a grade per rubric dimension, and a free-text note. You build it by running real questions through your system and grading what comes back. That is the whole technique, and a spreadsheet is genuinely the right tool.\n\nWhat makes the tedium worth it is that grading forces specificity. A single row — a customer inside the return window who has thrown away the box, answered correctly on the policy but without ever giving contact details — surfaces both a product decision nobody had made and a gap in the policy document itself. Neither is found by reading the answer casually and nodding.\n\nSize follows the weight of the decision. About ten rows is enough for internal iteration and for checking whether an approach is worth pursuing; a hundred or more before you trust a number for a production decision, and considerably more in a regulated domain. It is fundamentally a statistics question. The reason not to start at a hundred is that confidence and iteration speed pull against each other: more data means a more trustworthy number and a slower loop, and early on you are changing the prompt constantly.\n\nReal captured inputs are best. If you do not have a hundred yet, LLM-generated synthetic examples are a legitimate way to start — provided you validate them before trusting them.",
+      "keyPoints": [
+        "One row per interaction: input, output, a grade per dimension, and a note. The notes are where the value accumulates.",
+        "Grading forces the team to settle product decisions the specification left open — the debate is the point.",
+        "About 10 rows for internal iteration; 100+ before trusting a production decision; more in regulated domains.",
+        "Confidence and iteration speed are orthogonal — pick your position deliberately and revisit it as the product matures.",
+        "Real captured examples are best; validated synthetic data is a legitimate way to bootstrap.",
+        "If the golden labels are bad, every automated eval built on them is confidently wrong."
+      ],
+      "authored": false,
+      "lessons": [
+        "How to Actually Run AI Evals: Rubrics, Golden Datasets & LLM-as-a-Judge",
+        "The Three Levels of LLM Evals: Unit Tests, Aligned Judges & AB Testing"
+      ],
+      "links": [
+        {
+          "to": "judge-alignment",
+          "rel": "validates"
+        },
+        {
+          "to": "synthetic-data",
+          "rel": "can be seeded by"
+        }
+      ]
+    },
+    {
+      "id": "llm-as-judge",
+      "label": "LLM-as-a-Judge",
+      "cluster": "evals",
+      "parent": "evaluation",
+      "summary": "Using a strong model to apply your rubric at scale — the only practical way to evaluate thousands of open-ended outputs, and useless until you prove it agrees with humans.",
+      "explanation": "Once you have a rubric and hand-labelled examples you trust, you can scale. An LLM judge is a second model whose job is to apply your criteria to your system's outputs and emit a label, exactly as a human labeller would.\n\nThe judge prompt is not a new artefact — it is the rubric you already wrote, addressed to a model, with the same context a human grader had. Run one judge per dimension so each call makes a single focused judgement, and use the most capable model you can afford; this is not the job for a cheap small model.\n\nThe non-negotiable detail is that the judge must produce an explanation alongside its label. The explanation plays the role a human reviewer's notes play: it lets you read why the judge scored something as it did and decide whether you agree with the reasoning. A bare score is unauditable — you cannot distinguish a correct judgement from a lucky one.\n\nWhat this buys is reference-free evaluation: judging qualities like 'is this natural?' or 'does this sound human?' where no gold answer exists and word-overlap metrics say nothing. The cost is that the judge is itself a fallible language model, with systematic biases and a real chance of being confidently miscalibrated — which is why the alignment step below is not optional.",
+      "keyPoints": [
+        "The judge prompt is your rubric restated as model instructions, given the same context the human grader had.",
+        "Run one judge per dimension, and use the strongest model you can afford.",
+        "Always require an explanation, not just a label — it is what makes the score auditable.",
+        "It enables reference-free evaluation: judging quality with no gold answer to diff against.",
+        "The judge is itself a fallible model with systematic biases, so it must be validated before it is trusted."
+      ],
+      "authored": false,
+      "lessons": [
+        "How to Actually Run AI Evals: Rubrics, Golden Datasets & LLM-as-a-Judge",
+        "LLM-as-a-Judge: Direct Assessment, Pairwise Comparison & the Biases That Skew Both",
+        "The Three Levels of LLM Evals: Unit Tests, Aligned Judges & AB Testing"
+      ],
+      "links": [
+        {
+          "to": "judge-strategies",
+          "rel": "applied via"
+        },
+        {
+          "to": "judge-bias",
+          "rel": "distorted by"
+        },
+        {
+          "to": "judge-alignment",
+          "rel": "validated by"
+        },
+        {
+          "to": "hallucination",
+          "rel": "detects"
+        }
+      ]
+    },
+    {
+      "id": "judge-strategies",
+      "label": "Direct Assessment vs Pairwise",
+      "cluster": "evals",
+      "parent": "llm-as-judge",
+      "summary": "Score each output against a rubric, or ask which of two is better — an absolute standard versus a relative comparison, often best combined.",
+      "explanation": "There are two ways to put a judge to work, and they answer different questions.\n\nDirect assessment scores each output independently against a rubric you designed: is this summary clear and coherent — yes or no? Its strengths are control and interpretability. You wrote the criterion, the resulting label means something standalone, and labels aggregate naturally into a pass rate. That makes it the natural fit for compliance-style questions where the requirement is fixed and external.\n\nPairwise comparison shows the judge two outputs and asks which is better. Relative judgements are easier and more consistent than absolute ones for subjective qualities, because the judge need not locate a threshold that may not exist. With more than two candidates, a ranking algorithm converts accumulated pairwise verdicts into an overall ordering. The limitation is that a win is purely relative — 'A beat B' says nothing about whether either was acceptable.\n\nIBM's user research on its open-sourced EvalAssist framework found roughly half of participants preferred direct assessment for its clarity and rubric control, about a quarter preferred pairwise for subjective tasks, and the remainder combined the two: direct assessment as a compliance gate, then pairwise ranking to select the best of what passed. That combined pattern resolves the trade-off rather than picking a side, giving you an absolute quality floor and a relative ordering above it. The overall conclusion was that the choice is both task- and user-dependent.",
+      "keyPoints": [
+        "Direct assessment: score each output independently against a rubric. Clear, controllable, aggregates into a pass rate.",
+        "Pairwise comparison: ask which of two outputs is better. Easier and more consistent for subjective qualities.",
+        "A ranking algorithm turns many pairwise verdicts into an overall ordering of all candidates.",
+        "A pairwise win is relative — it does not tell you whether either output met your bar.",
+        "EvalAssist user research: ~half preferred direct assessment, ~a quarter pairwise (especially for subjective tasks), the rest combined both.",
+        "The combined pipeline — direct assessment as a gate, then pairwise ranking — gives a quality floor plus an ordering."
+      ],
+      "authored": false,
+      "lessons": [
+        "LLM-as-a-Judge: Direct Assessment, Pairwise Comparison & the Biases That Skew Both"
+      ],
+      "links": [
+        {
+          "to": "eval-rubric",
+          "rel": "applies"
+        }
+      ]
+    },
+    {
+      "id": "judge-bias",
+      "label": "Judge Biases",
+      "cluster": "evals",
+      "parent": "llm-as-judge",
+      "summary": "Positional, verbosity, and self-enhancement bias make a judge favour outputs for reasons unrelated to quality — systematically, so they do not average out.",
+      "explanation": "Like human reviewers, LLM judges have blind spots, and they show up as systematic biases: errors that lean consistently in one direction rather than cancelling out across a large sample. This is why more data produces a more confident wrong answer rather than convergence on the truth.\n\nPositional bias is a preference tied to where an output appears. In a pairwise comparison, a judge exhibiting it keeps choosing option A regardless of what is in option A — the judgement is driven by slot rather than substance. Verbosity bias is the judge treating length as a proxy for quality, favouring the longer answer even when it is repetitive or wanders; the model reads length as thoroughness, which is precisely the wrong instinct in a system meant to reward clarity. Self-enhancement bias is a judge rating output it recognises as its own more highly, independent of whether the content is better.\n\nPositional bias has a clean, cheap test: run the comparison twice with the options swapped. A judge evaluating content picks the same output both times and the winner merely changes slot; a positionally biased judge keeps picking its preferred slot, so the verdict flips. Per pair, a flip marks that comparison unreliable; in aggregate, the flip rate quantifies how biased the judge is on your task.\n\nThe method generalises. For any suspected bias, construct a variation that changes only the suspect factor while holding content constant — swap order to test position, pad an answer with harmless filler to test verbosity, strip model identifiers to test self-enhancement — and see whether the verdict moves. Bias does not mean the system is broken; it means you stay vigilant, and good frameworks build these checks in.",
+      "keyPoints": [
+        "Positional bias: favouring an output for its position — always picking option A regardless of content.",
+        "Verbosity bias: favouring longer output regardless of quality, reading length as thoroughness.",
+        "Self-enhancement bias: rating its own generated output more highly than others'.",
+        "These skew results systematically rather than adding noise, so they do not average out with more samples.",
+        "Positional swaps — re-running with the order reversed — detect positional bias directly; the flip rate quantifies it.",
+        "General method: vary only the suspected factor, hold content constant, and check whether the verdict moves."
+      ],
+      "authored": false,
+      "lessons": [
+        "LLM-as-a-Judge: Direct Assessment, Pairwise Comparison & the Biases That Skew Both"
+      ],
+      "links": [
+        {
+          "to": "judge-alignment",
+          "rel": "exposed by"
+        }
+      ]
+    },
+    {
+      "id": "judge-alignment",
+      "label": "Judge Alignment & Agreement",
+      "cluster": "evals",
+      "parent": "llm-as-judge",
+      "summary": "Measuring how often the judge's label matches the human's — the step almost everyone skips, and the one that decides whether any of your metrics mean anything.",
+      "explanation": "This separates evaluation from theatre. In a real session, an LLM judge labelled every single example 'good' — a result that is worthless in a way that looks like success, since a dashboard would show a perfect score. The only reason anyone noticed is that human labels existed to compare against.\n\nThe metric goes by two names for the same idea: match rate, or agreement score — the fraction of examples where the judge's label equals the human's, computed per dimension. Per-dimension is what makes it actionable: in the worked example product knowledge matched 100% of the time while tone matched once, which immediately localises the fault to the tone judge rather than the system.\n\nThe loop is: hand-label five to ten examples, run the judge on the same ones, compute agreement, read the judge's explanations on the rows that disagree, tighten those judge prompts, and repeat. Crucially the human critique stays fixed — it is the golden standard you are optimising toward, and adjusting human labels to match the model would guarantee agreement while destroying its meaning. Only the judge prompt is a free variable. Meta-prompting is the powerful way to iterate: show a strong model the disagreements, the current agreement score, and the current judge prompt, and ask it to rewrite the prompt to maximise agreement without overfitting to individual rows.\n\nOnly once the judge tracks your humans on a small set do you scale it to a hundred examples and start believing the aggregate. And it never fully ends: prompts, data, features, and users drift, so what 'good' means drifts too, and a judge aligned to last quarter's standard quietly stops measuring the current one.",
+      "keyPoints": [
+        "Match rate / agreement score = the fraction of rows where the judge's label equals the human's, computed per dimension.",
+        "A judge that labels everything 'good' yields a flawless dashboard and zero information — only human labels expose it.",
+        "Per-dimension scores localise the fault: 100% on product knowledge and 20% on tone means the tone judge is broken.",
+        "The human critique is the fixed golden standard; only the judge prompt changes.",
+        "Meta-prompting — handing a strong model the disagreements and the current judge prompt — is the effective way to iterate.",
+        "Validate on 5–10 rows, then scale to 100+. Re-check forever, because drift makes 'good' a moving target."
+      ],
+      "authored": false,
+      "lessons": [
+        "How to Actually Run AI Evals: Rubrics, Golden Datasets & LLM-as-a-Judge",
+        "The Three Levels of LLM Evals: Unit Tests, Aligned Judges & AB Testing"
+      ],
+      "links": [
+        {
+          "to": "golden-dataset",
+          "rel": "measured against"
+        }
+      ]
+    },
+    {
+      "id": "eval-levels",
+      "label": "The Three Levels of Evals",
+      "cluster": "evals",
+      "parent": "evaluation",
+      "summary": "Unit tests on every change, human and model review every week, A/B tests on major releases — cost and effort rise with each level, which dictates how often you run it.",
+      "explanation": "Organising evaluation by cost makes it practical, because it tells you what to run when.\n\nLevel one is unit tests: fast, cheap assertions run on every code and prompt change. Level two is human and model evaluation — systematic review of quality, run weekly or bi-weekly depending on the size of the system, and costly mainly because humans spend time on it. Level three is A/B testing with real users to measure business impact, reserved for major releases because it needs enough traffic and time to mean anything.\n\nThe common mistake is jumping straight to level two's automation without its human half. The tempting picture is plugging in an eval tool, giving an LLM some instructions, and letting it monitor everything — and it is what you should avoid at all cost early on. You cannot write instructions for a review you have not learned to perform yourself. Humans look at data first; the judge is aligned to them afterwards, never the reverse.\n\nThe level-three question deserves a cheaper answer than most teams assume. Before wiring user-satisfaction telemetry into your product, you can compare two prompts against your own labelled dataset using the judge you already aligned, and get most of the decision value at a fraction of the cost. Full in-app A/B testing suits mature, high-traffic applications where tiny prompt changes matter.",
+      "keyPoints": [
+        "Level 1 — unit tests: fast, cheap assertions on every code and prompt change.",
+        "Level 2 — human and model evaluation: systematic review, weekly or bi-weekly, humans first and judges aligned to them.",
+        "Level 3 — A/B testing with real users for business impact, reserved for major releases.",
+        "Cost and effort rise with each level, which is what dictates how often each is run.",
+        "You cannot skip the human half of level 2: you cannot instruct a model to perform a review you have not learned to do.",
+        "Cheaper middle ground: compare prompt variants offline against your labelled set before exposing users."
+      ],
+      "authored": false,
+      "lessons": [
+        "The Three Levels of LLM Evals: Unit Tests, Aligned Judges & AB Testing"
+      ],
+      "links": [
+        {
+          "to": "eval-unit-tests",
+          "rel": "starts with"
+        },
+        {
+          "to": "ab-testing",
+          "rel": "culminates in"
+        }
+      ]
+    },
+    {
+      "id": "eval-unit-tests",
+      "label": "Unit Tests as Evals",
+      "cluster": "evals",
+      "parent": "eval-levels",
+      "summary": "Ordinary assertions over structured output, run on every change — the cheapest tier, and the one that catches regressions nothing else would.",
+      "explanation": "Level one is ordinary software unit testing applied to an LLM workflow, and it is the tier you run most often because it costs almost nothing.\n\nThe mechanism is a plain assertion: the condition must evaluate to true, and a false condition raises an error you can catch and report. The most productive place to apply it is structured output, because structured output gives you fields with types and allowed values you can check deterministically. For a support ticket classifier: assert the category is one of your known categories, the confidence is a float, it lies between 0 and 1, and — specific to this input — the category is billing.\n\nThis is why capturing raw events matters so much. Store the exact input payloads your workflow received in an evals folder, and they become your test fixtures: realistic inputs reflecting the messy reality users produce, rather than the happy path you imagined. Every incident you diagnose turns into a permanent regression test. As a workflow grows to five or ten steps, you assert at every step — classification, routing, confidence on the structured object, the generated answer, the success flag from the final API call — so a failure localises to a stage.\n\nWhat should you test? The failure modes you have actually observed. When something breaks and you diagnose it, write the test that pins it down so it can never recur silently. Start with a simple loop and a printed report; move to a proper test runner when you want one command to run the folder.",
+      "keyPoints": [
+        "Fast, cheap assertions run on every code and prompt change.",
+        "Structured output is the natural target: assert allowed values, types, and ranges.",
+        "Keep an evals folder of raw event payloads captured from production — they are your test fixtures.",
+        "Assert at every step of a multi-step workflow so failures localise to a stage.",
+        "What to test comes from observed failure modes: diagnose once, then pin it with a test forever.",
+        "Much reference-based checking lives here, where a known correct answer exists."
+      ],
+      "authored": false,
+      "lessons": [
+        "The Three Levels of LLM Evals: Unit Tests, Aligned Judges & AB Testing"
+      ],
+      "links": [
+        {
+          "to": "eval-metrics",
+          "rel": "checks"
+        }
+      ]
+    },
+    {
+      "id": "ab-testing",
+      "label": "A/B Testing & User Evals",
+      "cluster": "evals",
+      "parent": "eval-levels",
+      "summary": "Shipping to real users in stages — dogfood, then a small traffic slice — and reading signals that are genuine but harder to interpret than they look.",
+      "explanation": "Offline evaluation on a golden dataset answers 'does this behave the way we decided it should?' It cannot answer 'do real users get what they came for?' For that you have to ship, carefully.\n\nThe progression is internal dogfooding first, which is high-value because the people using it already know what good looks like, then an A/B test on a small traffic slice — on the order of 1% to 10% depending on company size and the risk of the surface — and only then broader rollout. The metrics at this level are business metrics: user satisfaction, task completion rate, time to resolution, engagement, and ultimately sales and retention.\n\nUser signals are the most real and the hardest to interpret. Consider a customer who thumbs-downs a reply telling them they are not eligible for a refund. The agent applied the policy correctly, communicated clearly, and did its job; the customer is unhappy about the outcome, not the answer. The signal is genuine but it conflates 'the system performed badly' with 'I did not like the news' — and treating it as a quality failure would train the system to misstate policy in order to please people.\n\nSo settle the question before you need it: what do you do when the eval says good and the business metric goes down? There is no formula. In a non-deterministic system you cannot fully trust your users' labels or your own, and the resolution is always the same — go back and read the data.",
+      "keyPoints": [
+        "Sequence: internal dogfooding, then a 1–10% A/B slice, then broader rollout with monitoring.",
+        "Level-3 metrics are business metrics: satisfaction, task completion, time to resolution, engagement, retention.",
+        "A thumbs-down conflates 'the system did badly' with 'I disliked the outcome' — genuine signal, ambiguous meaning.",
+        "Decide in advance how you break the tie when evals look good and the business metric drops.",
+        "Full in-app A/B testing is complex and suits mature, high-traffic products; offline comparison covers most decisions."
+      ],
+      "authored": false,
+      "lessons": [
+        "How to Actually Run AI Evals: Rubrics, Golden Datasets & LLM-as-a-Judge",
+        "The Three Levels of LLM Evals: Unit Tests, Aligned Judges & AB Testing"
+      ],
+      "links": [
+        {
+          "to": "evaluation",
+          "rel": "closes the loop for"
+        }
+      ]
+    },
+    {
+      "id": "eval-metrics",
+      "label": "Reference-Based vs Reference-Free",
+      "cluster": "evals",
+      "parent": "evaluation",
+      "summary": "When you know the correct answer, testing is easy; when many answers are valid, you score qualities instead — which is where judges become necessary.",
+      "explanation": "Metrics divide into two categories, and knowing which one you are in tells you how hard the measurement will be.\n\nReference-based metrics apply when a golden answer exists and you can compare against it: exact string matching, semantic similarity, code execution results, SQL correctness, structured data validation. These are comparatively easy, and much of this can be captured as unit tests. The traditional text metrics BLEU and ROUGE also live here — they score an output by how much its wording overlaps a reference. That works for machine translation and breaks down elsewhere: a summary can share most of its vocabulary with the reference and still be incoherent, or share little and be excellent.\n\nReference-free metrics apply when you do not know exactly what the output should be, or when many outputs are legitimately correct. Answering a customer query has effectively infinite good answers differing in tone, length, and structure. Here you score qualities instead — tone appropriateness, length constraints, absence of hallucination, format compliance, safety and toxicity — usually on a 0–1 or 1–5 scale.\n\nReal systems lean heavily on reference-free metrics, which is exactly why LLM judges and the alignment discipline matter so much: they are the only practical way to measure a quality that no overlap score can reach. Whichever category you are in, the advice is the same: start binary. Good and bad is challenging enough to get right.",
+      "keyPoints": [
+        "Reference-based: a known correct answer exists — exact match, semantic similarity, code execution, SQL correctness, schema validation.",
+        "BLEU and ROUGE score word overlap against a reference, which says little about coherence and needs a reference you often lack.",
+        "Reference-free: many outputs are valid — tone, length, hallucination, format compliance, safety, toxicity.",
+        "Reference-free metrics are usually scored on a 0–1 or 1–5 scale rather than pass/fail.",
+        "Real systems lean on reference-free metrics, which is why judges and alignment matter.",
+        "Start binary regardless — good and bad is hard enough to get right."
+      ],
+      "authored": false,
+      "lessons": [
+        "The Three Levels of LLM Evals: Unit Tests, Aligned Judges & AB Testing",
+        "LLM-as-a-Judge: Direct Assessment, Pairwise Comparison & the Biases That Skew Both"
+      ],
+      "links": [
+        {
+          "to": "embeddings",
+          "rel": "measures similarity with"
+        },
+        {
+          "to": "llm-as-judge",
+          "rel": "requires"
+        }
+      ]
+    },
+    {
+      "id": "eval-driven-workflow",
+      "label": "Evaluation-Driven Development",
+      "cluster": "evals",
+      "parent": "evaluation",
+      "summary": "The analyze → measure → improve cycle, and the four mistakes that keep teams stuck at the demo: tool-first thinking, generic metrics, avoiding your data, and unaligned judges.",
+      "explanation": "Three challenges make LLM development different from ordinary software. You do not understand the data flowing through your system, because you tested the happy path and real users are unpredictable. There is a specification gap between what you want and what you can express in a prompt — you know a good output when you see it, but translating that into instructions is hard, and attributing a bad output to prompting, retrieval, or pipeline logic is its own problem. And behaviour is inconsistent: small wording changes produce completely different outputs.\n\nThe working loop that addresses all three is analyze → measure → improve, a lifecycle articulated by Hamel Husain and Shreya Shankar. Analyze: collect real examples and categorise the failure modes, which arrive as user complaints, errors you spot while reading data, and outright application errors. Measure: turn those insights into quantitative metrics, starting with booleans. Improve: refine prompts, try different models, change the architecture. Then go round again — running it repeatedly is what creates a flywheel rather than a series of one-off fixes.\n\nFour mistakes recur. Tool-first thinking reaches for a purchase instead of a diagnosis — a new vector database, a bigger model, an eval platform with ten metrics out of the box. Generic-metrics obsession drowns you in unactionable scores like 'helpfulness 4.2'. Avoiding your data is the most consequential, and sounds like 'the LLM will check it' or 'users will tell us if it's broken'. Unaligned judges is assuming the judge works without validating it.\n\nThe habit that matters most is unglamorous: look at lots of real data, constantly. Manual inspection has the highest value-to-prestige ratio in the whole discipline. You know you are succeeding when you can deploy changes confidently, failures are caught before users see them, and improvements compound; you are struggling when every fix breaks something else and progress feels like trial and error.",
+      "keyPoints": [
+        "Three core challenges: not understanding your data at scale, the specification gap, and inconsistent behaviour on similar inputs.",
+        "Analyze → measure → improve is the working loop; running it repeatedly is what compounds improvement.",
+        "Mistake 1 — tool-first thinking: buying a database, model, or platform instead of diagnosing.",
+        "Mistake 2 — generic metrics: 'helpfulness 4.2' is unactionable. Build specific metrics, starting binary.",
+        "Mistake 3 — avoiding your data: the most consequential. Manual inspection has the highest value-to-prestige ratio.",
+        "Mistake 4 — unaligned judges: assuming the judge works without validating it against a human.",
+        "Only use LLMs to scale — generating test cases, synthetic data, automated critique — but always validate with humans."
+      ],
+      "authored": false,
+      "lessons": [
+        "The Three Levels of LLM Evals: Unit Tests, Aligned Judges & AB Testing",
+        "How to Actually Run AI Evals: Rubrics, Golden Datasets & LLM-as-a-Judge"
+      ],
+      "links": [
+        {
+          "to": "ai-sdlc",
+          "rel": "shapes"
+        },
+        {
+          "to": "eval-levels",
+          "rel": "runs"
+        }
+      ]
+    },
+    {
+      "id": "generative-vs-agentic",
+      "label": "Generative vs Agentic AI",
+      "cluster": "agents",
+      "parent": "ai-root",
+      "summary": "The difference between one call and a loop: a generative model reacts once; an agent pursues a goal by looping with tools.",
+      "explanation": "This is the conceptual dividing line of the whole agents branch. Generative AI is reactive: you send a prompt, it returns output, and it holds no larger objective across calls — one input, one response. Agentic AI is proactive: given a goal, it enters a loop — it perceives the current state, decides on a step, acts by calling a tool, observes the result, and repeats until the goal is met. What makes this possible is that both sit on the same substrate: an LLM acting as the reasoning engine. The agent is not a different kind of model; it is the scaffolding of tools, memory, and control flow built around a generative model to let it act rather than merely answer. The genuinely hard engineering skill is building systems that know when to simply generate a response and when to enter the more expensive, more capable act-and-observe loop.",
+      "keyPoints": [
+        "Generative AI is reactive: prompt in, response out, no memory of a larger objective.",
+        "Agentic AI is proactive: it plans, calls tools, reads the results, and decides the next step, repeating around a loop.",
+        "Both sit on the same substrate — an LLM acting as the reasoning engine; the agent is the scaffolding of tools, memory and control flow around it.",
+        "The frontier skill is building systems that know when to simply generate and when to enter the act-and-observe loop."
+      ],
+      "authored": false,
+      "lessons": [
+        "Generative vs Agentic AI: Shaping the Future of AI Collaboration"
+      ],
+      "links": [
+        {
+          "to": "agent-loop",
+          "rel": "defines"
+        },
+        {
+          "to": "reasoning-models",
+          "rel": "powered by"
+        }
+      ]
+    },
+    {
+      "id": "agent-loop",
+      "label": "The Agent Loop & Building Blocks",
+      "cluster": "agents",
+      "parent": "generative-vs-agentic",
+      "summary": "An agent is the model plus a control loop and a set of parts — instructions, tools, memory, and often sub-agents.",
+      "explanation": "It is worth being precise: the agent is not the model. The model supplies reasoning, and the agent wraps it in the machinery needed to actually get things done — a loop, tools to act, memory to persist, and instructions to shape behaviour. The loop itself is simple in outline: perceive the current situation, decide the next action, act, observe the outcome, and keep going until the goal is reached. Behaviour is configured through instruction files such as AGENTS.md, and when several such files apply, rules of nesting and precedence determine which wins. Tools — via function calling — are how the agent affects the world, whether that means querying a database, calling an API, or editing a file. For larger jobs, an agent can spin up sub-agents that work in isolated contexts and can run in parallel, which keeps each individual context window focused instead of overloaded.",
+      "keyPoints": [
+        "The model provides reasoning; the agent adds tools to act, memory to persist, and a loop to keep going until done.",
+        "Instruction files (like AGENTS.md) configure behaviour, with nesting and precedence when several apply.",
+        "Tool use (function calling) is how the agent affects the world — querying a database, calling an API, editing a file.",
+        "Sub-agents split work into isolated contexts that can run in parallel, keeping each context window focused."
+      ],
+      "authored": false,
+      "lessons": [
+        "5 AI Agent Terms You Need to Know",
+        "Generative vs Agentic AI: Shaping the Future of AI Collaboration",
+        "Multi-Agent Architectures That Ship: Five Patterns, Three Roles & Validation Contracts"
+      ],
+      "links": [
+        {
+          "to": "mcp",
+          "rel": "reaches tools via"
+        },
+        {
+          "to": "agent-memory",
+          "rel": "remembers with"
+        },
+        {
+          "to": "agent-frameworks",
+          "rel": "orchestrated by"
+        },
+        {
+          "to": "tools",
+          "rel": "acts through"
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "label": "Tool Use & A2A",
+      "cluster": "agents",
+      "parent": "agent-loop",
+      "summary": "Tools are how an agent reaches beyond text to act; agent-to-agent protocols let one agent delegate to another as if it were a tool.",
+      "explanation": "Without tools, a model can only talk; tools are what let an agent do things in the world. The mechanism is function calling: the model emits a structured request — say, call get_weather(city='Paris') — the runtime executes that function and returns the result, and the agent incorporates it into its next step. Tools can be anything with an interface: databases, APIs, code execution, file systems. Agent-to-agent (A2A) protocols extend the same idea one level up, defining how autonomous agents discover and invoke each other, so one agent can hand a subtask to another specialised agent as though calling a tool. An 'agent card' advertises what a given agent is able to do so others can find and use it. Delegating to a focused specialist keeps each agent's context tight and lets independent work run in parallel — but every tool an agent can reach also widens the attack surface a defender has to secure.",
+      "keyPoints": [
+        "Function calling lets the model emit a structured request ('call get_weather(city)') that the runtime executes and returns.",
+        "A2A defines how autonomous agents discover and call each other — an agent card advertises what an agent can do.",
+        "Delegating to a specialised agent keeps each one's context focused and lets work run in parallel.",
+        "Tools are the agent's hands; without them a model can only talk, not do."
+      ],
+      "authored": false,
+      "lessons": [
+        "5 AI Agent Terms You Need to Know"
+      ],
+      "links": [
+        {
+          "to": "mcp",
+          "rel": "standardized by"
+        },
+        {
+          "to": "agent-security",
+          "rel": "widens attack surface for"
+        }
+      ]
+    },
+    {
+      "id": "mcp",
+      "label": "Model Context Protocol (MCP)",
+      "cluster": "agents",
+      "parent": "agent-loop",
+      "summary": "A standard interface between an LLM and external tools and data — the 'USB-C for AI tools'.",
+      "explanation": "Before MCP, every connection between a model and an external system was a bespoke integration, which did not scale as agents multiplied. The Model Context Protocol standardises that connection, so a single integration works across any MCP-aware model — the way USB-C standardised device connectors. An MCP server exposes two things: tools, which are actions the model can invoke, and resources, which are data the model can read, typically communicated over JSON-RPC. Crucially, MCP solves access but not procedure: it gives the model a governed way to reach a tool, but it does not tell the model the repeatable, reliable way to use that tool well — that gap is what agent skills fill. Because it standardises how an agent touches the outside world, MCP shows up wherever an agent needs controlled access to external services, and it is a natural place to enforce security policy.",
+      "keyPoints": [
+        "MCP standardises how a model connects to external services, so one integration works across many agents.",
+        "An MCP server offers tools (actions the model can invoke) and resources (data the model can read), typically over JSON-RPC.",
+        "What MCP does not solve: it gives access to a tool, but not a repeatable procedure for using it well — that is what skills add.",
+        "It is a recurring agent building block, appearing anywhere an agent needs governed access to the outside world."
+      ],
+      "authored": false,
+      "lessons": [
+        "7 AI Terms You Need to Know: Agents, RAG, ASI & More",
+        "MCP vs Skills: Which Is Right for Your AI Agent and LLMs?",
+        "5 AI Agent Terms You Need to Know"
+      ],
+      "links": [
+        {
+          "to": "skills",
+          "rel": "complemented by"
+        },
+        {
+          "to": "agent-security",
+          "rel": "governed by"
+        }
+      ]
+    },
+    {
+      "id": "skills",
+      "label": "Agent Skills",
+      "cluster": "agents",
+      "parent": "agent-loop",
+      "summary": "A packaged, reusable procedure the model can auto-load when relevant — the 'how to do X' that MCP's 'access to X' leaves out.",
+      "explanation": "MCP hands an agent a tool, but knowing a tool exists is not the same as knowing the reliable way to use it; skills capture that missing procedural knowledge. A skill bundles the instructions — and sometimes helper scripts — for a recurring task, packaged with a description of when it applies. The clever part is auto-loading: the model keeps only the short description in view and pulls the full skill into context only when the current task matches, which conserves the context window instead of carrying every procedure at all times. So the division of labour is clean — MCP provides access to a capability, and a skill provides the repeatable recipe for using that capability well. Conceptually a skill is procedural memory made portable: the same 'how-to' knowledge described in the agent-memory branch, packaged so it can be shared across agents.",
+      "keyPoints": [
+        "A skill bundles instructions (and sometimes scripts) for a recurring task, described so the model knows when to pull it in.",
+        "Auto-loading means the model reads a short description and loads the full skill only when the task matches — saving context.",
+        "MCP gives the model a tool; a skill gives it the repeatable procedure for using that tool well.",
+        "Skills are procedural memory made portable — the same idea that shows up in the agent-memory cluster."
+      ],
+      "authored": false,
+      "lessons": [
+        "MCP vs Skills: Which Is Right for Your AI Agent and LLMs?",
+        "5 AI Agent Terms You Need to Know"
+      ],
+      "links": [
+        {
+          "to": "mcp",
+          "rel": "pairs with"
+        },
+        {
+          "to": "procedural-memory",
+          "rel": "is a form of"
+        },
+        {
+          "to": "context-engineering",
+          "rel": "serves"
+        }
+      ]
+    },
+    {
+      "id": "agent-memory",
+      "label": "Agent Memory (4 Types)",
+      "cluster": "agents",
+      "parent": "agent-loop",
+      "summary": "Agents need memory beyond one context window; the CoALA framework names four kinds — working, semantic, procedural, and episodic.",
+      "explanation": "A single context window is not enough memory for an agent that operates over time, so agent architectures borrow a four-part scheme from human cognition, formalised in the CoALA framework. Working memory is what the agent is holding right now — literally the context window. Semantic memory is what the agent knows: facts and documents, usually stored externally and pulled in through retrieval (RAG). Procedural memory is how the agent does things: reusable workflows and skills it can load on demand. Episodic memory is what happened before: records of past interactions the agent can recall to inform present behaviour. Each of the four child nodes below covers one type in depth. Two cross-cutting points matter: forgetting is an engineering problem, since stale entries must be invalidated and memory pruned to stay useful, and not every agent needs all four — a simple reflex agent may need only working memory.",
+      "keyPoints": [
+        "Working memory is the context window itself — what the agent is holding right now.",
+        "Semantic memory is what the agent knows (facts, documents), often retrieved via RAG.",
+        "Procedural memory is how the agent does things — reusable workflows and skills loaded on demand.",
+        "Episodic memory is what happened before (past interactions), recalled to inform current behaviour; forgetting must be engineered, and not every agent needs all four."
+      ],
+      "authored": false,
+      "lessons": [
+        "The Four Types of Memory Every AI Agent Needs"
+      ],
+      "links": [
+        {
+          "to": "working-memory",
+          "rel": "includes"
+        },
+        {
+          "to": "semantic-memory",
+          "rel": "includes"
+        },
+        {
+          "to": "procedural-memory",
+          "rel": "includes"
+        },
+        {
+          "to": "episodic-memory",
+          "rel": "includes"
+        }
+      ]
+    },
+    {
+      "id": "working-memory",
+      "label": "Working Memory",
+      "cluster": "agents",
+      "parent": "agent-memory",
+      "summary": "The agent's short-term memory — literally the context window: fast and immediate, but bounded and wiped between sessions.",
+      "explanation": "Working memory is the agent's here-and-now, and in practice it is exactly the model's context window. It holds the current task, the recent messages, and any data freshly retrieved for this step, all immediately available to the model's reasoning. Its defining limitation is that it is both finite and volatile: it can hold only so many tokens, and anything not written out to a durable store disappears when the window rolls over or the session ends. That volatility is the whole reason the other three memory types exist — semantic, procedural, and episodic memory are all ways to persist information beyond a single window and pull it back in when needed. Managing working memory well — deciding what deserves a place in that scarce space at each step — is precisely the context-engineering problem.",
+      "keyPoints": [
+        "It holds the current task, recent messages and freshly retrieved data — everything immediately in play.",
+        "It is finite and volatile: anything not written to a durable store is gone when the window rolls over.",
+        "Its limits are why semantic, procedural and episodic memory exist as durable stores.",
+        "Managing it well is exactly the context-engineering problem."
+      ],
+      "authored": false,
+      "lessons": [
+        "The Four Types of Memory Every AI Agent Needs"
+      ],
+      "links": [
+        {
+          "to": "context-window",
+          "rel": "is the"
+        }
+      ]
+    },
+    {
+      "id": "semantic-memory",
+      "label": "Semantic Memory",
+      "cluster": "agents",
+      "parent": "agent-memory",
+      "summary": "What the agent knows — facts, documents, and domain knowledge — stored externally and retrieved when relevant.",
+      "explanation": "Semantic memory is the agent's store of knowledge: facts, definitions, documentation, and domain information that it can draw on, independent of any particular past conversation. Because this knowledge is far too large to keep permanently in the context window, it lives in an external store and is pulled in on demand — which is exactly what retrieval-augmented generation does, making RAG the usual implementation of semantic memory. When the agent needs a fact, it retrieves the relevant passages and loads them into working memory for that step. The engineering challenge is keeping this knowledge fresh and correct: stale entries have to be invalidated so the agent doesn't reason from outdated information, the same 'know your data' discipline that makes RAG reliable in the first place.",
+      "keyPoints": [
+        "Semantic memory is general knowledge — facts and documents — not tied to a specific past episode.",
+        "It is too large for the context window, so it lives in an external store and is retrieved on demand.",
+        "Retrieval-augmented generation (RAG) is the standard way to implement it.",
+        "Keeping it correct means invalidating stale entries — the same freshness discipline good RAG requires."
+      ],
+      "authored": false,
+      "lessons": [
+        "The Four Types of Memory Every AI Agent Needs"
+      ],
+      "links": [
+        {
+          "to": "rag",
+          "rel": "implemented by"
+        },
+        {
+          "to": "embeddings",
+          "rel": "indexed with"
+        }
+      ]
+    },
+    {
+      "id": "procedural-memory",
+      "label": "Procedural Memory",
+      "cluster": "agents",
+      "parent": "agent-memory",
+      "summary": "How the agent does things — reusable procedures it can load on demand, kept cheap through progressive disclosure.",
+      "explanation": "Procedural memory is the agent's store of 'how to', as distinct from semantic memory's 'what is' — it holds the workflows, routines, and step-by-step methods the agent has learned or been given. Keeping every procedure loaded at all times would flood the context window, so procedural memory uses progressive disclosure: the agent keeps only a lightweight index of available procedures in view and loads the full detail of one only when a task actually calls for it. This is the same mechanism that powers agent skills, which are essentially procedural memory packaged to be portable and shared across agents. By separating the index from the detail, an agent can 'know about' a large library of procedures cheaply while paying the context cost of only the ones it is actively using.",
+      "keyPoints": [
+        "It stores the 'how-to' — the agent's learned or given workflows — rather than facts.",
+        "Progressive disclosure indexes many procedures cheaply and loads a full one only when relevant, conserving the context window.",
+        "Skills are procedural memory packaged to be portable across agents.",
+        "Separating a lightweight index from full detail lets an agent know about many procedures at low cost."
+      ],
+      "authored": false,
+      "lessons": [
+        "The Four Types of Memory Every AI Agent Needs"
+      ],
+      "links": [
+        {
+          "to": "skills",
+          "rel": "realized as"
+        }
+      ]
+    },
+    {
+      "id": "episodic-memory",
+      "label": "Episodic Memory",
+      "cluster": "agents",
+      "parent": "agent-memory",
+      "summary": "What happened before — records of past interactions the agent recalls to inform how it behaves now.",
+      "explanation": "Episodic memory is the agent's record of specific past events: previous conversations, decisions it made, actions it took, and how they turned out. Unlike semantic memory, which stores general facts, episodic memory is tied to particular episodes in time, and recalling a relevant past episode lets the agent behave consistently and learn from experience rather than starting fresh every session. Because these records accumulate, forgetting becomes an explicit engineering concern: an agent that recalls a stale note — an instruction or fact that was true then but is wrong now — can act on outdated information, so scoped invalidation and pruning are needed to keep episodic memory trustworthy. Done well, it is what lets an assistant remember your earlier preferences or pick up a task where it left off.",
+      "keyPoints": [
+        "Episodic memory holds specific past interactions and outcomes, tied to particular moments in time.",
+        "Recalling relevant past episodes lets an agent stay consistent and learn from experience across sessions.",
+        "Accumulated records make forgetting an engineering problem — stale notes must be invalidated to avoid acting on outdated information.",
+        "It is what lets an assistant remember earlier preferences or resume a task where it left off."
+      ],
+      "authored": false,
+      "lessons": [
+        "The Four Types of Memory Every AI Agent Needs"
+      ],
+      "links": [
+        {
+          "to": "working-memory",
+          "rel": "recalled into"
+        }
+      ]
+    },
+    {
+      "id": "agent-frameworks",
+      "label": "Agentic Frameworks",
+      "cluster": "agents",
+      "parent": "agent-loop",
+      "summary": "Libraries that coordinate agents, from simple linear workflows to autonomous and role-based multi-agent systems.",
+      "explanation": "Once you move past a single agent, you need something to coordinate control flow, tool access, memory, and communication between agents — that is what an agentic framework provides. Frameworks span a spectrum of autonomy, and choosing the right shape means matching it to how much unpredictability your task can tolerate. There are roughly five shapes: linear workflows run fixed, predetermined steps; autonomous multi-agent systems let agents converse and self-organise; role-based multi-agent systems assign agents distinct personas or jobs (a 'crew'); production orchestration systems add the reliability and control needed to run at scale; and rapid-prototyping tools optimise for quick experimentation. The core trade-off is that more autonomy brings more capability but less predictability, so the decision echoes the 'how much non-determinism can you tolerate?' question from the Foundations branch. Named tools cluster by shape — LangGraph and Agent Framework for orchestration, CrewAI for role-based crews, AutoGen for autonomous conversation.",
+      "keyPoints": [
+        "A framework coordinates control flow, tool access, memory and (for multi-agent systems) communication between agents.",
+        "Five shapes: linear workflows, autonomous multi-agent, role-based multi-agent, production orchestration, and rapid-prototyping tools.",
+        "More autonomy means more capability but less predictability — match the shape to your tolerance for non-determinism.",
+        "Named tools cluster by shape: LangGraph and Agent Framework for orchestration, CrewAI for role-based crews, AutoGen for autonomous conversation."
+      ],
+      "authored": false,
+      "lessons": [
+        "Agentic AI Frameworks Explained: Workflows, Multi-Agent, & Production",
+        "ADK vs RAG: How to Choose the Right AI Stack",
+        "Multi-Agent Architectures That Ship: Five Patterns, Three Roles & Validation Contracts"
+      ],
+      "links": [
+        {
+          "to": "agent-loop",
+          "rel": "orchestrates"
+        },
+        {
+          "to": "rag",
+          "rel": "chosen against"
+        },
+        {
+          "to": "when-not-to-use-ai",
+          "rel": "constrained by"
+        }
+      ]
+    },
+    {
+      "id": "agentic-rag",
+      "label": "Agentic RAG",
+      "cluster": "agents",
+      "parent": "agent-loop",
+      "summary": "Retrieval used as a tool inside a reasoning loop, so the agent decides when to search and gathers evidence across multiple hops.",
+      "explanation": "Agentic RAG is where the retrieval branch and the agents branch meet. In naive RAG, retrieval is a fixed step that always runs once before generation; in agentic RAG, retrieval becomes just another tool the agent can choose to call, as often as the problem demands. That shift is powerful: the agent can issue a search, judge whether the results are good enough, rewrite a weak query and search again, and combine findings from several searches to answer multi-hop questions that a single retrieval could never satisfy. It is the natural endpoint of RAG's evolution — the same reasoning loop described in the agents branch, now applied to fetching knowledge. The trade-off is the familiar one: it swaps the predictability of a fixed pipeline for the adaptability of an agent, inheriting both the extra power and the extra non-determinism that come with letting the model decide.",
+      "keyPoints": [
+        "The agent treats 'search' as one tool among many and calls it as often as the problem needs.",
+        "It can rewrite a weak query, retrieve again, and combine findings — handling multi-hop questions a single retrieval cannot.",
+        "This is where the retrieval and agent clusters merge: RAG's evolution ends exactly at the agent loop.",
+        "It trades the predictability of naive RAG for adaptability, inheriting both the power and the non-determinism of agents."
+      ],
+      "authored": false,
+      "lessons": [
+        "RAG's Evolution: From Simple Retrieval to Agentic AI"
+      ],
+      "links": [
+        {
+          "to": "rag-evolution",
+          "rel": "endpoint of"
+        },
+        {
+          "to": "agent-loop",
+          "rel": "runs inside"
+        }
+      ]
+    },
+    {
+      "id": "prompt-injection",
+      "label": "Prompt Injection",
+      "cluster": "security",
+      "parent": "ai-root",
+      "summary": "The defining attack on LLMs: because a model can't reliably separate instructions from data, hidden commands can hijack it.",
+      "explanation": "Prompt injection is the signature vulnerability of LLM systems, and it stems from a structural fact: instructions and data reach the model through the same channel — the context window — and the model treats all of it as text, with no reliable way to tell a trusted command from untrusted content. Direct prompt injection is the obvious form, where a user types adversarial instructions like 'ignore your previous rules and…'. Indirect prompt injection is subtler and more dangerous: the malicious payload is hidden inside a document, web page, or email that the agent later reads as part of its normal work, so the attack arrives through data the system trusted. This is especially threatening for agents, which autonomously fetch and act on external content and can therefore be steered into harmful actions. Prompt injection is the initial-access step of the promptware kill chain and consistently ranks among the top AI risks organisations face.",
+      "keyPoints": [
+        "Direct injection: the user types malicious instructions ('ignore your rules and…'). Indirect injection: the payload hides in a document, web page or email the agent later reads.",
+        "The root cause is structural — instructions and data share the same channel (the context window), and the model treats both as text.",
+        "Indirect injection is especially dangerous for agents, which autonomously read external content and can then act on it.",
+        "It is the initial-access step of the promptware kill chain and one of the top AI risks."
+      ],
+      "authored": false,
+      "lessons": [
+        "Five AI Risks That Can Get You Fired",
+        "The Promptware Kill Chain: How Prompt Injection Becomes AI Malware",
+        "Guide to Architect Secure AI Agents: Best Practices for Safety"
+      ],
+      "links": [
+        {
+          "to": "promptware",
+          "rel": "initiates"
+        },
+        {
+          "to": "agent-security",
+          "rel": "defended by"
+        }
+      ]
+    },
+    {
+      "id": "promptware",
+      "label": "The Promptware Kill Chain",
+      "cluster": "security",
+      "parent": "prompt-injection",
+      "summary": "How a single prompt injection escalates into full 'AI malware', stage by stage, mirroring the classic cyber kill chain.",
+      "explanation": "Promptware reframes prompt injection not as an isolated trick but as the opening move of a full attack, mapped onto the seven-stage cyber kill chain. Stage one is initial access through prompt injection. Stage two is privilege escalation via jailbreaking, often through a persona shift that talks the model out of its guardrails. From there the attack proceeds like traditional malware, but using the agent's own capabilities: the agent's memory becomes a persistence mechanism, its internet access becomes a command-and-control channel, and its connections to other systems enable lateral movement — until the attacker reaches the real-world objective, whether that is stealing data or taking harmful actions. The defensive posture is zero trust: assume a breach will happen and design to break the chain at every stage — validate inputs, tightly constrain what tools the agent can use, gate its outputs, and monitor continuously for drift and anomalies so no single failure cascades into full compromise.",
+      "keyPoints": [
+        "Stage 1 is prompt injection (initial access); stage 2 is jailbreaking to escalate privilege via a persona shift.",
+        "The agent's own memory becomes persistence, and its own internet access becomes a command-and-control channel.",
+        "Connected tools and systems enable lateral movement, until the attacker reaches the real-world payoff (data theft, actions).",
+        "Defence is zero trust: assume breach and break the chain at every stage — validate inputs, constrain tools, gate outputs, monitor for drift."
+      ],
+      "authored": false,
+      "lessons": [
+        "The Promptware Kill Chain: How Prompt Injection Becomes AI Malware"
+      ],
+      "links": [
+        {
+          "to": "agent-security",
+          "rel": "broken by"
+        }
+      ]
+    },
+    {
+      "id": "agent-security",
+      "label": "Securing Agents",
+      "cluster": "security",
+      "parent": "ai-root",
+      "summary": "Defending agentic systems that have real-world access: give them identities, scope their privileges, gate their traffic, watch them.",
+      "explanation": "Securing an agent is harder than securing ordinary software because you are governing a probabilistic actor with real-world access, not a deterministic program. The playbook has four pillars. First, identity: agents get their own non-human identities (NHIs) so their access can be authenticated, scoped, and revoked — the lesson's memorable analogy is a DMV that licenses agents. Second, least privilege with just-in-time access: an agent receives only the permissions it needs, only when it needs them, with secrets held in a vault and issued as short-lived dynamic credentials rather than long-lived keys. Third, a gateway: an AI or LLM gateway sits between the agent and the outside world, screening inbound prompts for injection and outbound traffic for data leakage, and enforcing policy at a single checkpoint. Fourth, continuous monitoring: watch for drift, excessive agency, and anomalies on the assumption that a breach will eventually happen, rather than trusting the agent to behave.",
+      "keyPoints": [
+        "Non-human identity (NHI): agents get their own governed identities, so their access can be authenticated, scoped and revoked — like a DMV for agents.",
+        "Least privilege and just-in-time access: an agent gets only the permissions it needs, only when it needs them, with secrets kept in a vault as short-lived credentials.",
+        "An AI/LLM gateway sits between the agent and the world: it screens inbound prompts for injection and outbound traffic for data leakage, and enforces policy at a checkpoint.",
+        "Continuous detection watches for drift, excessive agency and anomalies — assume breach and monitor, rather than trusting the agent to behave."
+      ],
+      "authored": false,
+      "lessons": [
+        "Governing AI Agents: A Security Framework Borrowed from How We Regulate Cars",
+        "Guide to Architect Secure AI Agents: Best Practices for Safety"
+      ],
+      "links": [
+        {
+          "to": "prompt-injection",
+          "rel": "mitigates"
+        },
+        {
+          "to": "ai-governance",
+          "rel": "operationalizes"
+        }
+      ]
+    },
+    {
+      "id": "shadow-ai",
+      "label": "Shadow AI & Data Leakage",
+      "cluster": "security",
+      "parent": "ai-root",
+      "summary": "The organisational side of AI risk: unsanctioned tool use and confidential data fed into external models. The fix is governance.",
+      "explanation": "Not every AI risk is a clever exploit; some are simply people using AI carelessly, and these are among the most common ways to get into trouble. Shadow AI is the use of unapproved AI tools that never went through security review — invisible risk, because the organisation cannot control or even see what it doesn't know about. Data leakage is the closely related danger of employees pasting sensitive or regulated data into external models that may log it or train on it, quietly exfiltrating confidential information. The real remedy is not a technical patch but governance: provide sanctioned tools so people don't reach for unsanctioned ones, set clear policy about what data may go where, and monitor usage — banning AI outright just drives it further into the shadows. Left unmanaged, this compounds into the 'zombie agent' problem, where automated agents keep running with standing access that nobody is watching.",
+      "keyPoints": [
+        "Shadow AI is unapproved tool use that bypasses security review — invisible risk the organisation cannot see or control.",
+        "Data leakage happens when sensitive data is pasted into external models that may log or train on it.",
+        "The actual fix is AI governance: sanctioned tools, clear policy, and monitoring — not just banning things.",
+        "Unmanaged agents compound this into the 'zombie agent' problem: automation left running with access nobody is watching."
+      ],
+      "authored": false,
+      "lessons": [
+        "Five AI Risks That Can Get You Fired"
+      ],
+      "links": [
+        {
+          "to": "ai-governance",
+          "rel": "solved by"
+        },
+        {
+          "to": "agent-security",
+          "rel": "related to"
+        }
+      ]
+    },
+    {
+      "id": "ai-code-generation",
+      "label": "AI Code Generation",
+      "cluster": "practice",
+      "parent": "ai-root",
+      "summary": "Using an LLM to write code from natural language — big gains on boilerplate, with the sharp risk of code that looks correct but isn't.",
+      "explanation": "AI code generation treats programming as a translation problem: you describe intent in natural language and the model translates it into source code. It is the same next-token prediction as any other LLM output, which means the model produces likely-looking code — it does not verify that the code is correct. That gap is the central danger, sometimes called the illusion of correctness: the output can look completely plausible while hiding a security hole like a SQL injection or a subtle logic bug, and it fails silently because nothing flags that it is wrong. The productivity value is real but uneven — large time savings on boilerplate and unfamiliar APIs, much more risk on novel logic that requires genuine understanding. For enterprise use, trust has to be engineered around the tool: knowing the provenance of generated code, watching for licence issues like GPL taint, and deploying on-prem or hybrid when the code or data is sensitive.",
+      "keyPoints": [
+        "The model predicts likely code the same way it predicts text; it translates intent to syntax, it does not verify correctness.",
+        "The 'illusion of correctness' is the core danger — plausible code can hide security holes (e.g. SQL injection) or subtle bugs.",
+        "Value is real but uneven: fast on boilerplate and unfamiliar APIs, riskier on novel logic that needs true understanding.",
+        "Enterprise trust needs guardrails: provenance of generated code, licence (GPL) awareness, and on-prem/hybrid deployment for sensitive code."
+      ],
+      "authored": false,
+      "lessons": [
+        "What is an AI Code Generator? LLM Coding, Productivity, & Risk"
+      ],
+      "links": [
+        {
+          "to": "tokens",
+          "rel": "runs on"
+        },
+        {
+          "to": "ai-code-review",
+          "rel": "checked by"
+        }
+      ]
+    },
+    {
+      "id": "ai-code-review",
+      "label": "AI Code Review",
+      "cluster": "practice",
+      "parent": "ai-root",
+      "summary": "Using AI to review pull requests, layering LLM reasoning on top of traditional static and dynamic analysis.",
+      "explanation": "AI code review targets the pull-request bottleneck, where changes pile up waiting for human eyes. It layers LLM reasoning on top of decades-old analysis techniques rather than replacing them. Static analysis inspects code without running it, catching many issues early; dynamic analysis and DAST test the running application to find problems that only appear at execution. Traditional rule-based linters catch known patterns deterministically and cheaply, and the LLM's contribution is reasoning about intent and context that fixed rules miss — spotting that a change is logically wrong, not just syntactically unusual. Context engineering lets the reviewer look beyond the diff itself into related files, documentation, and team standards for a more informed judgement. Its limits are real: it produces false positives and false negatives, and it cannot own the decision — it accelerates review and enforces consistency, but human judgement stays in the loop.",
+      "keyPoints": [
+        "Static analysis inspects code without running it; dynamic analysis and DAST test the running application.",
+        "Rule-based linters catch known patterns deterministically; LLMs add reasoning about intent and context that rules miss.",
+        "Context engineering lets the reviewer reach beyond the diff into docs, related files and standards.",
+        "It breaks down on false positives/negatives and cannot replace human judgement — it speeds review, it does not own it."
+      ],
+      "authored": false,
+      "lessons": [
+        "What Is AI Code Review? Fixing Slow PRs & Broken Workflows with AI"
+      ],
+      "links": [
+        {
+          "to": "ai-code-generation",
+          "rel": "reviews"
+        },
+        {
+          "to": "ai-code-refactoring",
+          "rel": "related to"
+        }
+      ]
+    },
+    {
+      "id": "ai-code-refactoring",
+      "label": "AI Code Refactoring",
+      "cluster": "practice",
+      "parent": "ai-root",
+      "summary": "Letting an agent restructure code while preserving behaviour, made safe with a plan-approve-patch loop and syntax-tree edits.",
+      "explanation": "Refactoring means changing a program's internal structure while keeping its external behaviour identical, and letting a probabilistic agent do it across hundreds of production files is risky unless the process is engineered for safety. The first safeguard is characterisation tests that pin down the current behaviour, so any change that alters it is caught. The agent then works in a controlled loop rather than free-form editing: it plans, reads, and searches the codebase and reports what it intends to do; then a human approves, the system snapshots the current state, applies the patch, verifies, and rolls back if verification fails. Crucially, the edits themselves are made deterministically through abstract syntax trees rather than trusting the model to hand-edit text, which makes changes precise and reversible. Finally, the outcomes — which suggestions were accepted or rejected, which changes passed or failed — become training signal that improves the agent over time.",
+      "keyPoints": [
+        "Refactoring changes the inside while keeping external behaviour identical; characterisation tests pin that behaviour down first.",
+        "Agentic refactoring runs a loop: plan, read, search, report, then approve, snapshot, patch, verify, roll back if needed.",
+        "Deterministic patching via abstract syntax trees makes edits precise and reversible, rather than trusting the model to hand-edit text.",
+        "Accept/reject and pass/fail outcomes become training signal to improve the agent over time."
+      ],
+      "authored": false,
+      "lessons": [
+        "What Is AI Code Refactoring? Agentic AI & Safe Code Changes"
+      ],
+      "links": [
+        {
+          "to": "agent-loop",
+          "rel": "runs"
+        },
+        {
+          "to": "ai-code-review",
+          "rel": "complements"
+        }
+      ]
+    },
+    {
+      "id": "ai-sdlc",
+      "label": "AI in the SDLC",
+      "cluster": "practice",
+      "parent": "ai-root",
+      "summary": "Rethinking the whole software lifecycle around AI, not just the coding step, with delegation calibrated carefully.",
+      "explanation": "The instinctive way to apply AI to software is to speed up writing code, but that misreads where the time actually goes. Studies such as METR's show coding is a relatively small slice of delivery time, so a tool that only writes code moves the overall needle less than expected — the real bottlenecks are requirements, design, testing, and operations. The central skill becomes calibrating delegation: over-delegation ships unreviewed AI output and creates risk, while under-delegation leaves the tool's value on the table, and finding the right middle is the craft. Practically, this looks like spec-driven development paired with agent harnesses, which shifts humans toward writing clear specifications and supervising agents rather than typing implementation. AI also helps across testing, operations, infrastructure-as-code, and legacy modernisation. The recurring lesson is to measure outcomes that matter — delivered value, reliability — rather than vanity metrics like lines of code.",
+      "keyPoints": [
+        "Studies (e.g. METR) show coding is a small slice of delivery time, so AI that only writes code moves the needle less than expected.",
+        "Over-delegation ships unreviewed AI output; under-delegation wastes the tool — the skill is calibrating how much to hand over.",
+        "Spec-driven development plus agent harnesses shifts humans toward writing clear specs and supervising agents.",
+        "AI also helps testing, operations, infrastructure-as-code and legacy modernisation — measure outcomes, not lines of code."
+      ],
+      "authored": false,
+      "lessons": [
+        "AI in the SDLC: Rethinking AI Coding Tools & AI Agents"
+      ],
+      "links": [
+        {
+          "to": "developer-productivity",
+          "rel": "measured by"
+        },
+        {
+          "to": "agent-loop",
+          "rel": "uses"
+        }
+      ]
+    },
+    {
+      "id": "developer-productivity",
+      "label": "Developer Productivity with AI",
+      "cluster": "practice",
+      "parent": "ai-root",
+      "summary": "Adopting AI tools doesn't automatically make teams faster; the surrounding practices and honest measurement do.",
+      "explanation": "There is a productivity paradox at the heart of AI adoption for engineering teams: individual developers often feel dramatically faster while measured delivery barely moves. The reason is that the bottleneck was rarely typing speed — it is the surrounding system of coordination, review, and rework. What actually separates top teams from average ones is the practices around the tools: protecting flow state, cutting context-switching, reducing cognitive load, and automating routine work so humans spend their time on judgement. Measurement is where many teams go wrong. Productivity should be tracked with balanced frameworks like DORA, SPACE, or DxCore4 rather than a single number, and everyone should beware Goodhart's Law — the moment you optimise a proxy metric, you get more of the proxy, not more real productivity. The honest conclusion is that AI amplifies a well-run system and does little for a poorly-run one.",
+      "keyPoints": [
+        "The paradox: individuals feel faster while measured delivery barely moves, because the bottleneck is the system, not typing speed.",
+        "Top teams protect flow state, cut context-switching, reduce cognitive load, and automate the routine so humans do the judgement.",
+        "Measure with balanced frameworks (DORA, SPACE, DxCore4), not a single number.",
+        "Beware Goodhart's Law: optimise a proxy metric and you get the proxy, not real productivity."
+      ],
+      "authored": false,
+      "lessons": [
+        "6 Ways to Enhance Developer Productivity with AI"
+      ],
+      "links": [
+        {
+          "to": "ai-sdlc",
+          "rel": "context for"
+        },
+        {
+          "to": "evaluation",
+          "rel": "shares pitfalls with"
+        }
+      ]
+    },
+    {
+      "id": "workload-orchestration",
+      "label": "Workload Orchestration",
+      "cluster": "practice",
+      "parent": "ai-root",
+      "summary": "The infrastructure that schedules AI/ML jobs onto compute, unifying batch training, long-running services, and system tasks.",
+      "explanation": "Underneath every trained and served model is infrastructure that has to place work onto compute, and AI/ML makes this harder than typical software because the workloads are heterogeneous. A single AI system fragments across several kinds of jobs — long-running inference services, GPU-heavy training runs, data pipelines, and periodic batch tasks — that traditionally each needed their own tool. Kubernetes was designed primarily for long-running services and handles the ephemeral, batch, and GPU-scheduling needs of AI less naturally. A flexible workload orchestrator addresses this by treating batch jobs, service jobs, and system jobs as first-class citizens under one scheduler, with resource quotas and placement constraints to control where and how work runs. This node sits in the peripheral 'AI in Practice' branch because here AI is the workload being scheduled rather than the subject — it is the operational plumbing beneath training and serving.",
+      "keyPoints": [
+        "AI/ML work spreads across several tools (training runs, inference services, data pipelines); orchestration unifies them.",
+        "Kubernetes targets long-running services; AI adds ephemeral batch jobs and GPU-heavy training it handles less naturally.",
+        "A flexible orchestrator schedules batch, service and system job types as first-class citizens, with quotas and placement constraints.",
+        "This is the operational plumbing beneath model training and serving — AI is the workload, not the subject."
+      ],
+      "authored": false,
+      "lessons": [
+        "Flexible Orchestration for AI & ML: Beyond Kubernetes Automation"
+      ],
+      "links": [
+        {
+          "to": "training-pipeline",
+          "rel": "runs"
+        },
+        {
+          "to": "kv-cache",
+          "rel": "serves inference for"
+        }
+      ]
+    },
+    {
+      "id": "ai-governance",
+      "label": "AI Governance (ISO 42001)",
+      "cluster": "society",
+      "parent": "ai-root",
+      "summary": "A management system for governing AI risk, extending ISO 27001's structure with a Plan-Do-Check-Act cycle and risk-based thinking.",
+      "explanation": "AI governance is about overseeing AI continuously rather than launching a model and hoping for the best, and ISO 42001 is the standard that formalises it. Rather than inventing a new bureaucracy, it builds on the well-known high-level structure of ISO 27001 (the information-security standard), so organisations already familiar with that framework can extend it to AI-specific concerns like bias drift and explainability. Its engine is Plan-Do-Check-Act combined with risk-based thinking: you set your risk appetite, put treatments in place for the risks you're not willing to accept, and re-evaluate on a recurring cycle so oversight keeps pace with a changing system. Importantly, ISO 42001 is designed to complement rather than compete with other frameworks — the NIST AI Risk Management Framework and the EU AI Act address different layers of the same goal. Governance is ultimately the fix that the shadow-AI and agent-security problems point back to: policy, clear ownership, and monitoring.",
+      "keyPoints": [
+        "It builds on ISO 27001's high-level structure, adding AI-specific concerns like bias drift and explainability.",
+        "Plan-Do-Check-Act plus risk-based thinking means you set risk appetite, treat risks, and re-evaluate on a cycle.",
+        "It complements rather than competes with the NIST AI RMF and the EU AI Act — different layers of the same goal.",
+        "Governance is the fix that shadow-AI and agent-security problems ultimately require: policy, ownership and monitoring."
+      ],
+      "authored": false,
+      "lessons": [
+        "How to Manage Your AI Before It Makes the Wrong Decision"
+      ],
+      "links": [
+        {
+          "to": "risk-architecture",
+          "rel": "implemented by"
+        },
+        {
+          "to": "shadow-ai",
+          "rel": "addresses"
+        }
+      ]
+    },
+    {
+      "id": "risk-architecture",
+      "label": "Risk-Driven Architecture",
+      "cluster": "society",
+      "parent": "ai-governance",
+      "summary": "Let the risk of a use case determine how much rigour its AI needs — match explainability and controls to the potential harm.",
+      "explanation": "Not every AI application deserves the same engineering rigour, and trying to apply one standard everywhere either over-engineers trivial features or under-engineers dangerous ones. Risk-driven architecture makes the level of harm the deciding factor: an 'easy AI' feature like a casual chatbot and a 'risk-appropriate' system like one making regulated clinical or financial decisions should not share the same design. The lesson frames explainability in three tiers — baseline, enhanced, and vigilant — so the amount of auditability you build scales with the stakes. From the risk level flow concrete requirements: data lineage and provenance, test-retest reliability, auditability, and contestability all become stricter as potential harm rises. The guiding principle is proportionality — deliberately don't gold-plate low-risk AI, and never cut corners on high-risk AI.",
+      "keyPoints": [
+        "Easy AI (chatbots) and risk-appropriate AI (regulated decisions) demand very different levels of scrutiny.",
+        "Three tiers of explainability — baseline, enhanced, vigilant — scale the auditability required to the stakes.",
+        "Requirements come from risk: data lineage/provenance, test-retest reliability, auditability and contestability get stricter as harm rises.",
+        "The point is proportionality: don't over-engineer low-risk AI, and never under-engineer high-risk AI."
+      ],
+      "authored": false,
+      "lessons": [
+        "Why Risk Should Determine Your AI Architecture"
+      ],
+      "links": [
+        {
+          "to": "explainability",
+          "rel": "scales"
+        },
+        {
+          "to": "when-not-to-use-ai",
+          "rel": "informs"
+        }
+      ]
+    },
+    {
+      "id": "explainability",
+      "label": "Explainability",
+      "cluster": "society",
+      "parent": "risk-architecture",
+      "abstract": true,
+      "summary": "Being able to say why a model produced a given output — the property high-risk systems and neurosymbolic AI most need.",
+      "explanation": "Explainability is the ability to answer 'why did the model do that?', and it underpins trust, contestability, and audit — you cannot challenge or defend a decision you cannot explain. The degree of explainability available varies sharply by technique: classical ML offers feature attribution, which tells you which inputs drove a prediction, while large deep models are far more opaque and their internal reasoning is hard to inspect. This is why explainability scales with risk in the governance branch — higher-stakes systems require stronger, more vigilant explanations before they can be trusted with consequential decisions. It is also the property that neurosymbolic AI is designed to recover: by making the reasoning step symbolic and rule-based, it produces decisions whose logic can be read and checked, buying back the transparency that pure neural networks give up.",
+      "keyPoints": [
+        "Classical ML offers feature attribution (which inputs drove the prediction); deep models are far harder to interpret.",
+        "Explainability underpins trust, contestability and audit — you cannot challenge a decision you cannot explain.",
+        "It scales with risk: higher-stakes systems need stronger, more vigilant explanations.",
+        "Neurosymbolic approaches gain explainability by making the reasoning step symbolic."
+      ],
+      "authored": false,
+      "lessons": [
+        "Why Risk Should Determine Your AI Architecture",
+        "What Is NeuroSymbolic AI? Bridging Reasoning & Neural Networks"
+      ],
+      "links": [
+        {
+          "to": "neurosymbolic",
+          "rel": "gained by"
+        }
+      ]
+    },
+    {
+      "id": "when-not-to-use-ai",
+      "label": "When Not to Use AI",
+      "cluster": "society",
+      "parent": "ai-root",
+      "summary": "The discipline of choosing the least-powerful tool that solves the problem — sometimes the right amount of AI is none.",
+      "explanation": "For all the enthusiasm around AI, a mature practitioner knows that the right amount of AI is sometimes zero. The discipline is to choose the least-powerful tool that actually solves the problem, because power you don't need brings cost and risk you can't avoid. The deciding factor is tolerance for non-determinism: decisions that must be exact, auditable, and defensible favour deterministic rules, while fuzzy tasks over unstructured input favour ML or LLMs. Every model you put into production carries an ongoing bill that a rule does not — monitoring for model, data, and concept drift (measured with tools like the Population Stability Index), maintaining a golden evaluation set, and having a fallback for when it is wrong. In practice the best systems are hybrids, wrapping deterministic rules around a probabilistic core. The heuristic is simple: reach for the simplest thing that meets the requirement, and be prepared to justify any non-determinism you add.",
+      "keyPoints": [
+        "Match the tool to the tolerance for non-determinism: exact, auditable decisions favour rules; fuzzy, unstructured ones favour ML or LLMs.",
+        "Every model in production has an ongoing cost: monitoring for model/data/concept drift (measured by e.g. PSI), a golden evaluation set, and a fallback.",
+        "Hybrid systems are usually best — deterministic rules around a probabilistic core.",
+        "The heuristic: reach for the simplest thing that meets the requirement, and justify any added non-determinism."
+      ],
+      "authored": false,
+      "lessons": [
+        "Knowing When Not to Use AI: AI Agents vs Rules vs ML"
+      ],
+      "links": [
+        {
+          "to": "kinds-of-intelligence",
+          "rel": "applies"
+        },
+        {
+          "to": "evaluation",
+          "rel": "requires"
+        }
+      ]
+    },
+    {
+      "id": "humanities",
+      "label": "AI & the Humanities",
+      "cluster": "society",
+      "parent": "ai-root",
+      "summary": "As AI handles more syntactic work, human judgement, interpretation, and ethics matter more, not less.",
+      "explanation": "A counterintuitive argument: the more capably AI handles the mechanical, syntactic work of producing language, the more the distinctly human skills of judgement and interpretation come to matter. LLMs are syntactic engines — they model the statistical form of language — while humans supply semantics, the grounded meaning behind the words. This is why the hallucination problem is fundamentally epistemological: a model has no concept of truth, only of likelihood, so deciding what is actually true remains a human responsibility. AI is also not neutral; its training data carries bias, and a chain of stakeholders shapes what it produces, which makes interpretation and critique essential rather than optional. Prompting itself is a form of applied rhetoric — the craft of framing a request to get a good result — and as routine generation is automated, judgement becomes the durable, defining human skill. This node sits in the peripheral branch as a perspective on AI rather than a mechanism inside it.",
+      "keyPoints": [
+        "LLMs are syntactic — they model the statistical form of language; humans supply semantics and grounded meaning.",
+        "The hallucination problem is epistemological: a model has no notion of truth, only likelihood, so verifying knowledge is a human job.",
+        "AI is not neutral — training data carries bias, and a chain of stakeholders shapes its outputs; interpretation and critique are essential.",
+        "Prompting is applied rhetoric, and judgement becomes the core durable skill as routine generation is automated."
+      ],
+      "authored": false,
+      "lessons": [
+        "Why AI Makes the Humanities More Important Than Ever"
+      ],
+      "links": [
+        {
+          "to": "hallucination",
+          "rel": "reframes"
+        },
+        {
+          "to": "ai-jobs",
+          "rel": "relates to"
+        }
+      ]
+    },
+    {
+      "id": "ai-jobs",
+      "label": "AI & Jobs",
+      "cluster": "society",
+      "parent": "ai-root",
+      "summary": "AI reshapes work more than it erases it: as it absorbs entry-level tasks, value shifts to goal-setting, supervision, and judgement.",
+      "explanation": "The popular fear that AI simply deletes jobs misses how the shape of work changes. As AI absorbs routine, entry-level tasks, the traditional organisational pyramid — many juniors supporting a few seniors — flattens toward a diamond, with more people operating at a higher level of responsibility. A key economic idea here is Jevons Paradox: making a task cheaper can increase total demand for it, so cheaper AI-produced output can actually mean more work overall rather than less. The roles that grow are goal-setting and supervision — telling AI systems precisely what to do and rigorously checking that they did it well — which is a genuine promotion in responsibility, but one that demands new skills. The durable human capabilities the lesson highlights are flexibility, curiosity, creativity, and critical thinking, echoing the humanities argument that judgement is what remains distinctly ours.",
+      "keyPoints": [
+        "The traditional pyramid (many juniors, few seniors) shifts toward a diamond as AI does routine entry-level work.",
+        "Jevons Paradox: making a task cheaper can increase total demand for it, so cheaper AI output can mean more work overall, not less.",
+        "The new roles are goal-setting and supervising AI — telling systems what to do and checking that they did it well.",
+        "Durable human skills: flexibility, curiosity, creativity and critical thinking."
+      ],
+      "authored": false,
+      "lessons": [
+        "AI Gave You A Promotion: Why AI Isn’t Replacing Jobs"
+      ],
+      "links": [
+        {
+          "to": "humanities",
+          "rel": "echoes"
+        },
+        {
+          "to": "developer-productivity",
+          "rel": "seen in"
+        }
+      ]
+    }
+  ]
+}

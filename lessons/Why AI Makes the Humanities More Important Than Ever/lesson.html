@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why AI Makes the Humanities More Important Than Ever</title>
+<meta name="description" content="Understand why fluent AI output still needs human judgment, interpretation, and ethics to be used responsibly.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-value-gap-ai-knows-the-price-of-everything-1"><span class="n">1</span>The value gap: AI knows the price of everything</a></li>
+<li><a href="#why-stem-can-t-answer-why-2"><span class="n">2</span>Why STEM can&#x27;t answer &#x27;why&#x27;</a></li>
+<li><a href="#ai-is-syntactic-humans-are-semantic-3"><span class="n">3</span>AI is syntactic; humans are semantic</a></li>
+<li><a href="#epistemology-and-the-hallucination-problem-4"><span class="n">4</span>Epistemology and the hallucination problem</a></li>
+<li><a href="#ai-is-not-neutral-the-stakeholder-chain-5"><span class="n">5</span>AI is not neutral: the stakeholder chain</a></li>
+<li><a href="#interpretation-is-the-human-responsibility-6"><span class="n">6</span>Interpretation is the human responsibility</a></li>
+<li><a href="#prompting-as-applied-rhetoric-7"><span class="n">7</span>Prompting as applied rhetoric</a></li>
+<li><a href="#training-data-bias-and-the-humanities-as-corrective-8"><span class="n">8</span>Training data bias and the humanities as corrective</a></li>
+<li><a href="#judgment-as-the-core-skill-going-forward-9"><span class="n">9</span>Judgment as the core skill going forward</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Beginner</span><span class="pill ghost">AI Ethics and the Humanities</span></div>
+  <h1>Why AI Makes the Humanities More Important Than Ever</h1>
+  <p class="lede">Understand why fluent AI output still needs human judgment, interpretation, and ethics to be used responsibly.</p>
+  <p class="muted small">For anyone using AI tools who wants to reason clearly about what those tools can and cannot decide for them · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=l-QPwk_f4eE" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Large language models can summarize documents, answer questions, write code, and generate prose that reads as if it understands what it&#x27;s saying. That fluency is deceptive: a model that predicts the statistically likely next token is not the same as a mind that grasps meaning, weighs consequences, or holds values. STEM disciplines are excellent at explaining how things work, but none of them tell you whether an output is good, fair, or worth acting on.</p>
+<p>This lesson works through the gap between generating language and understanding it, and shows why the humanities - literature, history, philosophy, rhetoric, epistemology - supply exactly the tools that gap requires. Interpretation, judgment about values, awareness of whose interests a system serves, and the ability to frame a question clearly are not soft skills sitting outside the AI conversation. They are the operational skills that determine whether an AI system gets used well or badly.</p>
+<p>By the end, you should be able to name the specific humanities disciplines that map onto specific AI failure modes - and explain why &#x27;the AI said so&#x27; is never a complete justification for a decision.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>AI models are fundamentally syntactic: they manipulate token patterns and probabilities, not meaning grounded in lived experience.</li><li>STEM fields explain how something works; only disciplines like ethics, philosophy, and history can evaluate whether it should be done at all.</li><li>A model can be mathematically neutral while its training data, interface design, and deployment context are not - so &#x27;it&#x27;s just numbers&#x27; is not a defense against bias.</li><li>AI output requires a human interpretive step before it becomes a decision; skipping that step treats a probabilistic guess as settled fact.</li><li>Prompt writing is applied rhetoric: framing, context, and clearly bounded intent change the output as much as the underlying model does.</li><li>Because models are trained on existing text, they tend to reproduce majority viewpoints and under-represent minority ones unless a reader actively corrects for it.</li><li>Epistemology - the study of how we know what we know - matters here because models can produce confident, fluent, and wrong answers simultaneously.</li><li>As AI absorbs more routine technical work, human value lies increasingly in judgment: ethical, interpretive, cultural, and communicative.</li></ul>
+  </div>
+</section>
+<section id="the-value-gap-ai-knows-the-price-of-everything-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The value gap: AI knows the price of everything</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">AI systems can produce fluent, confident language without any grounding in why that language matters or whether it is good.</p>
+  <p>Modern language models are very good at producing outputs that look like understanding: coherent summaries, plausible answers, working code. But producing fluent language and understanding its purpose are two different things. A model can generate a persuasive paragraph arguing either side of an ethical question with equal confidence, because nothing in its training forces it to hold a position grounded in consequences for real people.</p>
+<p>This is the gap the lesson opens with: a system that can speak fluently without being grounded in judgment. The question that follows immediately is not technical - it&#x27;s about how anyone, human or machine, comes to know what counts as good or ethical in the first place. That question sits outside every STEM field, which sets up the rest of the argument.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Fluent output is not evidence of understanding - it&#x27;s evidence of good pattern prediction.</li><li>A model can argue any position persuasively without holding a grounded judgment about which position is right.</li><li>The central question - what is good or ethical - is not a technical question, so no engineering fix resolves it.</li></ul></div>
+  <figure class="example">
+  <figcaption>Two confident, contradictory answers</figcaption>
+  <p>Ask a language model whether a company should lay off staff to fund an AI rollout, then ask it to argue the opposite position. Both answers will be fluent, well-structured, and confident. Fluency tells you nothing about which position - if either - is actually right for the people affected.</p>
+  
+</figure>
+</section>
+<section id="why-stem-can-t-answer-why-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Why STEM can&#x27;t answer &#x27;why&#x27;</h2>
+      <a class="stamp" href="#" data-t="42">0:42</a>
+    </div>
+  </div>
+  <p class="summary">Science, technology, engineering, and math explain how things work; they have no built-in mechanism for judging whether they should be built or used.</p>
+  <p>Calculus can tell you the rate of change of a function. Physics can tell you how forces interact. Computer science can tell you how to make a program run correctly. None of these fields, by design, contain a method for deciding whether the thing they help build is good for the people it affects. Code executes; it does not care what it&#x27;s used for.</p>
+<p>This isn&#x27;t a criticism of STEM - it&#x27;s a description of scope. STEM fields answer &#x27;how&#x27; questions extremely well. The &#x27;why&#x27; questions - why build this, why is this outcome acceptable, why does this consequence matter - require a different kind of training. That training is what the humanities (literature, history, art, philosophy) traditionally provide: sustained practice reasoning about consequences, values, and meaning rather than mechanisms.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>STEM fields are optimized to answer &#x27;how&#x27; questions, not &#x27;why&#x27; or &#x27;should&#x27; questions.</li><li>Code and math are indifferent to the purpose they&#x27;re put toward - indifference is not the same as neutrality of impact.</li><li>Literature, history, art, and philosophy are the traditional disciplines built specifically to reason about purpose and consequence.</li></ul></div>
+  <figure class="example">
+  <figcaption>A working system that is still a bad idea</figcaption>
+  <p>An engineering team can build a perfectly functioning automated resume-screening tool - fast, accurate at matching keywords, bug-free. Whether it should filter candidates that way, and who it disadvantages in doing so, is a question calculus and computer science have no tools to answer.</p>
+  
+</figure>
+</section>
+<section id="ai-is-syntactic-humans-are-semantic-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>AI is syntactic; humans are semantic</h2>
+      <a class="stamp" href="#" data-t="126">2:06</a>
+    </div>
+  </div>
+  <p class="summary">Large language models operate on statistical patterns in token sequences (syntax), while human understanding is grounded in experience, intent, and context (semantics).</p>
+  <p>Human knowledge draws on experience, intent, context, values, and a sense of accountability for what we say and do. A language model has none of these as inputs. What it has instead is a large corpus of text reduced to statistical associations: given this sequence of tokens, which token is most likely to come next? That process is syntactic - it operates on the structure and patterns of symbols - rather than semantic, which would mean the system grasps what those symbols refer to in the world.</p>
+<p>This distinction explains a common failure pattern: an AI answer can be syntactically perfect - grammatical, well-organized, using the right vocabulary - while being semantically empty or wrong, because nothing anchors the symbols to lived reality. The humanities study exactly this relationship: what meaning is, how language connects to the world, how interpretation shifts across context, and how ambiguity gets resolved (or exploited). Without that grounding, AI output can look correct while being subtly misaligned, incomplete, or false.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Human knowledge is built from experience, intent, context, values, and accountability.</li><li>AI models are built from statistical associations between tokens - probabilities of what comes next, not meanings.</li><li>Syntax is about structure and pattern; semantics is about meaning and reference to the real world.</li><li>A syntactically fluent answer can still be semantically wrong - the two are independent properties of an output.</li></ul></div>
+  <figure class="example">
+  <figcaption>Next-token prediction vs. meaning</figcaption>
+  <p>A model given &#x27;The capital of France is&#x27; assigns high probability to the token &#x27;Paris&#x27; because that sequence appears constantly in its training data - not because it has any concept of France, capitals, or geography. Change the training distribution and the same mechanism would just as confidently predict a different, wrong token.</p>
+  <pre><code>P(next_token | &quot;The capital of France is&quot;) -&gt; argmax over vocabulary
+# high-probability token: &quot;Paris&quot;
+# the model has no representation of France as a place,
+# only of the token sequence&#x27;s statistical shape</code></pre>
+</figure>
+</section>
+<section id="epistemology-and-the-hallucination-problem-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Epistemology and the hallucination problem</h2>
+      <a class="stamp" href="#" data-t="255">4:15</a>
+    </div>
+  </div>
+  <p class="summary">Epistemology - the study of what counts as knowledge, evidence, and justified belief - becomes urgent once you&#x27;re evaluating outputs from a system that can hallucinate with total confidence.</p>
+  <p>Epistemology is the branch of philosophy that asks what knowledge is, how we know something is true, what counts as evidence or justification, and how belief differs from knowledge. These questions sound abstract until you&#x27;re staring at a fluent AI-generated paragraph that might be entirely fabricated. A model trained on a mix of accurate and inaccurate internet text has no internal mechanism that flags fabricated content as different from accurate content - both come out with the same confident tone.</p>
+<p>This is the practical stakes of epistemology in an AI context: not everything on the internet is true, and AI systems absorb that mixture without a built-in truth detector. The responsibility for deciding whether an answer is trustworthy - and what to do with it - falls to the human reader. That&#x27;s not a STEM question; it&#x27;s squarely a humanities question about evidence and justified belief.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Epistemology studies what knowledge is, how we justify belief, and what counts as evidence.</li><li>AI hallucination means a model can produce false information with the same fluent confidence as true information.</li><li>Training data quality is uneven because the internet itself is uneven - AI inherits that unevenness.</li><li>Deciding whether an AI answer is trustworthy, and what to do about it, is a human epistemic judgment, not a technical output.</li></ul></div>
+  <figure class="example">
+  <figcaption>A confidently wrong citation</figcaption>
+  <p>Ask a language model for a specific statistic with a source, and it may return a plausible-sounding citation - correct format, real-sounding journal name - that does not actually exist. The fabrication is stylistically indistinguishable from a real citation; only independent verification, an epistemic act, catches it.</p>
+  
+</figure>
+</section>
+<section id="ai-is-not-neutral-the-stakeholder-chain-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>AI is not neutral: the stakeholder chain</h2>
+      <a class="stamp" href="#" data-t="337">5:37</a>
+    </div>
+  </div>
+  <p class="summary">A model can be mathematically neutral while every layer around it - designer, interface, application, and user - encodes assumptions and incentives.</p>
+  <p>It&#x27;s tempting to think AI is neutral because it runs on math, and numbers don&#x27;t have opinions. But neutrality at the level of arithmetic doesn&#x27;t carry through to neutrality of outcome. Trace the chain: a designer builds the system with some intent in mind; the AI system produces an answer shaped by its training data; a user applies that answer with their own context and goals; and society, which is broader than any individual user, bears the downstream effects. Each layer can diverge from the ones around it.</p>
+<p>Every training dataset encodes some kind of error or skew. Every interface encodes design assumptions about how it should be used. Every application encodes incentives about what outcomes it&#x27;s optimized to produce. This is exactly where ethics, political theory, and sociology become practical tools rather than academic ones: they give you the vocabulary to ask who benefits from a given system, what assumptions are baked into its data, and what harms could plausibly follow - questions a purely technical accuracy check will never raise, because a system can be accurate and still do the wrong thing.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Mathematical neutrality (the model just computes probabilities) does not imply neutral real-world outcomes.</li><li>Four distinct perspectives shape any AI interaction: the designer&#x27;s intent, the system&#x27;s actual behavior, the user&#x27;s goals, and society&#x27;s broader interests.</li><li>Training data, interfaces, and applications each encode assumptions and incentives, whether or not anyone intended them to.</li><li>An AI system can be technically accurate and still be ethically wrong - accuracy and legitimacy are separate questions.</li></ul></div>
+  <figure class="example">
+  <figcaption>Same system, different verdicts</figcaption>
+  <p>A content-moderation AI might be accurate by its own metric (it flags what it was trained to flag) while a sociologist points out it systematically under-flags harassment in dialects underrepresented in its training data. The system isn&#x27;t malfunctioning - it&#x27;s accurately reflecting a skewed dataset, which is precisely the problem.</p>
+  
+</figure>
+</section>
+<section id="interpretation-is-the-human-responsibility-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Interpretation is the human responsibility</h2>
+      <a class="stamp" href="#" data-t="426">7:06</a>
+    </div>
+  </div>
+  <p class="summary">AI does not eliminate interpretation - it shifts it downstream to whoever reads the output, who must interpret before deciding and acting.</p>
+  <p>The flow of using an AI system looks simple: input goes in, output comes out. But that&#x27;s incomplete. A human has to interpret the output, then make a decision based on that interpretation, then take an action based on the decision. Skipping straight from output to action treats a probabilistic guess as a settled fact, which is exactly the mistake epistemology warns against.</p>
+<p>Disciplines like literary studies, history, and hermeneutics (the study of interpretation - what a text or utterance actually means) train people specifically to interpret under uncertainty. They teach that multiple valid readings of the same text can coexist, that the original intent behind a passage isn&#x27;t always recoverable just by reading it, and that a text can mislead without technically being false. AI output shares these properties: it&#x27;s probabilistic, context-sensitive, sometimes inconsistent, and often plausible without being guaranteed true. That means the user of an AI system is an active interpreter, not a passive recipient - and someone trained only in technical correctness will miss distortions that someone trained in interpretation is equipped to catch.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The real pipeline is input -&gt; output -&gt; human interpretation -&gt; decision -&gt; action, not input -&gt; output -&gt; action.</li><li>Hermeneutics is the study of interpretation - how meaning is determined from a text or statement.</li><li>AI output is probabilistic, context-sensitive, and plausible-but-not-guaranteed-true, which is exactly the condition literary interpretation trains you to handle.</li><li>Technical correctness training alone does not equip someone to catch bias, ambiguity, or omission in an output.</li></ul></div>
+  <figure class="example">
+  <figcaption>Reading past the surface answer</figcaption>
+  <p>An AI summary of a legal document might be phrased in a way that&#x27;s technically accurate sentence-by-sentence but omits a clause that changes the practical meaning of the whole. A reader trained to interpret - asking what&#x27;s missing, whose interest the phrasing serves - catches the gap; a reader who takes the summary at face value does not.</p>
+  
+</figure>
+</section>
+<section id="prompting-as-applied-rhetoric-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Prompting as applied rhetoric</h2>
+      <a class="stamp" href="#" data-t="555">9:15</a>
+    </div>
+  </div>
+  <p class="summary">How you frame a prompt - its context, constraints, and clarity of intent - is a rhetorical skill that directly changes AI output quality.</p>
+  <p>A prompt is not a neutral pipe into the model - it&#x27;s an act of persuasion and structured communication, which is the classical definition of rhetoric. The quality of a prompt (how it&#x27;s framed, what constraints it sets, what context it supplies, how clearly it expresses intent) has as much influence on the output&#x27;s quality as the model itself does.</p>
+<p>This is why disciplines like rhetoric, philosophy of language, and discourse analysis turn out to be directly practical for working with AI. The composition-class skills of stating intent clearly, defining scope, and anticipating how a reader (or in this case a model) will interpret ambiguity are the same skills that produce reliable prompts. A poorly framed prompt isn&#x27;t just unclear writing - it&#x27;s computationally underspecified, meaning the model has more room to guess, and guesses vary. Ambiguity in instructions produces variance in output; unstated assumptions get carried forward into the result without anyone noticing.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A prompt is a rhetorical act: framing, constraints, and context shape what the model produces.</li><li>Rhetoric, philosophy of language, and discourse analysis are practical toolkits for prompt design, not abstract subjects.</li><li>An ambiguous prompt is computationally underspecified - the model fills the gap with a guess, and different guesses produce different outputs.</li><li>Clearly defining intent, context, and boundaries in a prompt is now an operational skill, not just a writing skill.</li></ul></div>
+  <figure class="example">
+  <figcaption>Underspecified vs. well-framed prompt</figcaption>
+  <p>The first prompt leaves scope, tone, and audience unstated, so the model has to guess all three - different runs can produce noticeably different results. The second prompt fixes those variables explicitly, which narrows the model&#x27;s guesswork and makes the output more consistent and more useful.</p>
+  <pre><code># Underspecified - computationally ambiguous
+&quot;Summarize this report.&quot;
+
+# Well-framed - constraints and intent stated explicitly
+&quot;Summarize this report in 3 bullet points for a non-technical
+executive audience. Focus only on financial risk, not on
+operational detail. Flag any numbers you are uncertain about.&quot;</code></pre>
+</figure>
+</section>
+<section id="training-data-bias-and-the-humanities-as-corrective-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Training data bias and the humanities as corrective</h2>
+      <a class="stamp" href="#" data-t="684">11:24</a>
+    </div>
+  </div>
+  <p class="summary">Because AI systems reflect the structure of their training data, they tend to reinforce majority viewpoints and confuse frequency with truth unless a reader actively corrects for it.</p>
+  <p>A model trained on a large corpus of existing text will, by construction, reflect the patterns already present in that text. That means it can unintentionally reinforce majority viewpoints, under-represent minority perspectives, flatten cultural nuance, and - critically - confuse how often something appears with whether it&#x27;s true. Seeing a claim repeated frequently in training data makes a model more likely to output it, regardless of whether frequency and accuracy actually line up in that case.</p>
+<p>Humanities training supplies the corrective habits here: historical perspective (knowing that dominant narratives have changed before and could be incomplete now), cultural literacy (recognizing when a nuance has been flattened), critical analysis, and awareness of narrative framing (noticing what story is being told and from whose point of view). These habits let a reader tell the difference between an output that is merely likely and one that is actually appropriate or useful - which is precisely what prevents over-trusting fluent-but-shallow AI answers.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>AI systems reflect the statistical structure of their training data, including its biases and gaps.</li><li>Frequency in training data is not the same as truth, but models can conflate the two.</li><li>Historical perspective, cultural literacy, and critical analysis are corrective habits that catch skewed or flattened outputs.</li><li>The goal is distinguishing &#x27;likely output&#x27; from &#x27;appropriate or useful output&#x27; - these are not automatically the same thing.</li></ul></div>
+  <figure class="example">
+  <figcaption>Majority-view drift</figcaption>
+  <p>Ask a model to describe a historical event covered extensively from one national perspective online, and the output will likely lean toward that dominant framing by default - not because it&#x27;s the most accurate account, but because it&#x27;s the most frequent one in the training data. A reader with historical literacy notices the lean and seeks other perspectives.</p>
+  
+</figure>
+</section>
+<section id="judgment-as-the-core-skill-going-forward-9" class="block section">
+  <div class="section-head">
+    <span class="num">09</span>
+    <div>
+      <h2>Judgment as the core skill going forward</h2>
+      <a class="stamp" href="#" data-t="773">12:53</a>
+    </div>
+  </div>
+  <p class="summary">AI expands the space of possible answers, but choosing which answers matter, which values to prioritize, and which consequences are acceptable remains a human responsibility that the humanities are built to train.</p>
+  <p>AI can generate a much wider range of candidate answers than a person could produce alone, but generating options is not the same as choosing among them well. Deciding which values should be prioritized, which interpretations are reasonable, and which consequences are tolerable are not outputs a model provides - they are judgments a human has to make, and the humanities are the structured, historical study of exactly those kinds of questions.</p>
+<p>The conclusion isn&#x27;t that technical fluency stops mattering - it&#x27;s that technical fluency alone is no longer sufficient. As AI absorbs more of the mundane, mechanical work, the differentiating human skill becomes critical thinking expressed as judgment: ethical judgment, interpretive judgment, cultural judgment, and communicative judgment. Ironically, the more advanced the technology gets, the more grounding in the humanities - the disciplines built to reason about meaning, value, and consequence - turns out to matter.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>AI expands the space of possible answers; it does not determine which of those answers actually matter.</li><li>Choosing priorities among values and judging which consequences are acceptable remain human responsibilities.</li><li>As AI takes over mundane technical tasks, judgment - ethical, interpretive, cultural, communicative - becomes the differentiating human skill.</li><li>Technical fluency and humanities grounding are complementary, not competing, skill sets in an AI-rich environment.</li></ul></div>
+  <figure class="example">
+  <figcaption>Same output, different judgment calls</figcaption>
+  <p>An AI can generate ten legally defensible ways to word a layoff announcement. Choosing which one is honest, respectful, and minimizes unnecessary harm to the people receiving it is a judgment call the model cannot make for you - it requires weighing values the model has no stake in.</p>
+  
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Large language model (LLM)</dt><dd>An AI system trained on large amounts of text to predict the statistically likely next token in a sequence, which lets it generate fluent, human-like language.</dd></div><div class="term"><dt>Syntactic</dt><dd>Concerned with the structure and patterns of symbols (like words or tokens) rather than what those symbols mean.</dd></div><div class="term"><dt>Semantic</dt><dd>Concerned with meaning - what a symbol, word, or sentence actually refers to or represents in the real world.</dd></div><div class="term"><dt>Epistemology</dt><dd>The branch of philosophy studying what knowledge is, how we justify beliefs, and what separates knowledge from mere belief.</dd></div><div class="term"><dt>Hermeneutics</dt><dd>The study of interpretation, especially of texts - how meaning is determined and how ambiguity is resolved.</dd></div><div class="term"><dt>Hallucination (AI)</dt><dd>When a model generates fabricated information - facts, citations, or details - stated with the same fluent confidence as accurate information.</dd></div><div class="term"><dt>Rhetoric</dt><dd>The art of persuasion and structured communication; in an AI context, the discipline behind writing effective, clearly scoped prompts.</dd></div><div class="term"><dt>Discourse analysis</dt><dd>The study of how language is used in context to construct meaning, including tone, framing, and implicit assumptions.</dd></div><div class="term"><dt>Token</dt><dd>A chunk of text (often a word or part of a word) that a language model treats as a single unit when predicting what comes next.</dd></div><div class="term"><dt>Statistical pattern prediction</dt><dd>The core mechanism of a language model: estimating which next token is most probable given the preceding sequence, based on patterns learned from training data.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why can an AI answer be grammatically perfect and completely wrong at the same time?</summary>
+  <div class="answer"><p>Because the model operates syntactically - predicting likely token sequences - rather than semantically. Fluency measures how well the output matches learned language patterns, not whether it&#x27;s grounded in true, meaningful content, so the two properties are independent.</p></div>
+</details><details class="q">
+  <summary>Why isn&#x27;t &#x27;the model is just doing math&#x27; a good defense against claims that an AI system is biased?</summary>
+  <div class="answer"><p>Because neutrality at the level of arithmetic doesn&#x27;t carry through the whole chain from designer intent to training data to interface design to application incentives to user context. Each of those layers can introduce skew even though the underlying computation is mathematically consistent.</p></div>
+</details><details class="q">
+  <summary>Why does treating AI output as a finished answer, rather than as something to interpret, create risk?</summary>
+  <div class="answer"><p>Because it skips the human interpretive step that catches ambiguity, omission, and bias. AI output is probabilistic and context-sensitive - plausible but not guaranteed true - so acting on it directly treats a guess as a verified fact.</p></div>
+</details><details class="q">
+  <summary>Why is a vague prompt described as &#x27;computationally underspecified&#x27; rather than just poorly written?</summary>
+  <div class="answer"><p>Because ambiguity in a prompt leaves gaps that the model has to fill with its own probabilistic guess, and different guesses produce different outputs. It&#x27;s not just a style problem - it directly increases the variance and unreliability of the result.</p></div>
+</details><details class="q">
+  <summary>Why might an AI system confuse how often a claim appears in its training data with whether the claim is true?</summary>
+  <div class="answer"><p>Because the model&#x27;s core mechanism is predicting likely continuations based on patterns it has seen, and frequent claims create strong patterns. Nothing in that mechanism separately checks the claim against reality, so high frequency and high probability of output are conflated with correctness.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Read a short primer on epistemology (e.g. the &#x27;Epistemology&#x27; entry in the Stanford Encyclopedia of Philosophy) and try applying its questions - what counts as justified belief? - to a recent AI answer you used.</li><li>Practice rewriting three vague prompts you&#x27;ve used recently into fully scoped ones (explicit audience, constraints, and intent) and compare the outputs.</li><li>Pick a topic with clear cultural or historical framing differences (e.g. a contested historical event) and compare how an AI model summarizes it versus two sources from different perspectives.</li><li>Look up hermeneutics as a field of literary study and identify one technique from it (e.g. close reading) you could apply to critically read an AI-generated document.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

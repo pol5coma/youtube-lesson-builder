@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Six Practices That Multiply Developer Productivity Beyond AI Adoption</title>
+<meta name="description" content="Understand why buying AI tools alone produces modest gains, and which six team practices separate average adopters from teams seeing 100-150% productivity improvements.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-ai-productivity-paradox-1"><span class="n">1</span>The AI productivity paradox</a></li>
+<li><a href="#what-separates-average-teams-from-top-teams-2"><span class="n">2</span>What separates average teams from top teams</a></li>
+<li><a href="#way-1-automate-the-smart-way-3"><span class="n">3</span>Way 1: Automate the smart way</a></li>
+<li><a href="#way-2-design-first-experiment-later-4"><span class="n">4</span>Way 2: Design first, experiment later</a></li>
+<li><a href="#way-3-protect-flow-state-5"><span class="n">5</span>Way 3: Protect flow state</a></li>
+<li><a href="#way-4-lessen-the-cognitive-load-6"><span class="n">6</span>Way 4: Lessen the cognitive load</a></li>
+<li><a href="#way-5-make-room-for-growth-7"><span class="n">7</span>Way 5: Make room for growth</a></li>
+<li><a href="#way-6-sharpen-the-tools-of-the-trade-8"><span class="n">8</span>Way 6: Sharpen the tools of the trade</a></li>
+<li><a href="#measuring-what-actually-matters-9"><span class="n">9</span>Measuring what actually matters</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">Engineering team productivity</span></div>
+  <h1>Six Practices That Multiply Developer Productivity Beyond AI Adoption</h1>
+  <p class="lede">Understand why buying AI tools alone produces modest gains, and which six team practices separate average adopters from teams seeing 100-150% productivity improvements.</p>
+  <p class="muted small">For engineering managers and developers who want to raise team productivity without over-relying on AI tools · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=9LfJq4xXifg" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Basic familiarity with software team workflows: code review, CI/CD, and sprint or agile ceremonies</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>AI coding assistants are now writing a large share of shipped code, and the productivity numbers around them look impressive on average. But averages hide a split: some teams see only modest gains from the same tools that let other teams pull dramatically ahead. The difference is not which vendor they picked - it is whether they restructured how the team works around AI, or just bolted AI onto an unchanged process.</p>
+<p>This lesson covers six concrete practices that account for that split. Three are about using AI well: automating the genuinely repetitive work, designing before generating code, and protecting deep focus time. Three are about protecting what AI cannot do at all: reducing cognitive load from context switching, investing in engineers&#x27; growth, and choosing tools that reduce friction rather than add to it. A closing section covers how to measure whether any of this is actually working, and the trap of turning a measurement into a target.</p>
+<p>None of these practices require rejecting AI. They require treating it as one lever among several, applied deliberately, rather than as a substitute for the habits that made good engineering teams effective before AI existed.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>AI adoption alone does not create outsized gains: teams using identical AI tools range from &#x27;tens of percent&#x27; improvement to 100-150%, and the difference is workflow restructuring, not tool choice.</li><li>AI is reliable for repetitive, well-defined, rule-based work - syntax, boilerplate, linting, test generation - but it cannot substitute for design judgment, focus, learning, or taste.</li><li>Automating boring work only pays off if the freed-up time is protected for higher-value work instead of being absorbed by more meetings.</li><li>Sketching a design and asking AI to critique it catches architectural mistakes before they are written into code, but the final call should stay with a person who understands the tradeoffs.</li><li>Developers spend most of the day out of flow state (roughly 15-25% flow efficiency); protecting blocks of uninterrupted time matters more than any single productivity tool.</li><li>Unplanned interruptions carry a real, measurable cognitive cost - about 20 minutes to rebuild lost context - so reducing decision load through rotations, style guides, and templates preserves mental capacity for harder problems.</li><li>Metrics like DORA and SPACE are diagnostic guides, not goals - once a metric becomes a target, Goodhart&#x27;s Law predicts people will optimize for the number instead of the underlying outcome.</li><li>Productivity is not shipping speed alone; it is shipping things that matter while keeping the team in a state where it can keep shipping.</li></ul>
+  </div>
+</section>
+<section id="the-ai-productivity-paradox-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The AI productivity paradox</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">AI now writes a huge share of shipped code and drives real productivity gains on average, yet developers reject most of what it suggests and some teams get slower, not faster.</p>
+  <p>Two things are true about AI coding tools at the same time. On the encouraging side, AI-written code now makes up a large share of what ships in production, and organizations that use AI well report double-digit productivity gains along with measurable improvements in code quality. On the discouraging side, developers reject the majority of AI&#x27;s suggestions, and the most common complaint in industry surveys is that the output is &#x27;almost right, but not quite&#x27; - close enough to look useful, wrong enough to require careful checking.</p>
+<p>A study from the research organization METR sharpens this tension: some developers using AI tools actually took longer to complete tasks than developers who did not, because the time saved generating code was spent instead on reviewing and fixing what the AI got wrong. This is not an argument against AI - it is a warning against treating AI output as finished work. The right mental model is closer to a fast, confident, occasionally-wrong junior collaborator: valuable, but only if someone is reliably checking the work.</p>
+<p>The gap between &#x27;AI helps on average&#x27; and &#x27;AI sometimes actively slows people down&#x27; is not explained by the tool. It is explained by how a team uses it, which is what the rest of this lesson addresses.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>AI writes a large and growing share of shipped code, and AI-proficient teams see real double-digit productivity and quality gains.</li><li>Developers still reject most individual AI suggestions - the tool is frequently &#x27;almost right, but not quite&#x27;.</li><li>The METR study found some developers were slower overall with AI because cleanup time exceeded the time saved on generation.</li><li>Verifying and correcting AI output is part of the real cost of using it, not an optional extra step.</li></ul></div>
+  <figure class="example">
+  <figcaption>Where the extra 19% goes</figcaption>
+  <p>If an AI tool cuts the time to produce a first draft of a function from 20 minutes to 5 minutes, but the developer then spends 25 minutes finding and fixing a subtle bug the AI introduced, the total task took longer than writing it by hand - even though the &#x27;writing&#x27; step looked faster.</p>
+  
+</figure>
+</section>
+<section id="what-separates-average-teams-from-top-teams-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>What separates average teams from top teams</h2>
+      <a class="stamp" href="#" data-t="87">1:27</a>
+    </div>
+  </div>
+  <p class="summary">Teams using the same AI tools see wildly different results - average adopters gain tens of percent, top teams gain 100-150% - because top teams restructure their workflow instead of just adding a tool.</p>
+  <p>AI is described as a must-have, not a magic wand. Buying access to a coding assistant is a purchasing decision; getting outsized value from it is an operational one. Teams that only make the purchasing decision see productivity gains in the tens of percent - real, but modest. Teams that also restructure how they work see gains of 100% to 150%, using the exact same category of tool.</p>
+<p>The restructuring has a consistent shape: hand AI the things it is actually good at - syntax, boilerplate, well-defined mechanical transformations - and deliberately protect the things AI cannot do at all: sustained focus, design judgment, on-the-job learning, and taste built from experience. Teams that skip the protection step end up asking AI to do judgment work it is not suited for, or they free up time with automation and then fill it right back up with more meetings.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Same tool, different outcomes: the productivity spread between average and top AI-using teams is roughly 10x (tens of percent vs. 100-150%).</li><li>The differentiator is workflow restructuring, not vendor selection.</li><li>AI is well-suited to mechanical, well-defined work: syntax, boilerplate, repetitive transformations.</li><li>AI is not a substitute for focus, design judgment, learning, or taste - those have to be protected deliberately.</li></ul></div>
+  <figure class="example">
+  <figcaption>Two teams, one tool</figcaption>
+  <p>Team A rolls out an AI coding assistant and keeps every existing meeting, review process, and interruption pattern unchanged; they see a modest bump in output. Team B rolls out the same assistant, uses it to eliminate manual lint fixes and boilerplate, and reinvests the freed time into protected focus blocks and better design reviews; they see gains several times larger, from the identical tool.</p>
+  
+</figure>
+</section>
+<section id="way-1-automate-the-smart-way-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Way 1: Automate the smart way</h2>
+      <a class="stamp" href="#" data-t="130">2:10</a>
+    </div>
+  </div>
+  <p class="summary">Automating repetitive, error-prone, boring work - the CI/CD principle extended by AI to linting, review, and security scanning - only creates value if the freed-up time is protected rather than immediately refilled with meetings.</p>
+  <p>CI/CD (continuous integration and continuous deployment) established the pattern over a decade ago: treat infrastructure and testing as code, and let automated pipelines do the repetitive checking a human used to do by hand every single time. AI extends that same pattern into more territory - linters that catch style issues, automated code review systems, security scanners, and test generators. In every case the underlying principle is identical: find work that is repetitive, error-prone, and boring, and remove the human from doing it manually.</p>
+<p>The trap is assuming automation is the whole win. Automation does not reduce total work by itself - it converts time spent on rote tasks into time available for something else. If that freed time is immediately consumed by additional standups, retros, and &#x27;quick syncs&#x27;, the team has automated the boring work and gained nothing, because the meetings expanded to fill the space the automation created.</p>
+<p>The practical rule: automate anything repetitive and mechanical, and then actively guard the time that gets returned to you. Treat it as a scarce resource to be spent on design, debugging hard problems, or focused building - not as slack to be absorbed by scheduling.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>CI/CD proved the pattern: automate repetitive testing and deployment so humans stop repeating manual steps.</li><li>AI extends automation to linting, code review, security scanning, and test generation.</li><li>The target for automation is work that is repetitive, error-prone, and boring - not creative or judgment-heavy work.</li><li>Automation only produces a net gain if the freed time is protected, not absorbed by more meetings.</li></ul></div>
+  <figure class="example">
+  <figcaption>A CI pipeline that automates the boring parts</figcaption>
+  <p>A pull-request pipeline that runs linting, tests, and a security scan automatically means no human has to manually re-check style or re-run tests by hand on every change - freeing that time for design and review instead.</p>
+  <pre><code># .github/workflows/ci.yml
+name: CI
+on: [pull_request]
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint
+        run: npm run lint
+      - name: Unit + integration tests
+        run: npm test -- --coverage
+      - name: Security scan
+        run: npm audit --audit-level=high</code></pre>
+</figure>
+</section>
+<section id="way-2-design-first-experiment-later-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Way 2: Design first, experiment later</h2>
+      <a class="stamp" href="#" data-t="214">3:34</a>
+    </div>
+  </div>
+  <p class="summary">Starting to type code locks in architectural decisions before you realize you&#x27;re making them; sketching a design first and asking AI to critique it - not decide it - catches mistakes while they&#x27;re still cheap to fix.</p>
+  <p>The moment code gets written, decisions get made - about data shape, boundaries, and flow - whether or not the author intended to make them yet. A rough flow chart, a schema sketch, or even a short numbered list in a markdown file forces those decisions to happen deliberately, before they are buried in implementation details. The claim is that five minutes of design work saves roughly three hours of later refactoring, and once a shortcut reaches production, it tends to calcify into a decision nobody is willing to unwind for years.</p>
+<p>This is where AI genuinely helps, used a specific way: ask it to brainstorm multiple approaches, ask it to critique a design you already sketched, and ask it to surface edge cases you have not thought of. What you should not do is ask the model to make the decision for you. Letting AI choose the architecture tends to produce code that technically works but that nobody on the team - including whoever prompted it - can fully explain or defend in a code review.</p>
+<p>The ordering matters: design first, experiment second, write code third. Using AI to stress-test a plan you already own is different from outsourcing the plan itself.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Writing code without a prior design makes architectural decisions implicitly and irreversibly.</li><li>A cheap design artifact (flow chart, schema sketch, numbered list) makes tradeoffs visible before implementation.</li><li>AI is useful for brainstorming alternatives and critiquing an existing design for edge cases.</li><li>AI should not make the final design decision - that requires context and accountability a model doesn&#x27;t have.</li><li>Order matters: design, then experiment, then write code.</li></ul></div>
+  <figure class="example">
+  <figcaption>A design-critique prompt instead of a design-generation prompt</figcaption>
+  <p>Rather than asking an AI assistant to design a feature from scratch, present it with your own sketch and ask it to attack the sketch - this keeps you as the decision-maker while still surfacing blind spots.</p>
+  <pre><code>Prompt to use before writing any code:
+
+&quot;Here is the problem: &lt;2-3 sentence description&gt;.
+Here is my rough design: &lt;paste your flow chart / schema / numbered plan&gt;.
+
+1. Suggest two alternative approaches I have not considered.
+2. Critique my design for failure modes and edge cases.
+3. Do NOT choose the approach for me - list tradeoffs and let me decide.&quot;</code></pre>
+</figure>
+</section>
+<section id="way-3-protect-flow-state-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Way 3: Protect flow state</h2>
+      <a class="stamp" href="#" data-t="300">5:00</a>
+    </div>
+  </div>
+  <p class="summary">Developers spend most of their day out of flow state, and AI assistance appears to lengthen flow sessions - but the real productivity win is protecting the conditions for flow, not the tool itself.</p>
+  <p>Flow state - deep, uninterrupted focus where time seems to disappear - is when the hardest problems actually get solved. Research cited here reports two related numbers: developers maintain flow roughly 73% longer when using AI assistance, but the average developer&#x27;s flow efficiency is only about 15-25%, meaning 75-85% of a typical workday is spent outside of flow altogether, in fragmented or interrupted work.</p>
+<p>Put together, those numbers reframe what the &#x27;AI productivity win&#x27; actually is. A longer flow session helps, but it does nothing for the 75-85% of the day that never reaches flow in the first place. The larger lever is protecting the conditions that make flow possible at all: blocked calendar time, silenced notifications, and - for team leads specifically - respecting it when an engineer declares a morning as heads-down time instead of scheduling over it.</p>
+<p>The practical comparison offered is stark: eight hours of fragmented, half-focused work is not equivalent to four hours of real, uninterrupted focus. A manager who schedules a meeting during someone&#x27;s peak focus hours is trading a large amount of that person&#x27;s most valuable time for a small amount of coordination.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Flow state is where deep problem-solving happens, and most of the day is spent outside it.</li><li>Average flow efficiency is roughly 15-25% of the workday.</li><li>AI assistance is reported to extend flow session length by about 73%, but that only helps during the fraction of time already in flow.</li><li>Protecting flow requires calendar blocking, muted notifications, and leads respecting declared focus time.</li><li>Four hours of true focus can outproduce eight hours of fragmented attention.</li></ul></div>
+  <figure class="example">
+  <figcaption>What flow efficiency looks like in a day</figcaption>
+  <p>An 8-hour day at 25% flow efficiency yields about 2 hours of real deep work and 6 hours of fragmented attention. If AI assistance extends the length of a flow session by roughly 73%, a session that used to break after about 20 minutes might run closer to 35 minutes before an interruption - fewer restarts, but still far from a fully protected day.</p>
+  <pre><code>flow_efficiency = time_in_uninterrupted_deep_work / total_work_time
+
+Example: 8h day, 25% flow efficiency
+  -&gt; 2h real flow, 6h fragmented work
+
+With AI assistance extending flow session length ~73%:
+  20-minute session -&gt; ~35-minute session before interruption</code></pre>
+</figure>
+</section>
+<section id="way-4-lessen-the-cognitive-load-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Way 4: Lessen the cognitive load</h2>
+      <a class="stamp" href="#" data-t="385">6:25</a>
+    </div>
+  </div>
+  <p class="summary">Context switching - unplanned meetings, pings, and &#x27;got a sec&#x27; interruptions - has a real cognitive cost of roughly 20 minutes to rebuild focus, and rotations, tight meeting invites, and templates all reduce the number of small decisions engineers have to make.</p>
+  <p>Context switching is described as the silent killer of engineering productivity. Every unplanned meeting, urgent ping, or &#x27;got a sec&#x27; request fragments concentration, and rebuilding the mental context that was lost takes about 20 minutes. Across a full day of small interruptions, an engineer can spend nine hours making micro-decisions and arrive at the end of the day reaching for the easiest answer available rather than the best one - a form of decision fatigue.</p>
+<p>The tactics that work here are organizational, not technical: rotate on-call fairly so the same three people are not paged every Tuesday at 3 a.m.; keep meeting invite lists targeted, since eleven engineers do not need to be in a room to decide a function name, and often three do not either; and use templates and style guides to answer common, boring questions once instead of re-litigating them in every code review.</p>
+<p>AI has a real role here too - agents that keep documentation synchronized with a changing codebase, and coding assistants that automatically apply a team&#x27;s established style, both remove small recurring decisions from an engineer&#x27;s day. The underlying goal is not to make anyone think harder; it is to reserve hard thinking for the problems that actually require it, by eliminating the decisions that do not.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Context switching costs roughly 20 minutes to rebuild lost focus per interruption.</li><li>A day full of small interruptions produces decision fatigue by late afternoon.</li><li>Fair on-call rotation prevents the same people from bearing repeated burnout risk.</li><li>Small, targeted meeting invite lists reduce the aggregate cognitive tax of a decision.</li><li>Style guides and templates answer routine questions once instead of every time.</li><li>AI can keep documentation in sync and auto-apply team style, removing more small decisions.</li></ul></div>
+  <figure class="example">
+  <figcaption>A rotation that spreads the pager load</figcaption>
+  <p>Instead of the same two or three engineers absorbing every off-hours page, a rotating schedule spreads the interruption cost - and the decision fatigue that comes with it - across the whole team.</p>
+  <pre><code>On-call rotation:
+Week 1: Engineer A (primary), Engineer D (secondary)
+Week 2: Engineer B (primary), Engineer A (secondary)
+Week 3: Engineer C (primary), Engineer B (secondary)
+Week 4: Engineer D (primary), Engineer C (secondary)</code></pre>
+</figure>
+</section>
+<section id="way-5-make-room-for-growth-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Way 5: Make room for growth</h2>
+      <a class="stamp" href="#" data-t="466">7:46</a>
+    </div>
+  </div>
+  <p class="summary">Engineers who feel supported to upskill are reported to be 73% more motivated, and motivated engineers ship more, ship better, and stay longer; AI should compress the boring parts of growth so mentoring can focus on what still needs a human.</p>
+  <p>A PwC statistic cited here is blunt: workers who feel supported to upskill report being 73% more motivated than those who do not. Motivation is not a soft metric - motivated engineers are described as shipping more, shipping better work, and staying on the team longer, which compounds because retained institutional knowledge is itself a productivity advantage.</p>
+<p>The growth practices that are said to actually work are concrete: code reviews used as a teaching moment rather than only a gatekeeping checkpoint, pair programming with real feedback attached, and dedicated time and budget for things like a conference or a course. None of these require AI - they require the organization choosing to spend time on them.</p>
+<p>AI&#x27;s role is not to replace mentoring; it is described as freeing mentors from the boring parts of it. A junior engineer who debugs with AI assistance is still being taught, and a team that lets AI compress the repetitive parts of that process - explaining a stack trace, drafting a first-pass fix - can spend the human mentoring time on the parts that genuinely require a human: judgment calls, tradeoffs, and the &#x27;why&#x27;, not just the &#x27;how&#x27;.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Feeling supported to upskill is linked to roughly 73% higher motivation (PwC).</li><li>Motivated engineers ship more, ship better, and stay longer - directly affecting team productivity.</li><li>Code review used as teaching, not just gatekeeping, is a concrete growth practice.</li><li>Pair programming with real feedback and dedicated learning time/budget both work.</li><li>AI does not replace mentoring - it can compress the repetitive parts so mentors focus on judgment and &#x27;why&#x27;.</li></ul></div>
+  <figure class="example">
+  <figcaption>Gatekeeping review vs. teaching review</figcaption>
+  <p>The same underlying bug can be flagged in a way that only blocks the change, or in a way that also builds the reviewee&#x27;s understanding for next time.</p>
+  <pre><code>Gatekeeping comment:
+  &quot;This is wrong. Fix it.&quot;
+
+Teaching comment:
+  &quot;This works, but it will break under concurrent writes because the
+  counter isn&#x27;t atomic - two requests can read the same value before
+  either writes back. Consider an atomic increment or a lock here.
+  Want to pair on it?&quot;</code></pre>
+</figure>
+</section>
+<section id="way-6-sharpen-the-tools-of-the-trade-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Way 6: Sharpen the tools of the trade</h2>
+      <a class="stamp" href="#" data-t="507">8:27</a>
+    </div>
+  </div>
+  <p class="summary">IDEs, languages, frameworks, and version control are all sources of daily friction; a small per-line tax multiplied across every engineer and every workday for years adds up to a real cost, so tool choice is a developer-experience decision, not a minor preference.</p>
+  <p>The tool chain a team lives in - IDEs, languages, frameworks, version control, project management software - is framed here as a friction problem. Any inefficiency in that chain gets multiplied by every engineer, every workday, for years, which turns a seemingly small annoyance into a substantial, hidden ongoing cost across the whole codebase&#x27;s lifetime.</p>
+<p>The practical guidance is to prefer modern, well-supported tools and to actively avoid the technical debt of legacy stacks that nobody on the current team can competently maintain or fix. The AI coding assistant a team adopts, and how well it integrates with the rest of the toolchain, is called out specifically as one of these developer-experience decisions - not merely a feature checkbox.</p>
+<p>The test suggested is simple: pick the tool that gets out of your way. A tool that fights you on every keystroke is not a tool, in the sense meant here - it is a recurring problem the team has chosen to keep paying for.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Tool friction is small per-instance but multiplies across every engineer and every day over years.</li><li>Prefer modern, well-supported tools over legacy stacks nobody can maintain.</li><li>AI assistant choice and its integration quality is a developer-experience decision, not a minor feature choice.</li><li>The practical test for a tool: does it get out of your way, or does it fight you.</li></ul></div>
+  <figure class="example">
+  <figcaption>Weighing tool friction with a simple scorecard</figcaption>
+  <p>A lightweight weighted scoring exercise makes the hidden, multiplied cost of a poor tool choice visible before committing a whole team to it, rather than relying on gut feeling alone.</p>
+  <pre><code>Criterion (weight)        Tool A   Tool B
+Editor integration (5)      4        5
+Community support (3)       5        2
+Long-term maintenance (4)   3        5
+Learning curve (2)          4        3
+
+Weighted total:
+Tool A = 5*4 + 3*5 + 4*3 + 2*4 = 55
+Tool B = 5*5 + 3*2 + 4*5 + 2*3 = 57</code></pre>
+</figure>
+</section>
+<section id="measuring-what-actually-matters-9" class="block section">
+  <div class="section-head">
+    <span class="num">09</span>
+    <div>
+      <h2>Measuring what actually matters</h2>
+      <a class="stamp" href="#" data-t="588">9:48</a>
+    </div>
+  </div>
+  <p class="summary">DORA gives quantitative delivery metrics and SPACE gives qualitative ones; a 2026 synthesis called DxCore4 combines both with AI-specific dimensions - but every metric turned into a target risks getting gamed, per Goodhart&#x27;s Law.</p>
+  <p>None of the six practices above are verifiable without measurement, and two frameworks are named for that purpose. DORA supplies quantitative delivery metrics: cycle time, deployment frequency, and change failure rate - hard numbers about how software actually moves through a pipeline. SPACE supplies qualitative dimensions that DORA does not capture: satisfaction, performance, activity, collaboration, and flow - the human conditions underneath the delivery numbers.</p>
+<p>A 2026 synthesis referred to as DxCore4 rolls DORA and SPACE together and adds AI-specific dimensions such as utilization, impact, and cost, reflecting that AI-assisted work needs its own measurement lens on top of traditional delivery metrics. The combination is meant to answer both &#x27;is software moving through the pipeline well&#x27; and &#x27;are the people doing it in a sustainable, effective state&#x27;.</p>
+<p>The caution attached to all of this is Goodhart&#x27;s Law: any measure that becomes a target invites the people being measured to optimize for the number rather than the outcome the number was supposed to represent. The stated principle is to treat metrics as guides that flag problems, not as goals that drive performance reviews - because the moment a metric becomes the goal, smart, motivated people will find ways to hit it that do not actually deliver more value.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>DORA covers quantitative delivery metrics: cycle time, deployment frequency, change failure rate.</li><li>SPACE covers qualitative dimensions: satisfaction, performance, activity, collaboration, flow.</li><li>DxCore4 (2026) combines DORA and SPACE and adds AI-specific dimensions: utilization, impact, cost.</li><li>Goodhart&#x27;s Law: a measure that becomes a target stops being a reliable measure, because people optimize for the number.</li><li>Metrics should be used to spot problems, not to directly drive performance reviews.</li></ul></div>
+  <figure class="example">
+  <figcaption>A metric working as a guide vs. as a gamed target</figcaption>
+  <p>Used as a guide, a falling deployment frequency prompts a team to investigate what&#x27;s slowing the pipeline down. Used as a target, the same metric can be &#x27;improved&#x27; by splitting one meaningful feature into many trivial deploys that don&#x27;t actually add value.</p>
+  <pre><code>As a guide:
+  Deployment frequency drops from 40/week to 15/week
+  -&gt; investigate: bigger PRs? flaky tests? review bottleneck?
+
+As a gamed target (Goodhart&#x27;s Law):
+  Goal: &quot;hit 40 deploys/week&quot;
+  Result: one feature split into 10 trivial no-op deploys
+  to hit the number without shipping more real value.</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>CI/CD</dt><dd>Continuous Integration / Continuous Deployment: treating build, test, and release steps as automated infrastructure-as-code, so they run the same way on every change without manual repetition.</dd></div><div class="term"><dt>Linter</dt><dd>A tool that automatically checks code for style problems and some classes of bugs without a human reviewer having to look for them.</dd></div><div class="term"><dt>Flow state</dt><dd>A state of deep, uninterrupted concentration where a task absorbs full attention and time perception fades; the state in which hard problems tend to get solved.</dd></div><div class="term"><dt>Flow efficiency</dt><dd>The percentage of total work time actually spent in flow state, as opposed to fragmented, interrupted, or context-switching-heavy work.</dd></div><div class="term"><dt>Cognitive load</dt><dd>The amount of working memory and mental effort a task demands; when it&#x27;s overloaded by too many small decisions or interruptions, decision quality drops.</dd></div><div class="term"><dt>Context switching</dt><dd>Moving attention from one unrelated task to another, which requires reloading mental context and carries a measurable time cost before full focus returns.</dd></div><div class="term"><dt>METR</dt><dd>A research organization referenced for a study finding that some developers took longer to complete tasks with AI assistance due to time spent correcting AI errors.</dd></div><div class="term"><dt>DORA metrics</dt><dd>A widely used set of software delivery metrics - including deployment frequency, cycle time (lead time for changes), and change failure rate - used to benchmark engineering delivery performance.</dd></div><div class="term"><dt>SPACE framework</dt><dd>A framework for measuring developer productivity along five qualitative dimensions: satisfaction, performance, activity, collaboration, and flow.</dd></div><div class="term"><dt>DxCore4</dt><dd>A 2026 metrics synthesis that combines DORA and SPACE with AI-specific dimensions such as utilization, impact, and cost.</dd></div><div class="term"><dt>Goodhart&#x27;s Law</dt><dd>The principle that once a measure becomes a target, people optimize for the measure itself rather than the underlying outcome it was meant to represent, making it a worse measure.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why did the METR study find some developers were slower overall when using AI tools, even though the AI generated code faster than they could by hand?</summary>
+  <div class="answer"><p>Because total task time includes verification and correction, not just generation - the time saved producing a first draft was outweighed by the extra time spent finding and fixing mistakes the AI introduced.</p></div>
+</details><details class="q">
+  <summary>Two teams use the exact same AI coding assistant. One improves by &#x27;tens of percent&#x27;; the other improves by 100-150%. What actually explains that gap?</summary>
+  <div class="answer"><p>The gap comes from workflow restructuring, not the tool - the higher-performing team automated genuinely repetitive work and protected the time that freed up, while the other team added the tool without changing anything else, so meetings and old habits absorbed any time saved.</p></div>
+</details><details class="q">
+  <summary>Why does it help to ask an AI model to critique a design you already sketched, rather than asking it to produce the design from scratch?</summary>
+  <div class="answer"><p>AI is good at pattern-matching against known approaches and surfacing edge cases, but it lacks the accountability and full context of the person who owns the system, so letting it choose the design tends to produce code that works without anyone being able to explain why it was built that way.</p></div>
+</details><details class="q">
+  <summary>Why can inviting fewer people to a meeting increase overall team productivity, even though it looks like less coordination is happening?</summary>
+  <div class="answer"><p>Every attendee pays a cognitive and context-switching cost for attending, whether or not they&#x27;re needed for the decision; unnecessary attendees pay that tax for no benefit, so trimming the invite list preserves deep-work time for people who don&#x27;t need to be there.</p></div>
+</details><details class="q">
+  <summary>If a company starts rewarding engineers purely on deployment frequency, what does Goodhart&#x27;s Law predict will happen, and why?</summary>
+  <div class="answer"><p>Engineers will optimize for the number itself - for example splitting one meaningful feature into many trivial deploys - because once the metric becomes the target, hitting the number becomes more rewarded than delivering the actual value the metric was originally meant to indicate.</p></div>
+</details><details class="q">
+  <summary>Why is &#x27;sharpening the tools&#x27; treated as a separate productivity lever from adopting AI, rather than something AI adoption automatically fixes?</summary>
+  <div class="answer"><p>Tool friction - a slow IDE, a legacy stack, poor integrations - imposes a small cost on every line of code, multiplied across every engineer and every workday for years; layering an AI assistant on top of that friction doesn&#x27;t remove the underlying friction itself.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Track your own flow efficiency for a week by logging uninterrupted work blocks versus interruptions, before evaluating any new tool.</li><li>Establish a DORA baseline for your team - deployment frequency, cycle time, and change failure rate - for the last quarter.</li><li>Try the design-critique prompt pattern on a feature you&#x27;re about to build: sketch your own design first, then ask an AI assistant to attack it for edge cases.</li><li>Audit your team&#x27;s recurring meetings and cut invite lists down to only the people who make the actual decision.</li><li>Read into the SPACE framework and DxCore4 to see which qualitative dimensions your team&#x27;s current metrics are missing.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

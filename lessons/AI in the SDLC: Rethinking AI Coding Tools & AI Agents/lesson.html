@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redesigning the Software Development Lifecycle Around AI</title>
+<meta name="description" content="Understand why AI coding tools alone don&#x27;t speed up delivery, and how to apply AI across the whole SDLC instead of just the coding step.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-productivity-paradox-feeling-faster-while-shipping-slower-1"><span class="n">1</span>The productivity paradox: feeling faster while shipping slower</a></li>
+<li><a href="#why-the-bottleneck-isn-t-the-coding-step-2"><span class="n">2</span>Why the bottleneck isn&#x27;t the coding step</a></li>
+<li><a href="#over-delegation-handing-ai-the-whole-ambiguous-problem-3"><span class="n">3</span>Over-delegation: handing AI the whole ambiguous problem</a></li>
+<li><a href="#under-delegation-ai-as-a-narrow-tool-4"><span class="n">4</span>Under-delegation: AI as a narrow tool</a></li>
+<li><a href="#redesigning-requirements-and-design-around-ai-5"><span class="n">5</span>Redesigning requirements and design around AI</a></li>
+<li><a href="#spec-driven-development-and-agent-harnesses-6"><span class="n">6</span>Spec-driven development and agent harnesses</a></li>
+<li><a href="#ai-assisted-testing-and-operations-7"><span class="n">7</span>AI-assisted testing and operations</a></li>
+<li><a href="#ai-for-infrastructure-and-legacy-modernization-8"><span class="n">8</span>AI for infrastructure and legacy modernization</a></li>
+<li><a href="#measuring-what-actually-changed-outcomes-over-lines-of-code-9"><span class="n">9</span>Measuring what actually changed: outcomes over lines of code</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">AI &amp; Software Engineering</span><span class="muted">IBM Technology</span></div>
+  <h1>Redesigning the Software Development Lifecycle Around AI</h1>
+  <p class="lede">Understand why AI coding tools alone don&#x27;t speed up delivery, and how to apply AI across the whole SDLC instead of just the coding step.</p>
+  <p class="muted small">For software engineers, tech leads, and engineering managers evaluating how to adopt AI coding tools without losing quality or speed · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=4wMRXmLpdA8" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Basic familiarity with the software development lifecycle (requirements, design, build, test, release, operate)</li><li>Some exposure to AI coding assistants or agentic coding tools</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Most teams that adopt AI coding assistants expect the software development lifecycle (SDLC) to speed up in proportion to how much faster code gets written. It usually doesn&#x27;t. A controlled study of experienced open source developers even found the opposite of what they expected: developers who believed AI tools made them about 20% faster were, by measured completion time, actually about 20% slower.</p>
+<p>The reason is structural, not a flaw in any particular model. Software delivery is a chain of handoffs - requirements, design, build, test, release, operate - and most of the elapsed time in that chain is spent waiting on the next person or team, not typing code. Speeding up one link in the chain does not shorten the whole chain if the other links stay just as slow.</p>
+<p>This lesson works through two common failure patterns teams fall into when they bolt AI onto the coding step alone - over-delegation and under-delegation - and then covers what changes when AI is applied across the entire lifecycle instead: requirements synthesis, spec-driven coding with agent harnesses, test generation, infrastructure automation, legacy modernization, and the outcome metrics that tell you whether any of it actually worked.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Feeling faster is not the same as being faster: a controlled study found developers who believed AI made them 20% faster were actually about 20% slower.</li><li>Delivery time is dominated by waiting between teams and phases, not by typing code, so speeding up coding alone barely moves total delivery time.</li><li>Over-delegation - handing a model one huge ambiguous task - pushes unstated design decisions into the model and creates large unreviewed diffs that stall the review phase.</li><li>Under-delegation - using AI only for isolated, narrow tasks - produces good code but leaves the most time-consuming work, planning and architecture, entirely manual.</li><li>Spec-driven development replaces vague &#x27;vibe coding&#x27; with a written specification a model can follow, executed by a harness of coordinated subagents.</li><li>AI has high-impact uses outside of coding: synthesizing requirements from user feedback, generating tests from user stories, diagnosing incidents from logs, writing infrastructure as code, and explaining legacy systems.</li><li>Real productivity gains come from redesigning the lifecycle around AI - shifting the human role from typing code to validating it and coordinating across teams - not from picking a better model.</li><li>The right metrics for AI-assisted delivery are outcomes (system health, maintainability, time to ship a change), not lines of code generated.</li></ul>
+  </div>
+</section>
+<section id="the-productivity-paradox-feeling-faster-while-shipping-slower-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The productivity paradox: feeling faster while shipping slower</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">A controlled study of open source developers found that those who believed AI coding tools made them 20% faster were actually about 20% slower.</p>
+  <p>A model evaluation and threat research organization ran a controlled study on experienced open source developers working in codebases they already knew well. Before starting their tasks, developers estimated that AI-assisted coding tools would make them roughly 20% faster. When their actual task completion time was measured, they were about 20% slower than their historical baseline without the tools.</p>
+<p>This gap between felt speed and measured speed is the puzzle the rest of this lesson answers. AI clearly can write code - that was never in question. The real question is why that capability isn&#x27;t translating into measurable improvements across the whole software delivery lifecycle (SDLC), the sequence of stages a team moves through to turn a requirement into running software.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The study measured experienced open source developers working in codebases they already knew well.</li><li>Developers subjectively estimated they would be about 20% faster using AI coding tools.</li><li>Measured completion time showed they were actually about 20% slower.</li><li>The gap between felt speed and real speed is the central puzzle the rest of the lesson resolves.</li></ul></div>
+  <figure class="example">
+  <figcaption>Perceived vs. measured speed</figcaption>
+  <p>Developers predicted a 20% productivity gain from AI tools going in. The measured outcome was roughly a 20% slowdown - a swing of about 40 percentage points between what developers expected and what actually happened.</p>
+  
+</figure>
+</section>
+<section id="why-the-bottleneck-isn-t-the-coding-step-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Why the bottleneck isn&#x27;t the coding step</h2>
+      <a class="stamp" href="#" data-t="43">0:43</a>
+    </div>
+  </div>
+  <p class="summary">Most elapsed time in the SDLC is spent waiting on other people and teams, not writing code, so making coding faster barely changes total delivery time.</p>
+  <p>The classic SDLC has five stages: requirements, design, build (which includes both coding and testing), release, and operate. Teams have delivered software this way for decades, but a large share of the calendar time inside that cycle isn&#x27;t spent writing code at all - it&#x27;s spent waiting. A developer waits on the product team to clarify a story. Ops waits on a developer to cut a release. QA waits for a new build before it can test anything. Different teams often work against different environments too - what QA and production see is not the same as what staging and the product team see - and reconciling those differences adds coordination overhead on top of the waiting.</p>
+<p>This is why making one stage faster doesn&#x27;t proportionally shrink the whole cycle. If coding runs three times faster but requirements clarification, code review, and release approval take the same time they always did, the surrounding stages absorb the gain: the fast stage just spends more time waiting for the slow ones. This is the same reasoning behind the bottleneck idea in manufacturing - speeding up a station that already had slack does not raise the throughput of the whole line.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The typical SDLC has five stages: requirements, design, build (code + test), release, operate.</li><li>Most time in the cycle is lost to waiting: for clarification, for a release window, for a new build to test.</li><li>Teams often work against inconsistent environments (QA/production vs. staging vs. what the product team sees), adding coordination overhead.</li><li>Speeding up only the coding stage does not shrink the whole cycle, because the unchanged surrounding stages absorb the gain.</li></ul></div>
+  <figure class="example">
+  <figcaption>Assembly-line analogy</figcaption>
+  <p>If one station on an assembly line triples its speed but the stations before and after it stay the same, total output barely changes, because those other stations were already the limit. Coding is often the fast station; requirements clarification, code review, and release approval are frequently the slow ones.</p>
+  
+</figure>
+</section>
+<section id="over-delegation-handing-ai-the-whole-ambiguous-problem-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Over-delegation: handing AI the whole ambiguous problem</h2>
+      <a class="stamp" href="#" data-t="129">2:09</a>
+    </div>
+  </div>
+  <p class="summary">Over-delegation means handing a frontier model one big, ambiguous task and expecting it to run the whole lifecycle unsupervised, burying unstated decisions inside code no one reviewed line by line.</p>
+  <p>One failure pattern teams fall into is over-delegation: handing a model a large, ambiguous request - &quot;build me an e-commerce platform&quot; - and expecting it to run autonomously across the entire lifecycle. The problem is that this kind of request is full of unstated decisions. What payment provider? How is a user authenticated? How is shipping calculated? These are exactly the questions requirements and design are supposed to answer before anyone writes code. Handed to a single model with no decomposition, the model answers them itself, silently, while generating thousands of lines of code that nobody reads line by line.</p>
+<p>This rarely works for production software because review becomes the bottleneck. A reviewer facing a large, unfamiliar diff has to reverse-engineer the decisions buried inside it before they can even evaluate whether those decisions were correct, which triggers repeated back-and-forth as issues surface. The time apparently saved during generation gets spent, with interest, during review and rework - so the net effect is a slower lifecycle, not a faster one.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Over-delegation means handing one big, ambiguous prompt to a model and expecting it to run end-to-end without supervision.</li><li>Requirements-and-design decisions (payments, authentication, shipping, etc.) get made implicitly by the model instead of explicitly by the team.</li><li>The output is often thousands of lines of code that nobody has read line by line.</li><li>Review becomes the bottleneck: reviewers must reconstruct and question decisions buried in a large diff, causing repeated back-and-forth.</li></ul></div>
+  <figure class="example">
+  <figcaption>The mega-prompt</figcaption>
+  <p>&quot;Build me an e-commerce platform&quot; sounds like a single instruction, but it silently requires dozens of decisions: which payment processor, how sessions are authenticated, how inventory and shipping are tracked, how refunds work. None of these were decided by a human before code was generated, so a reviewer has to excavate them from the diff after the fact.</p>
+  
+</figure>
+</section>
+<section id="under-delegation-ai-as-a-narrow-tool-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Under-delegation: AI as a narrow tool</h2>
+      <a class="stamp" href="#" data-t="214">3:34</a>
+    </div>
+  </div>
+  <p class="summary">Under-delegation keeps all planning and architecture human and only asks AI to fill in small, well-scoped pieces, producing good code but capping the overall productivity gain.</p>
+  <p>The opposite failure pattern is under-delegation. A senior developer does all of the planning and breaks the work into tasks themselves, then inserts AI only for narrow, well-scoped requests: write this function, review this query for SQL injection vulnerabilities. This tends to work well - narrow, clearly specified tasks are exactly what current models handle reliably, so the code produced this way is genuinely good.</p>
+<p>The catch is that the intellectually heavy lifting - deciding what to build and how to structure it - stays 100% human. Design and architecture are often the most time-consuming parts of building software, and under-delegation leaves them completely untouched by AI. So while some implementation slices get faster, the slow parts of the process are unaffected, and the overall productivity gain stays small even though every individual AI-assisted step looks successful.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Under-delegation: humans plan and decompose everything; AI is used only for narrow, well-defined subtasks.</li><li>Narrow tasks (write this function, check this query for SQL injection) tend to produce reliably good output.</li><li>Planning and architecture - often the most time-consuming part of building software - remain entirely manual.</li><li>Because the slow parts of the process are untouched, overall delivery speed improves only marginally.</li></ul></div>
+  <figure class="example">
+  <figcaption>Narrow prompting</figcaption>
+  <p>&quot;Write a function that validates a US phone number&quot; is a well-scoped ask a model handles reliably. But if a human still spent hours separately deciding the API design, the data model, and the security approach around that function, AI only sped up a small fraction of the total work that went into shipping it.</p>
+  <pre><code># The narrow task an under-delegating team hands to AI:
+def is_valid_us_phone(number: str) -&gt; bool:
+    import re
+    digits = re.sub(r&quot;\D&quot;, &quot;&quot;, number)
+    return len(digits) == 10 or (len(digits) == 11 and digits.startswith(&quot;1&quot;))</code></pre>
+</figure>
+</section>
+<section id="redesigning-requirements-and-design-around-ai-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Redesigning requirements and design around AI</h2>
+      <a class="stamp" href="#" data-t="297">4:57</a>
+    </div>
+  </div>
+  <p class="summary">Instead of only speeding up coding, AI can synthesize unstructured feedback and production data into the user stories and root-cause insight that shape what gets built.</p>
+  <p>Requirements and design draw on unstructured inputs that are hard for humans to process at scale: surveys, user reports, support emails, transcripts of stakeholder conversations. AI can synthesize these into a picture of user behavior, bottlenecks, and usage patterns, and that synthesis can be turned directly into user stories - the concrete descriptions of what to build next.</p>
+<p>A second use runs in the same direction from a different source: an agent can analyze production logs and bug reports to identify the root cause of problems that are already happening in the live system. That closes a loop that used to be mostly manual - knowing what actually works and what actually fails in production feeds back into what gets designed and prioritized next, instead of requirements being driven mostly by guesswork or squeaky-wheel requests.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Requirements and design draw on unstructured inputs: surveys, user reports, emails, and stakeholder conversations.</li><li>AI can synthesize these into a picture of user behavior, bottlenecks, and usage patterns.</li><li>That synthesis can be turned into concrete user stories that drive the next set of features.</li><li>An agent analyzing logs and bug reports can identify root causes of live problems, feeding real production behavior back into what gets designed next.</li></ul></div>
+  <figure class="example">
+  <figcaption>From bug reports to a user story</figcaption>
+  <p>Feed a batch of support tickets and error logs to an agent and ask it to cluster them by root cause and by the user journey affected. An output like &quot;38% of tickets trace to checkout timing out on slow connections&quot; becomes evidence for a concrete user story instead of a guess.</p>
+  
+</figure>
+</section>
+<section id="spec-driven-development-and-agent-harnesses-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Spec-driven development and agent harnesses</h2>
+      <a class="stamp" href="#" data-t="342">5:42</a>
+    </div>
+  </div>
+  <p class="summary">Vibe coding - generating code from vague, evolving prompts - doesn&#x27;t scale; spec-driven development turns intent into a specification a model can follow, executed by a harness of coordinated subagents.</p>
+  <p>&quot;Vibe coding&quot; - prompting a model from a rough, evolving sense of what you want and iterating loosely until it feels right - doesn&#x27;t scale to real systems, for the same reason over-delegation fails: ambiguity has to be resolved by someone, and if it isn&#x27;t resolved up front by a human, it gets resolved silently by the model. The alternative is spec-driven development: break the work into small, well-defined tasks, and for each one, write a specification that captures the actual intent behind the feature precisely enough for a model to read and follow - not just enough for a human to intuit.</p>
+<p>Executing a spec well takes more than one model call. It takes a harness: the agent plus everything around it - the tools it can invoke, its memory, and the orchestration that coordinates it - not just the underlying model. A harness can dispatch subagents for different jobs: one to research a topic or a dependency, one to talk to MCP (Model Context Protocol) servers that pull data from other systems the team relies on, and one to actually edit code. Shared files like an AGENTS.md let a team document context and conventions once so every agent - and every human - is working from the same page, and reusable &quot;skills&quot; (packaged, versioned instructions) help keep output consistent even when the underlying model changes, whether it&#x27;s running locally, privately, or in the cloud.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Vibe coding generates code from a rough, evolving prompt without a written spec; it doesn&#x27;t scale to non-trivial systems.</li><li>Spec-driven development turns the intent behind a feature into a specification the model can read and follow, then breaks work into small, well-defined tasks.</li><li>A harness is the full system around an agent - the model plus its tools, memory, and orchestration - not just the model itself.</li><li>Subagents can specialize: one for research, one for pulling data via MCP servers, one for code editing.</li><li>Shared context files (e.g. AGENTS.md) and reusable skills keep outputs consistent across teams and across different underlying models.</li></ul></div>
+  <figure class="example">
+  <figcaption>A minimal spec for a subagent to follow</figcaption>
+  <p>Instead of prompting &quot;add search to the app,&quot; a spec-driven task states the intent, the constraints, and the definition of done up front, so a code-editing subagent has no ambiguity left to resolve on its own.</p>
+  <pre><code># Spec: Add case-insensitive product search
+
+Intent: users can find a product by typing part of its name.
+
+Constraints:
+- Must query the existing `products` table; no new service.
+- Must return results in under 200ms for a 50k-row table.
+- No new third-party dependencies.
+
+Definition of done:
+- `search_products(query: str) -&gt; list[Product]` implemented and unit tested.
+- Case-insensitive substring match on `products.name`.
+- README documents the new function signature.</code></pre>
+</figure>
+</section>
+<section id="ai-assisted-testing-and-operations-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>AI-assisted testing and operations</h2>
+      <a class="stamp" href="#" data-t="428">7:08</a>
+    </div>
+  </div>
+  <p class="summary">Beyond writing code, AI can generate test data and unit tests directly from a user story, and help diagnose production incidents from log data.</p>
+  <p>Manual testing is a classic bottleneck in software delivery: it&#x27;s slow, and it usually can&#x27;t start until a build exists. The same models that generate code can generate unit tests and synthetic test data - and they can do this directly from a user story, before implementation is even finished, which shortens the QA team&#x27;s path to a working test suite instead of leaving them to write it all by hand afterward.</p>
+<p>The same capability applies downstream, in operations. Modern applications generate huge volumes of log data, far more than a human can read during an incident. AI can help diagnose problems by reading that log data - for example, tracing a stack trace to a likely root cause - which matters most exactly when it&#x27;s least convenient: a system going down at 3 a.m. with an on-call engineer trying to triage quickly.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Manual testing is a classic bottleneck in software delivery.</li><li>AI can generate unit tests and synthetic test data directly from a user story, not only from finished code.</li><li>AI can help diagnose incidents by reading log data (e.g. stack traces) and pointing toward a likely root cause.</li><li>These uses extend AI&#x27;s impact into testing and operations, phases that faster code generation alone does not touch.</li></ul></div>
+  <figure class="example">
+  <figcaption>Test generation from a user story</figcaption>
+  <p>Given the story &quot;As a user, I can reset my password via an emailed link that expires in 15 minutes,&quot; a model can generate the corresponding test case before being handed the implementation.</p>
+  <pre><code>def test_password_reset_link_expires_after_15_minutes():
+    token = request_password_reset(&quot;user@example.com&quot;)
+    travel_forward(minutes=16)
+    response = reset_password(token, new_password=&quot;N3wPass!&quot;)
+    assert response.status_code == 400
+    assert &quot;expired&quot; in response.json()[&quot;error&quot;].lower()</code></pre>
+</figure>
+</section>
+<section id="ai-for-infrastructure-and-legacy-modernization-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>AI for infrastructure and legacy modernization</h2>
+      <a class="stamp" href="#" data-t="472">7:52</a>
+    </div>
+  </div>
+  <p class="summary">Models are well-trained on infrastructure-as-code formats like Ansible and Kubernetes YAML, and can also explain and reverse-engineer legacy systems nobody currently understands.</p>
+  <p>Models are well-trained on infrastructure as code (IaC) - writing configuration, like Ansible playbooks to update virtual machines, or Kubernetes YAML to deploy a containerized application to a hybrid cloud. This is release-and-operate-stage automation, and it&#x27;s already reliable with today&#x27;s agents because these formats are rigid, well-documented, and heavily represented in training data.</p>
+<p>A separate, significant use case is modernizing legacy software: systems whose original developers are no longer around, and whose logic nobody on the current team fully understands. AI can explain what unfamiliar or old code does and help reverse-engineer the intent behind it, turning that into a language the current team can act on. This gives a team a path forward - and importantly, it isn&#x27;t a shortcut around the SDLC, it&#x27;s a way to reconstruct the requirements and design knowledge that was never documented in the first place, so the team can still run a normal lifecycle from there.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Models are well-trained on infrastructure-as-code formats such as Ansible playbooks and Kubernetes YAML.</li><li>This lets AI automate parts of the release and operate stages: updating VMs, deploying containerized apps to a hybrid cloud.</li><li>A major AI use case is legacy modernization: explaining code in systems whose original authors are gone.</li><li>Reverse-engineering legacy logic with AI reconstructs missing requirements and design knowledge, rather than bypassing the SDLC.</li></ul></div>
+  <figure class="example">
+  <figcaption>IaC a model can generate reliably</figcaption>
+  <p>A short, well-specified infrastructure request plays to a model&#x27;s strengths, since the target format is rigid and well represented in training data.</p>
+  <pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: checkout-service
+  template:
+    metadata:
+      labels:
+        app: checkout-service
+    spec:
+      containers:
+        - name: checkout-service
+          image: registry.example.com/checkout-service:1.4.2
+          ports:
+            - containerPort: 8080</code></pre>
+</figure>
+</section>
+<section id="measuring-what-actually-changed-outcomes-over-lines-of-code-9" class="block section">
+  <div class="section-head">
+    <span class="num">09</span>
+    <div>
+      <h2>Measuring what actually changed: outcomes over lines of code</h2>
+      <a class="stamp" href="#" data-t="514">8:34</a>
+    </div>
+  </div>
+  <p class="summary">Real productivity gain comes from redesigning the lifecycle around AI, shifting humans from typing to validating, and should be measured by outcomes rather than lines of code generated.</p>
+  <p>The productivity gain from AI isn&#x27;t really about picking a better model or tool. It comes from redesigning the software delivery lifecycle around the model: shifting the human role from typing code to validating it, and from working in isolation to coordinating across teams - which is what actually removes the friction at the handoffs described earlier (requirements, review, release, testing).</p>
+<p>That shift changes what&#x27;s worth measuring. Lines of code generated is an output metric, and it can rise even while true delivery speed falls - which is exactly the trap from the opening study, where developers felt faster while measurably being slower. The metrics that matter are outcomes: the health of the systems being built, code maintainability and complexity, and whether the time needed to ship a change or a new feature is actually going down. Those are lifecycle-level measurements, which is the right level, since the lifecycle - not any single stage - is what AI adoption is ultimately supposed to improve.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The productivity gain comes from redesigning the lifecycle around AI, not from picking a better model.</li><li>The human role shifts from typing code to validating AI output and coordinating across teams.</li><li>Removing friction at the handoffs between stages is what actually shortens the lifecycle.</li><li>Track outcomes - system health, maintainability/complexity, time to ship a change - instead of lines of code generated.</li></ul></div>
+  <figure class="example">
+  <figcaption>Output metric vs. outcome metric</figcaption>
+  <p>&quot;500 lines of code generated this week&quot; is an output metric - it can rise even while the team ships fewer real changes. &quot;Median time from user story accepted to feature in production&quot; is an outcome metric - it only improves if the whole lifecycle actually got faster.</p>
+  
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Software development lifecycle (SDLC)</dt><dd>The sequence of stages a team moves through to deliver software: requirements, design, build (code and test), release, and operate.</dd></div><div class="term"><dt>Model evaluation and threat research organization</dt><dd>The kind of organization referenced in the video&#x27;s study - one that runs controlled evaluations of AI systems, including measuring real-world productivity effects rather than relying on self-reported estimates.</dd></div><div class="term"><dt>Over-delegation</dt><dd>Handing a model one large, ambiguous task and expecting it to complete the work autonomously, which pushes unstated design decisions into unreviewed code.</dd></div><div class="term"><dt>Under-delegation</dt><dd>Using AI only for narrow, well-scoped tasks while a human still does all the planning and architecture, which caps how much of the total work AI can speed up.</dd></div><div class="term"><dt>Vibe coding</dt><dd>Generating code from a rough, evolving prompt and iterating loosely until it feels right, without a written specification of what&#x27;s actually required.</dd></div><div class="term"><dt>Spec-driven development</dt><dd>Turning the intent behind a feature into a written specification precise enough for a model to read and follow, then breaking the work into small, well-defined tasks.</dd></div><div class="term"><dt>Harness</dt><dd>The full system around an AI agent - the underlying model plus the tools, memory, and orchestration logic it can use - not just the model itself.</dd></div><div class="term"><dt>Subagent</dt><dd>A smaller agent given a narrow, specific job (e.g. research, code editing) within a larger multi-agent workflow coordinated by a harness.</dd></div><div class="term"><dt>MCP (Model Context Protocol)</dt><dd>A protocol that lets an AI agent connect to external servers to pull in data or capabilities from other systems a team relies on.</dd></div><div class="term"><dt>AGENTS.md</dt><dd>A shared file that documents context, conventions, and instructions for AI agents working across a team or organization, so different agents and people stay consistent.</dd></div><div class="term"><dt>Infrastructure as code (IaC)</dt><dd>Defining infrastructure - servers, containers, deployments - through machine-readable configuration files, such as Ansible playbooks or Kubernetes YAML, instead of manual setup steps.</dd></div><div class="term"><dt>Skills</dt><dd>Packaged, reusable instructions that help an AI system produce consistent output for a given task regardless of which underlying model is running it.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why could developers in the study feel 20% faster while actually being about 20% slower?</summary>
+  <div class="answer"><p>Perceived speed came from how quickly code was generated, but that ignored time spent afterward on review, correction, and integration. Measuring only the fast part of the process (typing/generating code) hides slowdowns in the parts that come after it.</p></div>
+</details><details class="q">
+  <summary>Why doesn&#x27;t speeding up the coding stage shrink the whole software delivery lifecycle?</summary>
+  <div class="answer"><p>Most elapsed time in the lifecycle is spent waiting between stages and teams (clarification, review, release), not writing code. If those surrounding stages don&#x27;t also speed up, they absorb the time saved in coding, so total delivery time barely changes - the same logic as an assembly line whose slowest stations set the pace.</p></div>
+</details><details class="q">
+  <summary>Why does over-delegation slow delivery down even though the model produces code very quickly?</summary>
+  <div class="answer"><p>Over-delegation pushes design decisions that should be made explicitly (payments, auth, shipping, etc.) into the model, which makes them implicitly while generating a large amount of unread code. Reviewers then have to reconstruct those decisions from the diff, and the resulting back-and-forth costs more time than the fast generation saved.</p></div>
+</details><details class="q">
+  <summary>Why does under-delegation produce good code but still fail to meaningfully raise productivity?</summary>
+  <div class="answer"><p>Under-delegation only applies AI to narrow, well-scoped tasks, which it handles reliably. But planning and architecture - often the most time-consuming part of building software - stay entirely manual, so only a small slice of total effort gets faster.</p></div>
+</details><details class="q">
+  <summary>Why is vibe coding described as something that doesn&#x27;t scale?</summary>
+  <div class="answer"><p>Vibe coding resolves ambiguity through loose iteration rather than an upfront specification, so as a task or system grows, more unstated decisions get made implicitly by the model - the same core problem that makes over-delegation fail on larger requests.</p></div>
+</details><details class="q">
+  <summary>Why should teams track outcomes like maintainability and time-to-ship instead of lines of code generated?</summary>
+  <div class="answer"><p>Lines of code is an output metric that can increase even while real delivery performance gets worse, which is exactly what happened in the opening study. Outcome metrics measure the lifecycle as a whole, which is the level AI adoption is actually supposed to improve.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Look up the METR study on AI coding tool impact on experienced open source developers, and compare its methodology to how your own team estimates productivity gains.</li><li>Before your next AI-assisted task, write a short spec like the search example in this lesson, and compare the review time against a similar task done with an under-specified prompt.</li><li>Set up a shared AGENTS.md file in one repository and observe whether outputs become more consistent across different agents or models.</li><li>Feed a batch of recent bug reports or support tickets to a model and ask it to cluster them by root cause, then compare the result to how your team currently gathers requirements.</li><li>Try generating a Kubernetes deployment manifest or Ansible playbook for a real service you maintain, and review it as carefully as you would human-written infrastructure code.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

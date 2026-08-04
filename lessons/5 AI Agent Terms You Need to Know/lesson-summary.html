@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Five Building Blocks of a Modern AI Agent — Condensed</title>
+<meta name="description" content="AGENTS.md, skills, MCP, A2A and subagents — what each one is for, and why they are not interchangeable.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-summary">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-model-is-not-the-agent-1"><span class="n">1</span>The model is not the agent</a></li>
+<li><a href="#agents-md-how-this-project-works-2"><span class="n">2</span>AGENTS.md: how this project works</a></li>
+<li><a href="#nesting-and-precedence-3"><span class="n">3</span>Nesting and precedence</a></li>
+<li><a href="#agent-skills-how-to-do-a-kind-of-task-4"><span class="n">4</span>Agent skills: how to do a kind of task</a></li>
+<li><a href="#mcp-reaching-tools-and-data-5"><span class="n">5</span>MCP: reaching tools and data</a></li>
+<li><a href="#a2a-agents-talking-to-each-other-6"><span class="n">6</span>A2A: agents talking to each other</a></li>
+<li><a href="#subagents-work-that-will-not-fit-one-context-7"><span class="n">7</span>Subagents: work that will not fit one context</a></li>
+<li><a href="#the-five-in-one-picture-8"><span class="n">8</span>The five in one picture</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Advanced</span><span class="pill ghost">AI agent architecture</span><span class="pill ghost">Condensed</span><span class="muted">IBM Technology</span></div>
+  <h1>Five Building Blocks of a Modern AI Agent</h1>
+  <p class="lede">AGENTS.md, skills, MCP, A2A and subagents — what each one is for, and why they are not interchangeable.</p>
+  <p class="muted small">For engineers building agents who need to know which mechanism solves which problem · 26 July 2026</p>
+  <p class="muted small">Every section, key point, term and question from the full lesson is here. The extended explanations and the additional examples are not.</p>
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=k5jYwyhDMxA" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson.html">Read the full lesson</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>What a context window is and that it is finite</li><li>Familiarity with an agent calling tools</li><li>Comfort reading Python and JSON</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>A capable agent is not a capable model. The model generates text and reasons; on its own it is a conversational partner. Everything that makes it an agent is scaffolding built around it, and five pieces cover most of what a frontier coding agent actually runs on.</p>
+<p>They divide cleanly by the problem each solves. Two shape behaviour from the inside: AGENTS.md says how this particular project works, and skills say how to perform a particular kind of task. Two reach outward: MCP connects the agent to tools and data, and A2A connects it to other agents. The fifth, subagents, handles work that will not fit in a single context window.</p>
+<p>That division is the useful part, because the five are routinely confused. Knowledge that should be a skill ends up permanently loaded in AGENTS.md. Coordination that wants A2A gets built as an MCP tool. Work that needs a subagent gets crammed into one context until quality collapses. Each mistake has a recognisable symptom, and knowing which piece was designed for which problem is most of the fix.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>The model is not the agent — the instruction layer wrapped around it is what makes it one.</li><li>AGENTS.md is a project-level instruction file, read whenever the agent starts work there.</li><li>Nested AGENTS.md files stack, with those closer to the working directory taking precedence.</li><li>A skill is a folder with a SKILL.md whose description tells the agent when to invoke it, so it stays out of context until needed.</li><li>MCP is a standard interface between an agent and external tools or data, replacing per-target connectors.</li><li>A2A is a standard for agents to discover and delegate to each other, using a published agent card.</li><li>MCP is asymmetric — agent to tool. A2A is between peers, each autonomous.</li><li>Subagents run in their own fresh context and return a result, keeping the parent&#x27;s context clean and enabling parallel work.</li></ul>
+  </div>
+</section>
+<section id="the-model-is-not-the-agent-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The model is not the agent</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">A model generates text and reasons. What turns it into an agent is the instruction layer wrapped around it.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The model supplies generation and reasoning, nothing else.</li><li>A model alone is a conversational partner, not an agent.</li><li>The instruction layer around the model is what makes it agentic.</li><li>A better model improves each step; it does not supply project knowledge or access.</li><li>The five pieces split into: shape behaviour, reach outward, and scale beyond one context.</li></ul></div>
+  <figure class="example">
+  <figcaption>The five, by the problem each solves</figcaption>
+  <p>Worth memorising in this shape rather than as a list. Nearly every design mistake in this area is reaching for the wrong row.</p>
+  <pre><code>inside the agent — shapes behaviour
+  AGENTS.md     how this project works        always loaded
+  skills        how to do a kind of task      loaded on match
+
+reaching outward
+  MCP           agent  ──&gt; tools and data     client / server
+  A2A           agent &lt;──&gt; agent              peer to peer
+
+beyond one context
+  subagents     spawn a child with its own context, get a result back</code></pre>
+</figure>
+</section>
+<section id="agents-md-how-this-project-works-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>AGENTS.md: how this project works</h2>
+      <a class="stamp" href="#" data-t="40">0:40</a>
+    </div>
+  </div>
+  <p class="summary">A Markdown file at the project root that the agent reads whenever it starts work there.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A Markdown file at the project root, read whenever the agent starts work there.</li><li>Holds commands, conventions, setup steps and formatting rules — a README for agents.</li><li>Instructions are executed when contextually relevant, not merely displayed.</li><li>Introduced by OpenAI, later contributed to the Agentic AI Foundation under the Linux Foundation.</li><li>Some agents use another filename for the same idea, such as CLAUDE.md.</li><li>It is loaded every session, so only broadly relevant content belongs in it.</li></ul></div>
+  <figure class="example">
+  <figcaption>What earns its place in the file</figcaption>
+  <p>Note how much of it is prohibitions. The repeated mistakes cost more than the missing facts, and &#x27;do not touch this&#x27; is the part nobody thinks to write down until an agent has already touched it.</p>
+  <pre><code># AGENTS.md
+
+## Commands
+test:   pnpm test          run before every commit
+build:  pnpm build         never call tsc directly
+lint:   pnpm lint --fix
+
+## Conventions
+- Conventional Commits for messages: feat|fix|chore(scope): subject
+- PR titles match the commit subject.
+- Money is integer cents. Never float.
+
+## Do not
+- Do not edit src/generated/ — it is code-generated.
+- Do not add dependencies without asking.
+- Do not modify migrations that have already shipped.</code></pre>
+</figure>
+</section>
+<section id="nesting-and-precedence-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Nesting and precedence</h2>
+      <a class="stamp" href="#" data-t="122">2:02</a>
+    </div>
+  </div>
+  <p class="summary">Several AGENTS.md files can coexist. The one closest to the working directory wins.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Multiple AGENTS.md files can exist in one repository.</li><li>Files closer to the working directory override those further up.</li><li>Root holds what is universal; sub-projects hold what is local.</li><li>It behaves like scope resolution: nearest statement about a topic wins.</li><li>Duplicating a root rule in a child creates a copy that drifts and then silently wins.</li><li>There is no way to lock a rule against being overridden further down.</li></ul></div>
+  <figure class="example">
+  <figcaption>A monorepo with three scopes</figcaption>
+  <p>Working in `services/api/`, the agent applies the root then the api file. The test command is the local one; the commit convention is the root one, since nothing nearer contradicts it.</p>
+  <pre><code>repo/
+├── AGENTS.md              conventional commits; never edit generated/
+├── services/
+│   └── api/
+│       └── AGENTS.md      test: pytest -q ; python 3.12 ; ruff
+└── web/
+    └── AGENTS.md          test: pnpm test ; node 22 ; prettier
+
+# working in services/api/ →  root, then api
+#   test command   : pytest -q          (from api)
+#   commit format  : conventional        (from root, uncontested)</code></pre>
+</figure>
+</section>
+<section id="agent-skills-how-to-do-a-kind-of-task-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Agent skills: how to do a kind of task</h2>
+      <a class="stamp" href="#" data-t="164">2:44</a>
+    </div>
+  </div>
+  <p class="summary">A folder with a SKILL.md whose description tells the agent when to pull it in — and which stays out of context until then.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A skill is a folder containing SKILL.md plus any scripts and resources.</li><li>The description tells the agent when to invoke the skill.</li><li>Unmatched skills consume no context at all.</li><li>Skills are an open standard supported by multiple platforms.</li><li>AGENTS.md is bound to a project; a skill is bound to an activity and travels.</li><li>The description is a routing key, not documentation — a vague one makes the skill unreachable.</li></ul></div>
+  <figure class="example">
+  <figcaption>A skill folder</figcaption>
+  <p>Only the frontmatter is visible until the skill matches. The supporting files are not read until execution actually reaches the step that needs them.</p>
+  <pre><code>skills/slide-deck/
+├── SKILL.md          when to use it + the steps
+├── template.pptx     opened during execution
+└── build_deck.py     run at the final step
+
+# SKILL.md
+---
+name: slide-deck
+description: Build a PowerPoint deck. Use when the user asks for
+  slides, a deck, a presentation, or a readout.
+---
+
+1. Confirm the audience and the time slot. Ask if not given.
+2. Draft an outline, one line per slide. Get it approved.
+3. Fill template.pptx, one idea per slide, no paragraphs.
+4. Run build_deck.py and report the output path.</code></pre>
+</figure>
+</section>
+<section id="mcp-reaching-tools-and-data-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>MCP: reaching tools and data</h2>
+      <a class="stamp" href="#" data-t="289">4:49</a>
+    </div>
+  </div>
+  <p class="summary">An open protocol that wraps any tool or data source in a standard interface, so one connector serves every agent.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Agents must reach APIs, databases, developer tools and SaaS platforms, each with its own interface.</li><li>MCP is an open protocol; an MCP server wraps a target in a standard interface.</li><li>Any MCP-speaking agent can use any MCP server.</li><li>Started at Anthropic, now governed under the Agentic AI Foundation at the Linux Foundation.</li><li>Integration effort goes from agents × systems to agents + systems.</li><li>Tools are actions, resources are readable data — modelling everything as a tool is a common error.</li><li>The server is where scope and permission should be enforced.</li></ul></div>
+  <figure class="example">
+  <figcaption>Why a protocol instead of connectors</figcaption>
+  <p>Each line on the left is bespoke code somebody maintains. On the right, each server is written once and every current and future agent can use it.</p>
+  <pre><code>without a standard              with MCP
+──────────────────────────────────────────────────────────
+agent A ──&gt; Notion              agent A ──┐
+agent A ──&gt; Stripe              agent B ──┼──&gt; MCP ──&gt; Notion
+agent A ──&gt; Postgres            agent C ──┘        ──&gt; Stripe
+agent B ──&gt; Notion                                 ──&gt; Postgres
+agent B ──&gt; Stripe
+...
+N x M connectors                N + M</code></pre>
+</figure>
+</section>
+<section id="a2a-agents-talking-to-each-other-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>A2A: agents talking to each other</h2>
+      <a class="stamp" href="#" data-t="377">6:17</a>
+    </div>
+  </div>
+  <p class="summary">An open protocol for agent-to-agent communication, where each agent publishes a card describing what it does and how to reach it.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A2A is an open protocol for communication between agents.</li><li>Each agent publishes an agent card describing what it does and how to reach it.</li><li>Other agents read the card to work out how to delegate.</li><li>It comes from Google and is now an open standard under the Linux Foundation.</li><li>MCP is asymmetric client-to-server; A2A is between autonomous peers.</li><li>An MCP call returns; an A2A delegation is a long-running task needing identity and progress.</li><li>The receiving agent decides how to accomplish the request, not which function to run.</li></ul></div>
+  <figure class="example">
+  <figcaption>An agent card</figcaption>
+  <p>Illustrative shape rather than an exact schema — the point is what a card has to carry. Discovery needs a stable location, delegation needs an endpoint and auth, and routing needs a description specific enough to choose on.</p>
+  <pre><code>{
+  &quot;name&quot;: &quot;finance-approvals&quot;,
+  &quot;description&quot;: &quot;Approves vendor spend against policy and budget.&quot;,
+  &quot;skills&quot;: [
+    {&quot;id&quot;: &quot;approve_contract&quot;,
+     &quot;description&quot;: &quot;Review a vendor contract and approve or reject spend.&quot;},
+    {&quot;id&quot;: &quot;check_budget&quot;,
+     &quot;description&quot;: &quot;Report remaining budget for a cost centre.&quot;}
+  ],
+  &quot;endpoint&quot;: &quot;https://finance.internal/a2a&quot;,
+  &quot;auth&quot;: {&quot;type&quot;: &quot;oauth2&quot;, &quot;scopes&quot;: [&quot;spend:approve&quot;]}
+}
+
+# published at a well-known location so other agents can find it</code></pre>
+</figure>
+</section>
+<section id="subagents-work-that-will-not-fit-one-context-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Subagents: work that will not fit one context</h2>
+      <a class="stamp" href="#" data-t="504">8:24</a>
+    </div>
+  </div>
+  <p class="summary">A child agent spawned with its own fresh context, which does a piece of work and returns a result.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Two motivations: work too large for one context, and work that is embarrassingly parallel.</li><li>A subagent runs in its own fresh context, does a job and returns a result.</li><li>The parent&#x27;s context stays clean because it receives only the result.</li><li>Not a formal standard, but near-identical across modern agent systems.</li><li>Whatever the child leaves out of its summary is lost to the parent.</li><li>Cost scales with the number of children; you are buying latency with tokens.</li><li>Do not fan out when subtasks need each other&#x27;s findings.</li></ul></div>
+  <figure class="example">
+  <figcaption>Fan out, then aggregate</figcaption>
+  <p>The parent never sees the files. It sees twenty short reports, which is what keeps its context usable. Note that a failing child returns a value rather than raising — one bad check should not lose the other nineteen.</p>
+  <pre><code>def review(functions, parent_ctx):
+    reports = run_parallel([
+        spawn_subagent(
+            task=f&quot;Review {fn.path}:{fn.name} for error handling only. &quot;
+                 f&quot;Reply with at most 5 lines: findings or &#x27;none&#x27;.&quot;,
+            context=&quot;fresh&quot;,
+        )
+        for fn in functions
+    ], on_error=lambda fn, e: f&quot;{fn.name}: FAILED ({e})&quot;)
+
+    return summarise(reports)      # parent sees ~20 short reports,
+                                   # never the 20 files</code></pre>
+</figure>
+</section>
+<section id="the-five-in-one-picture-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>The five in one picture</h2>
+      <a class="stamp" href="#" data-t="628">10:28</a>
+    </div>
+  </div>
+  <p class="summary">Two shape behaviour, two reach outward, one scales past a single context — and the symptoms tell you which is missing.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>AGENTS.md and skills shape behaviour from inside the agent.</li><li>MCP reaches tools and data; A2A reaches other agents.</li><li>Subagents handle work that will not fit one context window.</li><li>Procedural knowledge in AGENTS.md shows up as a context budget spent before work begins.</li><li>Coordination built as an MCP tool breaks when the far side needs to ask something.</li><li>Diagnose the missing piece before questioning the model.</li></ul></div>
+  <figure class="example">
+  <figcaption>Symptom to missing piece</figcaption>
+  <p>Each symptom points at exactly one of the five, and the fixes are not interchangeable. Note that none of the rows is answered by a better model.</p>
+  <pre><code>symptom                                        what is missing
+──────────────────────────────────────────────────────────────────
+&quot;it uses the wrong test command every time&quot;    AGENTS.md
+&quot;it knows the facts, botches the procedure&quot;    a skill
+&quot;it cannot reach our database at all&quot;          an MCP server
+&quot;two agents duplicate each other&#x27;s work&quot;       A2A
+&quot;quality drops halfway through long tasks&quot;     subagents
+&quot;the context is full before it starts&quot;         a skill (content is
+                                                 in AGENTS.md)</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>AGENTS.md</dt><dd>A Markdown file at a project root holding commands, conventions and prohibitions, read whenever an agent starts work in that project.</dd></div><div class="term"><dt>Agentic AI Foundation</dt><dd>The body under the Linux Foundation that now governs several of these standards, including AGENTS.md and MCP.</dd></div><div class="term"><dt>Nesting / precedence</dt><dd>Several AGENTS.md files applied from the root down, with the file closest to the working directory overriding those above it.</dd></div><div class="term"><dt>Agent skill</dt><dd>A folder containing a SKILL.md plus scripts and resources, describing how to perform one kind of task.</dd></div><div class="term"><dt>SKILL.md</dt><dd>The file defining a skill: metadata including the description that tells the agent when to invoke it, and the steps to follow.</dd></div><div class="term"><dt>Skill description</dt><dd>The one visible part of a skill before loading. It functions as a routing key, so a vague description makes the skill unreachable.</dd></div><div class="term"><dt>MCP</dt><dd>Model Context Protocol: an open protocol connecting AI applications to tools, data sources and workflows through a standard interface.</dd></div><div class="term"><dt>MCP server</dt><dd>The component wrapping a tool or data source so any MCP-speaking agent can use it, and the right place to enforce permission.</dd></div><div class="term"><dt>A2A</dt><dd>Agent to agent: an open protocol letting autonomous agents discover one another and delegate work.</dd></div><div class="term"><dt>Agent card</dt><dd>A published description of what an agent does and how to talk to it, which other agents read in order to delegate.</dd></div><div class="term"><dt>Subagent</dt><dd>A child agent spawned by a parent, running in its own fresh context, doing one piece of work and returning a result.</dd></div><div class="term"><dt>Context isolation</dt><dd>The property that makes subagents useful: the child holds the bulk of the material and the parent receives only the conclusion.</dd></div><div class="term"><dt>Embarrassingly parallel</dt><dd>Work that splits into independent pieces needing no coordination — the case where fanning out to subagents pays.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>A guide for generating quarterly reports is added to AGENTS.md and the agent starts running out of context on unrelated tasks. What went wrong?</summary>
+  <div class="answer"><p>AGENTS.md is loaded on every session regardless of the task, so occasional, activity-specific knowledge placed there is paid for constantly. It belongs in a skill, which stays out of context — costing only its description — until a request matches it.</p></div>
+</details><details class="q">
+  <summary>A monorepo root AGENTS.md says to use conventional commits, and a sub-project file repeats that rule with slightly different wording. Why is this worse than not repeating it?</summary>
+  <div class="answer"><p>Files closer to the working directory override those above, so the duplicated copy is the one that applies under that sub-project. It will drift from the root over time and silently win, producing behaviour that contradicts the rule everyone believes is in force — and there is no way for the root to lock a value against being overridden.</p></div>
+</details><details class="q">
+  <summary>A skill has excellent instructions and is never invoked. Where is the fault almost certainly?</summary>
+  <div class="answer"><p>In the description. It is the only part visible before loading, so it acts as the routing key. If it does not name the situation and the words a user would actually say, nothing matches it and the instructions are never read — the decision to load happens before they are visible.</p></div>
+</details><details class="q">
+  <summary>Why does MCP change integration effort from a product into a sum?</summary>
+  <div class="answer"><p>Without a standard, each agent-to-system pairing needs its own connector, so the work scales as agents times systems. With MCP each system needs one server and each agent speaks the protocol once, so it scales as agents plus systems — and any new agent immediately gets every existing server.</p></div>
+</details><details class="q">
+  <summary>What is the essential difference between calling an MCP tool and delegating over A2A?</summary>
+  <div class="answer"><p>An MCP call is asymmetric and specifies which function to run; the far side executes and returns. An A2A delegation goes to an autonomous peer that decides how to achieve the outcome, may take a long time, may ask a clarifying question, and may decline. Treating delegation as a function call breaks the first time any of those happens.</p></div>
+</details><details class="q">
+  <summary>You spawn twenty subagents to review twenty files and get back twenty vague paragraphs. Why is this unrecoverable without redoing the work?</summary>
+  <div class="answer"><p>Each child&#x27;s context is discarded when it finishes, so anything not in its reply is gone — the parent never saw the files and cannot query what the child read. The instruction given to a child therefore determines what survives, which is why it should specify the exact shape of the reply rather than asking for a general account.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Audit your own AGENTS.md and move anything task-specific into a skill, then measure how much of the context budget you get back on an unrelated task.</li><li>Set up a nested AGENTS.md in a monorepo and deliberately create a conflicting rule, to see for yourself which one the agent follows.</li><li>Rewrite the descriptions of skills that never trigger as explicit trigger conditions naming user phrasings, then count how often they are selected afterwards.</li><li>Write an MCP server for one internal system and notice how much of the work is deciding what should be a tool versus a resource rather than writing the integration itself.</li><li>Model one hand-off between two of your services as an A2A delegation and enumerate the states you have to handle — completed, rejected, input-required — that a function call never has.</li><li>Take a long single-agent task where quality degrades and split the bulk reading into a subagent, then compare the parent&#x27;s context usage before and after.</li><li>The MCP entry here has a fuller treatment elsewhere in this collection, and the memory lesson covers how AGENTS.md and skills map onto semantic and procedural memory — this page is the map, those are the depth.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

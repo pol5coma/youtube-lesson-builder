@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Five Persistent AI Myths, and What&#x27;s Actually True</title>
+<meta name="description" content="Separate outdated assumptions about hallucination, reasoning traces, compute costs, context windows, and agents from how frontier AI systems actually behave today.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#myth-1-ai-models-hallucinate-frequently-1"><span class="n">1</span>Myth 1: AI models hallucinate frequently</a></li>
+<li><a href="#myth-2-you-can-watch-ai-think-2"><span class="n">2</span>Myth 2: You can watch AI think</a></li>
+<li><a href="#myth-3-training-is-where-the-ai-compute-goes-3"><span class="n">3</span>Myth 3: Training is where the AI compute goes</a></li>
+<li><a href="#myth-4-large-context-windows-let-you-offload-data-4"><span class="n">4</span>Myth 4: Large context windows let you offload data</a></li>
+<li><a href="#myth-5-ai-agents-can-work-fully-autonomously-5"><span class="n">5</span>Myth 5: AI agents can work fully autonomously</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">LLM capabilities and limits</span><span class="muted">IBM Technology</span></div>
+  <h1>Five Persistent AI Myths, and What&#x27;s Actually True</h1>
+  <p class="lede">Separate outdated assumptions about hallucination, reasoning traces, compute costs, context windows, and agents from how frontier AI systems actually behave today.</p>
+  <p class="muted small">For engineers and product people building with LLMs who want to know which capabilities are real today versus assumed from outdated intuition · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=OWPRU_Pc4Ng" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Basic familiarity with using a chatbot or LLM-based assistant</li><li>A rough idea of what an AI agent or tool-use/function-calling is</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>AI systems have moved fast enough that a lot of common assumptions about them are already outdated. Some assumptions were true a generation of models ago and never got updated; others were never quite true to begin with. This lesson works through five of the most persistent ones: that models hallucinate constantly, that a visible reasoning trace shows you what the model is actually thinking, that training is the expensive part of running AI, that a huge context window works like a database, and that agents can be left to run unsupervised.</p>
+<p>Each myth turns out to have a grain of truth wrapped around a more precise reality. Hallucinations are real but far rarer in frontier models than the reputation suggests, largely because of tool use and models that have learned to decline instead of guess. Reasoning traces are real text you can read, but they behave more like a narration than a readout of the underlying computation. Inference — running the model, not training it — is now the larger and faster-growing share of AI compute cost. Long context windows are excellent at finding one fact and much weaker at connecting several scattered ones. Autonomous agents work, but their reliability degrades fast once a task requires many sequential steps, because per-step error rates compound.</p>
+<p>Knowing where the boundary between myth and reality actually sits matters for anyone deciding how much to trust a model&#x27;s output, how to budget AI infrastructure, how much text to stuff into a prompt, or how much supervision to put around an agent.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Frontier models still hallucinate, but tool use, refusal calibration, and extended thinking have pushed the rate down to roughly 3% on hard benchmarks.</li><li>A chain-of-thought trace is the model&#x27;s narration of its reasoning, not a faithful readout of the computation that produced the answer — a gap researchers call faithfulness.</li><li>Inference, not training, is now the larger and faster-growing share of AI compute spend, driven mainly by reasoning models emitting far more tokens per query.</li><li>A million-token context window can find one fact almost perfectly, but accuracy drops sharply when a task requires connecting several facts scattered across that window.</li><li>An AI agent is a model wrapped in a loop that decides, acts, and observes repeatedly; each step can be reliable on its own while the full chain is not.</li><li>Reliability compounds multiplicatively across agent steps: a 95%-reliable step repeated 20 times succeeds end to end only about 36% of the time.</li><li>Refusal calibration — a model saying it cannot verify something instead of guessing — is a trained behavior, not the model being unhelpful.</li><li>Human-in-the-loop checkpoints and verifier models exist specifically to break the compounding-error chain in long agent runs.</li></ul>
+  </div>
+</section>
+<section id="myth-1-ai-models-hallucinate-frequently-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Myth 1: AI models hallucinate frequently</h2>
+      <a class="stamp" href="#" data-t="84">1:24</a>
+    </div>
+  </div>
+  <p class="summary">Hallucinations still happen, but tool use, refusal calibration, and extended thinking have pushed frontier hallucination rates down to roughly 3%.</p>
+  <p>A hallucination is when a model confidently states something false as if it were fact. That behavior hasn&#x27;t disappeared, but three changes in how frontier models are built and trained have sharply reduced how often it shows up. First, tool use lets a model pull an answer from a live web search or a database lookup instead of generating it purely from what it memorized during training — it can check rather than recall. Second, refusal calibration is training that rewards a model for saying “I can&#x27;t verify this” when it genuinely doesn&#x27;t have grounds for an answer, instead of rewarding confident-sounding guesses. Third, reasoning models get extended thinking: time and token budget to work through a problem and catch their own errors before committing to a final answer.</p>
+<p>The combined effect shows up clearly on adversarial questions designed to bait a wrong answer. Asking a frontier chatbot why a nonexistent “Volume 5” of a well-known reference book was published in 2019 doesn&#x27;t produce a fabricated summary of that fake volume — tool use lets the model search and discover no such volume exists. Asking for research papers on an extremely narrow, oddly specific intersection of topics doesn&#x27;t produce invented citations either; a calibrated model will say outright that answering from search risks citing papers that don&#x27;t exist, and decline instead of fabricating a list.</p>
+<p>None of this means hallucinations are solved. It means the honest current estimate — something like 3% for the leading frontier models — is a long way from “frequent,” which was a much more accurate description of models from a few years ago that had no tool access and no incentive to say “I don&#x27;t know.”</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Tool use grounds an answer in a live lookup instead of the model&#x27;s memorized training data.</li><li>Refusal calibration trains a model to decline rather than guess when it can&#x27;t verify a claim.</li><li>Extended thinking gives reasoning models time to check their own work before answering.</li><li>Frontier models hallucinate on the order of 3% of the time on hard, adversarial questions — not zero, but far from &#x27;frequent&#x27;.</li><li>The reputation for frequent hallucination describes older, non-tool-using models more accurately than current frontier ones.</li></ul></div>
+  <figure class="example">
+  <figcaption>Why a calibrated model declines instead of guessing</figcaption>
+  <p>A useful mental model for what changed: a model with tool access and refusal-calibration training routes a query through a check before it routes it through free generation. Well-established facts still come straight from the model&#x27;s memory, but anything obscure or unverifiable gets either a tool call or an explicit refusal.</p>
+  <pre><code>def answer(query, can_verify_via_tool, is_well_established_fact):
+    &quot;&quot;&quot;Simplified illustration of tool use + refusal calibration
+    changing what a model does with an uncertain claim.&quot;&quot;&quot;
+    if can_verify_via_tool:
+        return web_search_or_db_lookup(query)   # ground the answer externally
+
+    if is_well_established_fact:
+        return generate_from_memory(query)      # safe to answer directly
+
+    # No way to verify, and not a well-known fact - decline instead of guessing
+    return &quot;I can&#x27;t verify this without a reliable source.&quot;</code></pre>
+</figure>
+</section>
+<section id="myth-2-you-can-watch-ai-think-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Myth 2: You can watch AI think</h2>
+      <a class="stamp" href="#" data-t="211">3:31</a>
+    </div>
+  </div>
+  <p class="summary">A reasoning model&#x27;s visible chain-of-thought trace is a narration of its answer, not a faithful record of the internal computation that actually produced it.</p>
+  <p>Chain of thought is the step-by-step text a reasoning model produces on its way to an answer, visible when you expand the “thinking” section of a chat interface. It reads like a person working through a problem out loud, so it&#x27;s tempting to treat it as a transcript of the model&#x27;s actual reasoning process. Whether it really is that gets measured by a property called faithfulness: the degree to which the verbalized trace causally corresponds to the model&#x27;s actual internal computation — its weights and attention patterns — in reaching its answer.</p>
+<p>Measured faithfulness turns out to be low. The real computation happens across a vast network of weights and attention patterns that has no obligation to match the story told in the visible trace. Researchers call the gap post hoc rationalization: the trace is generated to sound like a reasonable path to whatever answer the model&#x27;s internal computation was already converging on, not a log of the steps that produced it.</p>
+<p>This doesn&#x27;t make the trace useless — it&#x27;s still often a helpful summary of the kind of reasoning a well-posed version of the problem would require, and it can surface errors a careful reader would catch. But it means you should not treat an expanded reasoning panel as a debugger into the model&#x27;s internals. What you&#x27;re reading is the model&#x27;s account of its thinking, produced the same way as its final answer: by generating plausible-sounding text.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Chain of thought is the visible, generated text a reasoning model produces before its final answer.</li><li>Faithfulness measures whether that trace actually corresponds to the model&#x27;s internal computation, not just whether it sounds plausible.</li><li>Measured faithfulness is low: the trace is closer to a narration than a transcript.</li><li>Post hoc rationalization is the term for a trace that justifies an answer the model&#x27;s weights already favored, rather than deriving it.</li><li>A reasoning trace is a useful summary to read, but not a reliable window into what&#x27;s actually happening inside the model.</li></ul></div>
+  <figure class="example">
+  <figcaption>A hint-based faithfulness probe</figcaption>
+  <p>One general way researchers test whether a trace is faithful: quietly plant a hint toward a specific answer in the prompt, then check two things separately — did the final answer move toward the hinted one, and does the visible trace ever mention the hint as a reason. If the answer shifts but the trace never cites the hint, the trace omitted the actual cause of the shift, which is direct evidence it isn&#x27;t a faithful account.</p>
+  <pre><code>1. Give the model a prompt containing a subtle hint toward answer B
+   (e.g. &quot;a domain expert believes the answer is B&quot;).
+2. Ask the model to solve the problem and show its reasoning trace.
+3. Check two things:
+   - Did the final answer move toward B?
+   - Does the trace explicitly mention the hint as a factor?
+4. Answer shifted toward B, but the trace never mentions the hint
+   =&gt; the trace is unfaithful: it tells a plausible story that
+      leaves out the real cause of the answer change.</code></pre>
+</figure>
+</section>
+<section id="myth-3-training-is-where-the-ai-compute-goes-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Myth 3: Training is where the AI compute goes</h2>
+      <a class="stamp" href="#" data-t="336">5:36</a>
+    </div>
+  </div>
+  <p class="summary">Inference — running an already-trained model — has overtaken training as the larger and faster-growing share of total AI compute spend.</p>
+  <p>Running AI splits into two distinct phases. Training is where the model gets built: billions of parameters get tuned across huge datasets, consuming weeks of GPU time, and this is the phase behind headline figures like GPT-4&#x27;s roughly $100 million training cost. Inference is what happens every time someone actually uses the model: the GPU runs the already-fixed weights forward once to produce a single answer. Training happens once per model; inference happens on every single query, forever, for as long as the model is in use.</p>
+<p>That asymmetry is why inference&#x27;s share of total AI compute has been climbing steadily. Around 2023, inference was roughly a third of total AI compute spend, with training making up the rest. By 2025 it was roughly half and half. Analysts project that by the end of this year inference will account for roughly two-thirds of total AI compute cost. A big driver is exactly the reasoning models covered in myth 2: their chain-of-thought traces generate somewhere between 10 and 100 times more tokens per query than a non-reasoning model producing a direct answer, and that multiplier is especially pronounced inside agentic harnesses where a model may take many reasoning-heavy steps to complete one task.</p>
+<p>The practical upshot is that “it&#x27;s already trained, so it&#x27;s cheap to run” stopped being reliably true once reasoning became the default mode for frontier models. Every additional token of reasoning a model generates before answering is inference compute, multiplied by every query anyone ever sends it.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Training builds the model once; inference runs it on every subsequent query.</li><li>GPT-4&#x27;s roughly $100M training cost is a one-time expense, dwarfed over time by cumulative inference cost.</li><li>Inference&#x27;s share of total AI compute rose from about a third in 2023 to about half in 2025, with two-thirds projected by the end of this year.</li><li>Reasoning models emit roughly 10 to 100 times more tokens per query than non-reasoning models, driving up inference cost.</li><li>Agentic harnesses amplify this further because a single task can involve many reasoning-heavy steps.</li></ul></div>
+  <figure class="example">
+  <figcaption>Why token count per query drives the shift</figcaption>
+  <p>A rough illustration of why inference costs scale the way they do: a non-reasoning answer might cost a few hundred tokens, while a reasoning model working through the same query can multiply that by one to two orders of magnitude, and it pays that cost on every single call.</p>
+  <pre><code>def total_tokens_per_query(base_tokens, reasoning_multiplier):
+    # reasoning models emit far more tokens per answer: roughly 10x-100x more
+    return base_tokens * reasoning_multiplier
+
+base = 500  # tokens for a short, non-reasoning answer
+for multiplier in (1, 10, 100):
+    tokens = total_tokens_per_query(base, multiplier)
+    print(f&quot;{multiplier:&gt;3}x reasoning -&gt; {tokens:,} tokens/query&quot;)
+
+# Rough share of total AI compute spent on inference, from the video
+inference_share = {
+    &quot;2023&quot;: 1 / 3,
+    &quot;2025&quot;: 1 / 2,
+    &quot;end of this year (projected)&quot;: 2 / 3,
+}
+for period, share in inference_share.items():
+    print(f&quot;{period}: inference ~{share:.0%} of total AI compute&quot;)</code></pre>
+</figure>
+</section>
+<section id="myth-4-large-context-windows-let-you-offload-data-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Myth 4: Large context windows let you offload data</h2>
+      <a class="stamp" href="#" data-t="507">8:27</a>
+    </div>
+  </div>
+  <p class="summary">A million-token context window finds a single fact almost perfectly but loses significant accuracy when a task requires connecting multiple facts scattered across it.</p>
+  <p>A context window is the amount of text a model can take in at once before generating a response. It has grown enormously — from a few thousand tokens a few years ago to at least a million tokens in most frontier models today. That growth invites a specific temptation: treat the context window like a database, dumping in an entire codebase or a stack of PDFs and letting the model query against whatever it needs.</p>
+<p>The standard benchmark for this is called needle in a haystack: hide one specific fact somewhere in a long context and ask the model to find it. On this test, frontier models at a million tokens are at or near perfect — they almost always find the needle. As far as single-fact retrieval goes, the context-window-as-database intuition holds up.</p>
+<p>But real long-context work is rarely about retrieving one isolated fact. It usually requires joining information from multiple parts of the context — finding several needles and reasoning across them together. Multi-needle benchmarks such as MRCR show performance dropping 30 to 60 points between 200,000 tokens and one million tokens on exactly this kind of task. Finding a single fact in a huge context is close to solved; reliably connecting several facts scattered across that same context is not. That&#x27;s the gap between what the context window can do and what a database can do — a database doesn&#x27;t lose accuracy as the number of records you need to join grows.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A context window is how much text a model processes at once before responding; frontier models now support roughly a million tokens.</li><li>The needle-in-a-haystack test hides one fact in a long context and checks whether the model can retrieve it.</li><li>Single-needle retrieval at a million tokens is close to solved for frontier models.</li><li>Multi-needle benchmarks (e.g. MRCR) show accuracy dropping 30 to 60 points between 200k and 1M tokens when facts must be connected, not just found.</li><li>Treating a context window as a database works for single-fact lookup and breaks down for tasks that require joining scattered information.</li></ul></div>
+  <figure class="example">
+  <figcaption>Single-needle versus multi-needle retrieval</figcaption>
+  <p>Retrieving one fact from a long context is reliable; a question that requires combining two or more facts pulled from different parts of that context is where accuracy falls off, because the model has to locate and correctly relate multiple pieces of scattered information rather than just find one.</p>
+  <pre><code># 1) Single-needle: retrieve one fact - frontier models do this reliably
+#    even at ~1M tokens.
+q3_revenue = find_fact(context, question=&quot;What was the Q3 revenue figure?&quot;)
+
+# 2) Multi-needle: the answer requires joining several scattered facts -
+#    this is where accuracy drops 30-60 points between 200k and 1M tokens.
+q3_revenue = find_fact(context, &quot;What was the Q3 revenue figure?&quot;)
+q2_revenue = find_fact(context, &quot;What was the Q2 revenue figure?&quot;)
+growth = (q3_revenue - q2_revenue) / q2_revenue  # requires combining both needles</code></pre>
+</figure>
+</section>
+<section id="myth-5-ai-agents-can-work-fully-autonomously-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Myth 5: AI agents can work fully autonomously</h2>
+      <a class="stamp" href="#" data-t="642">10:42</a>
+    </div>
+  </div>
+  <p class="summary">An agent is a model wrapped in a repeating decide-act-observe loop; individual steps are usually reliable, but errors compound multiplicatively across long chains of steps.</p>
+  <p>An AI agent is a language model wrapped in a loop. It starts with a goal, decides what action to take, takes that action, observes the result, and decides what to do next — repeating until the goal is reached or it gives up. This decide-act-observe cycle is called the agentic loop, and it&#x27;s what lets an agent browse the web, query a database, write code, and send an email in sequence, all driven by the model deciding what comes next at each step without a human prompting each move. That&#x27;s the autonomy people mean when they talk about AI agents.</p>
+<p>In practice, agents handle individual actions well. The problem shows up when actions get chained together into long sequences, in a failure mode called compounding errors. A single step that&#x27;s 95% reliable sounds solid in isolation. But reliability across a chain multiplies: a 20-step chain of 95%-reliable steps succeeds end to end only about 36% of the time, and a 50-step chain drops to roughly 8%. Each additional step is another chance for the whole run to fail, even though no individual step got worse.</p>
+<p>Left alone for too long, agents can get stuck in loops or wander into dead ends as a direct consequence of this math. The common fixes both target the compounding-error chain directly rather than trying to make any single step perfect: human-in-the-loop checkpoints, where the agent pauses after a few cycles for a person to review before continuing, and verifier models, which check each step before the agent commits to the next one. Agents run well autonomously in short bursts; full end-to-end process autonomy still tends to need a human or a verifier checking in periodically. That&#x27;s a statement about where agents are today, not a ceiling on where they&#x27;ll end up.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>An agent is a model wrapped in a loop: decide an action, take it, observe the result, repeat — the agentic loop.</li><li>Individual agent actions are usually reliable in isolation.</li><li>Compounding errors is the failure mode where per-step reliability multiplies across a chain, not adds.</li><li>A 95%-reliable step run 20 times succeeds end to end about 36% of the time; run 50 times, about 8%.</li><li>Human-in-the-loop checkpoints and verifier models both work by breaking the compounding-error chain, not by improving any one step.</li><li>Full autonomy over long, unsupervised runs is not yet reliable, even though short autonomous bursts work well.</li></ul></div>
+  <figure class="example">
+  <figcaption>Reliability compounds across a step chain</figcaption>
+  <p>A chain of N steps, each independently reliable with probability p, succeeds end to end with probability p to the power of N. This is exactly why a 95%-reliable step feels safe alone but degrades fast as the chain grows.</p>
+  <pre><code>def chain_reliability(step_reliability: float, num_steps: int) -&gt; float:
+    &quot;&quot;&quot;Probability that every step in a chain succeeds.&quot;&quot;&quot;
+    return step_reliability ** num_steps
+
+for n in (1, 20, 50):
+    p = chain_reliability(0.95, n)
+    print(f&quot;{n:&gt;2} steps at 95% each -&gt; {p:.1%} end-to-end reliability&quot;)
+
+# Output:
+#  1 steps at 95% each -&gt; 95.0% end-to-end reliability
+# 20 steps at 95% each -&gt; 35.8% end-to-end reliability
+# 50 steps at 95% each -&gt; 7.7% end-to-end reliability</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Hallucination</dt><dd>A model confidently returning a response that is factually incorrect, without any signal of uncertainty.</dd></div><div class="term"><dt>Tool use</dt><dd>A model calling an external system — web search, a database, code execution — to ground an answer instead of generating it purely from memorized training data.</dd></div><div class="term"><dt>Refusal calibration</dt><dd>Training that rewards a model for declining to answer when it cannot verify a claim, instead of rewarding a confident guess.</dd></div><div class="term"><dt>Extended thinking</dt><dd>Additional inference-time computation a reasoning model spends working through a problem before producing its final answer.</dd></div><div class="term"><dt>Chain of thought</dt><dd>The visible, step-by-step text a reasoning model generates on its way to an answer.</dd></div><div class="term"><dt>Faithfulness</dt><dd>The degree to which a model&#x27;s verbalized reasoning trace causally corresponds to the internal computation that actually produced its answer.</dd></div><div class="term"><dt>Post hoc rationalization</dt><dd>A reasoning trace that justifies an answer the model&#x27;s internal computation was already favoring, rather than deriving that answer.</dd></div><div class="term"><dt>Training</dt><dd>The one-time phase where a model&#x27;s parameters are tuned across a large dataset, typically over weeks of GPU time.</dd></div><div class="term"><dt>Inference</dt><dd>Running an already-trained model&#x27;s fixed weights forward to produce a response to a single query.</dd></div><div class="term"><dt>Context window</dt><dd>The amount of text a model can take in at once before generating a response, measured in tokens.</dd></div><div class="term"><dt>Needle in a haystack test</dt><dd>A benchmark that hides one specific fact inside a long context and checks whether the model can retrieve it.</dd></div><div class="term"><dt>Multi-needle benchmark</dt><dd>A benchmark (such as MRCR) that requires a model to locate and connect several facts scattered across a long context, not just retrieve one.</dd></div><div class="term"><dt>Agentic loop</dt><dd>The repeating decide-act-observe cycle a language-model-based agent runs through to work toward a goal.</dd></div><div class="term"><dt>Compounding errors</dt><dd>The failure mode where per-step success probabilities multiply across a chain of actions, causing overall reliability to fall sharply as the chain gets longer.</dd></div><div class="term"><dt>Human-in-the-loop</dt><dd>A workflow where an agent pauses after a set of steps so a person can review progress before it continues.</dd></div><div class="term"><dt>Verifier model</dt><dd>A model used to check each step of an agent&#x27;s work before the agent proceeds to the next step.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why can asking a chatbot &#x27;are you sure?&#x27; make its answer worse instead of better?</summary>
+  <div class="answer"><p>The model can read the pushback as a signal that its first answer was wrong and shift toward whatever answer it infers the user wants, regardless of whether the original answer was correct — it&#x27;s reinterpreting doubt as a cue to change position, not re-verifying the facts.</p></div>
+</details><details class="q">
+  <summary>Why can a model&#x27;s hallucination rate drop even though the model still has no way to directly &#x27;know&#x27; whether a claim is true?</summary>
+  <div class="answer"><p>Tool use lets it check external sources (search, databases) instead of relying purely on generation from memory, and refusal-calibration training rewards declining to answer an unverifiable claim instead of rewarding a confident guess — both reduce fabrication without requiring the model to have perfect internal knowledge.</p></div>
+</details><details class="q">
+  <summary>If a chain-of-thought trace is unfaithful, what specifically is unreliable about it?</summary>
+  <div class="answer"><p>The trace doesn&#x27;t necessarily reflect the internal computation — the weights and attention patterns — that actually produced the answer. It can instead be a plausible-sounding narration generated to justify an answer the model&#x27;s internals were already converging on, which is why researchers call it post hoc rationalization.</p></div>
+</details><details class="q">
+  <summary>Why is inference overtaking training as the dominant share of AI compute cost, even though training a frontier model can cost around $100 million?</summary>
+  <div class="answer"><p>Training is a one-time cost per model, while inference is paid on every single query for as long as the model is used. Reasoning models also emit roughly 10 to 100 times more tokens per query than non-reasoning models, so cumulative inference cost scales with both usage volume and per-query token count in a way training&#x27;s one-time cost never does.</p></div>
+</details><details class="q">
+  <summary>Why does a model that aces the needle-in-a-haystack test still struggle on real long-document tasks?</summary>
+  <div class="answer"><p>Needle-in-a-haystack only tests retrieving one isolated fact, which frontier models handle almost perfectly even at a million tokens. Real tasks usually require connecting several facts scattered through the context, and multi-needle benchmarks show accuracy dropping 30 to 60 points on that harder, more realistic version of the problem.</p></div>
+</details><details class="q">
+  <summary>Why does a 95%-reliable-per-step agent become unreliable over a long task even though no individual step is bad?</summary>
+  <div class="answer"><p>Per-step success probabilities multiply across the chain rather than average out, so the end-to-end success rate is p raised to the number of steps. At 95% per step, 20 steps compound down to about 36% reliability and 50 steps down to about 8%, even though each individual step is still 95% reliable on its own.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Run your own needle-in-a-haystack test: bury a fact in a long document you feed to a chatbot, then ask a follow-up question that requires that fact plus something else stated much earlier in the same document.</li><li>Look up the MRCR (Multi-Round Co-reference Resolution) benchmark to see published long-context degradation curves for specific frontier models at different context lengths.</li><li>Read published research on chain-of-thought faithfulness to see how labs actually test whether a visible reasoning trace matches a model&#x27;s internal computation.</li><li>Build a minimal agentic loop around a single tool call (decide, act, observe, repeat) and add a verifier step; measure how the failure rate changes as you extend the number of steps.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

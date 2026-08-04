@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM-as-a-Judge: Direct Assessment, Pairwise Comparison &amp; the Biases That Skew Both</title>
+<meta name="description" content="Choose the right judging strategy for your task, and recognise the three biases that make a judge quietly wrong.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#why-traditional-metrics-run-out-1"><span class="n">1</span>Why traditional metrics run out</a></li>
+<li><a href="#strategy-one-direct-assessment-2"><span class="n">2</span>Strategy one: direct assessment</a></li>
+<li><a href="#strategy-two-pairwise-comparison-3"><span class="n">3</span>Strategy two: pairwise comparison</a></li>
+<li><a href="#which-strategy-do-people-actually-choose-4"><span class="n">4</span>Which strategy do people actually choose?</a></li>
+<li><a href="#why-use-an-llm-judge-scale-flexibility-nuance-5"><span class="n">5</span>Why use an LLM judge: scale, flexibility, nuance</a></li>
+<li><a href="#the-three-biases-that-skew-a-judge-6"><span class="n">6</span>The three biases that skew a judge</a></li>
+<li><a href="#catching-bias-with-positional-swaps-7"><span class="n">7</span>Catching bias with positional swaps</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">AI evaluation</span><span class="muted">IBM Technology</span></div>
+  <h1>LLM-as-a-Judge: Direct Assessment, Pairwise Comparison &amp; the Biases That Skew Both</h1>
+  <p class="lede">Choose the right judging strategy for your task, and recognise the three biases that make a judge quietly wrong.</p>
+  <p class="muted small">For engineers and researchers who need to evaluate large volumes of generated text without labelling every output by hand · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=trfUBIDeI1Y" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Familiarity with prompting a language model</li><li>A rough sense of why evaluating generated text is harder than evaluating a classifier</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>You have a thousand model outputs — chatbot replies, summaries, generated answers — and you need to know which are good. Labelling them by hand is accurate and impossibly slow. Traditional metrics like BLEU and ROUGE are fast but measure word overlap against a reference answer, which you often do not have and which says little about whether a summary is actually clear.</p>
+<p>LLM-as-a-judge fills that gap: a language model evaluates other models&#x27; outputs. This lesson covers the two strategies for doing it — direct assessment against a rubric, and pairwise comparison between two candidates — along with what each is good for and how real users choose between them.</p>
+<p>It then covers the part that decides whether your judge is trustworthy: the biases. Like human reviewers, LLM judges have systematic blind spots. They can favour whichever answer appeared first, prefer longer answers regardless of content, and rate their own output more highly than others&#x27;. None of these makes the approach unusable, but each one produces plausible-looking scores that are wrong in a consistent direction, so you need to know how to detect and correct for them.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>LLM-as-a-judge enables reference-free evaluation: judging quality without a gold-standard answer to compare against.</li><li>Direct assessment scores each output independently against a rubric you design; pairwise comparison asks which of two outputs is better.</li><li>With multiple candidates, pairwise judgements can be combined by a ranking algorithm to produce an overall ordering.</li><li>In IBM&#x27;s user research on the open-source EvalAssist framework, about half preferred direct assessment for its clarity and control, a quarter preferred pairwise for subjective tasks, and the rest combined both.</li><li>The three advantages over traditional metrics are scale, flexibility as your criteria evolve, and the ability to judge nuanced qualities like whether text sounds natural.</li><li>Positional bias: the judge favours an output because of where it appeared, not because it is better.</li><li>Verbosity bias: the judge treats length as a proxy for quality and prefers longer answers even when they ramble.</li><li>Self-enhancement bias: the judge favours output it recognises as its own.</li><li>Positional swaps — running the same comparison with the order reversed — detect positional bias directly. Bias means stay vigilant, not that the system is broken.</li></ul>
+  </div>
+</section>
+<section id="why-traditional-metrics-run-out-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Why traditional metrics run out</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">Manual labelling does not scale and word-overlap metrics need a reference answer they cannot always have.</p>
+  <p>Evaluating generated text has always been awkward. If you have manually labelled hundreds of chatbot replies or summaries, you know the cost: it is slow, it is tiring, and it does not scale to the volume a real system produces.</p>
+<p>The automated alternatives have their own limit. Metrics such as BLEU and ROUGE score an output by how much its wording overlaps with a reference answer. That works when a correct answer exists and is written down — machine translation being the classic case. It breaks down in two common situations: when you have no reference at all, and when the quality you care about is not about word choice.</p>
+<p>Consider asking &#x27;is this output natural? Does it sound human?&#x27; No reference answer helps you here, and no amount of n-gram overlap captures it. A summary can share most of its vocabulary with the reference and still be incoherent, or share little and be excellent. This is the gap that reference-free evaluation fills, and it is what makes an LLM judge useful rather than merely convenient.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Manual labelling of hundreds of outputs is accurate but does not scale.</li><li>BLEU and ROUGE measure word overlap against a reference answer, which is often unavailable.</li><li>Overlap metrics cannot capture qualities like naturalness, coherence, or whether text sounds human.</li><li>Reference-free evaluation judges an output on its own merits, with no gold answer required.</li></ul></div>
+  <figure class="example">
+  <figcaption>Where word overlap misleads</figcaption>
+  <p>Two summaries of the same article. One reuses most of the reference&#x27;s vocabulary but scrambles the causal order into something incoherent; the other paraphrases cleanly and reads well. Overlap metrics score the first higher. A human — or a judge model — scores the second higher, because the question was never about vocabulary.</p>
+  
+</figure>
+</section>
+<section id="strategy-one-direct-assessment-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Strategy one: direct assessment</h2>
+      <a class="stamp" href="#" data-t="42">0:42</a>
+    </div>
+  </div>
+  <p class="summary">Design a rubric and score each output against it independently, one at a time.</p>
+  <p>Direct assessment is the more intuitive of the two strategies. You design a rubric — the criterion you care about and the options the judge may choose — and every output is evaluated against it on its own.</p>
+<p>Suppose you are evaluating a batch of summaries for coherence and clarity. Your rubric asks: is this summary clear and coherent? With two options: yes, the summary is clear; no, it is not. Each output is then judged against that rubric independently of the others, producing a standalone label.</p>
+<p>The strength here is control and interpretability. You wrote the criterion, so you know exactly what is being measured, and the resulting label means something on its own without reference to any other output. That makes direct assessment a natural fit for compliance-style questions, where the requirement is fixed and external: does this meet the standard, yes or no? It also makes results easy to aggregate — a pass rate across a thousand outputs is immediately meaningful.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Design a rubric: the criterion, plus the options the judge may return.</li><li>Each output is scored independently, producing a standalone label.</li><li>The strength is clarity and control — you define exactly what is measured.</li><li>Well suited to compliance-style checks where the standard is fixed and external.</li><li>Standalone labels aggregate naturally into pass rates across a large batch.</li></ul></div>
+  <figure class="example">
+  <figcaption>A direct assessment rubric</figcaption>
+  <p>The rubric is short by design. One criterion, explicit options, and the output judged on its own terms.</p>
+  <pre><code>Criterion: Is this summary clear and coherent?
+
+Options:
+  yes - the summary is clear
+  no  - the summary is not clear
+
+&lt;summary&gt;{output}&lt;/summary&gt;
+
+Return one option and explain your reasoning.</code></pre>
+</figure>
+</section>
+<section id="strategy-two-pairwise-comparison-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Strategy two: pairwise comparison</h2>
+      <a class="stamp" href="#" data-t="83">1:23</a>
+    </div>
+  </div>
+  <p class="summary">Instead of a standalone label, ask which of two outputs is better — then rank many outputs from the accumulated comparisons.</p>
+  <p>Pairwise comparison changes the question. Rather than assigning an absolute label, you show the judge two outputs and ask which is better: option A or option B?</p>
+<p>This suits subjective qualities, where an absolute standard is hard to write down but a relative judgement is easy. Asking &#x27;is this summary clear?&#x27; forces the judge to locate a threshold that may not exist; asking &#x27;which of these two is clearer?&#x27; requires only a comparison, which both humans and models find considerably easier and more consistent.</p>
+<p>When you have more than two candidates, you do not need every possible pair judged in isolation. Run comparisons across the set and feed the results to a ranking algorithm, which converts the accumulated pairwise verdicts into an overall ordering of all the outputs. That is how you get from &#x27;A beat B&#x27; to a ranked list of twenty candidate responses.</p>
+<p>The trade-off is that a pairwise result is inherently relative. Knowing A beat B tells you nothing about whether either was acceptable — both may be poor. If you need an absolute standard met, direct assessment is the right tool.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The judge is asked which of two outputs is better rather than for a standalone label.</li><li>Relative judgements are easier and more consistent than absolute ones for subjective qualities.</li><li>A ranking algorithm converts many pairwise verdicts into an overall ordering of all candidates.</li><li>The limitation: a pairwise win is relative and says nothing about whether either output met your bar.</li></ul></div>
+  <figure class="example">
+  <figcaption>A pairwise comparison prompt</figcaption>
+  <p>The judge sees both candidates and picks one. Note that the ordering of A and B is itself a variable you will need to control for.</p>
+  <pre><code>Criterion: clarity
+
+Which of these outputs is clearer?
+
+&lt;option_A&gt;{output_a}&lt;/option_A&gt;
+&lt;option_B&gt;{output_b}&lt;/option_B&gt;
+
+Return A or B, and explain your reasoning.</code></pre>
+</figure><figure class="example">
+  <figcaption>From comparisons to a ranking</figcaption>
+  <p>Pairwise results accumulate into an ordering. This is the same idea behind rating systems in competitive games: individual head-to-head outcomes produce a global ranking.</p>
+  <pre><code>comparisons = [
+    (&quot;resp_1&quot;, &quot;resp_2&quot;, &quot;resp_1&quot;),   # A vs B -&gt; winner
+    (&quot;resp_2&quot;, &quot;resp_3&quot;, &quot;resp_3&quot;),
+    (&quot;resp_1&quot;, &quot;resp_3&quot;, &quot;resp_1&quot;),
+]
+
+wins = {}
+for a, b, winner in comparisons:
+    wins[winner] = wins.get(winner, 0) + 1
+    loser = b if winner == a else a
+    wins.setdefault(loser, 0)
+
+ranking = sorted(wins, key=wins.get, reverse=True)
+# [&#x27;resp_1&#x27;, &#x27;resp_3&#x27;, &#x27;resp_2&#x27;]</code></pre>
+</figure>
+</section>
+<section id="which-strategy-do-people-actually-choose-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Which strategy do people actually choose?</h2>
+      <a class="stamp" href="#" data-t="126">2:06</a>
+    </div>
+  </div>
+  <p class="summary">User research on the open-source EvalAssist framework found the split was roughly half direct assessment, a quarter pairwise, and the rest a combination — with the choice depending on both task and user.</p>
+  <p>Rather than argue the question in the abstract, IBM ran user research on EvalAssist, its newly open-sourced evaluation framework, and looked at what participants actually preferred.</p>
+<p>About half chose direct assessment, valuing its clarity and the control it gave them over their own rubric. Roughly a quarter preferred pairwise comparison, and notably they reached for it on subjective tasks — exactly where writing an absolute standard is hardest. The remaining participants combined the two: direct assessment to check compliance, then the ranking algorithm from pairwise comparison to select the best output from those that passed.</p>
+<p>That combined pattern is worth noting, because it resolves the trade-off rather than picking a side. Direct assessment answers &#x27;is this acceptable?&#x27; and pairwise answers &#x27;which of the acceptable ones is best?&#x27; Used in sequence, you get an absolute quality floor and a relative ordering above it.</p>
+<p>The overall conclusion was that the choice is both task-dependent and user-dependent. There is no universally correct strategy — it depends on what you are measuring and who is doing the measuring.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>About half of participants preferred direct assessment for its clarity and rubric control.</li><li>About a quarter preferred pairwise comparison, particularly for subjective tasks.</li><li>The remainder combined both: direct assessment for compliance, then pairwise ranking to pick the best.</li><li>The combined approach gives an absolute quality floor plus a relative ordering above it.</li><li>The conclusion was that the choice is task- and user-dependent, not universal.</li></ul></div>
+  <figure class="example">
+  <figcaption>The two-stage combined pipeline</figcaption>
+  <p>Filter on an absolute standard first, then rank what survives. This is how the combined-approach participants used the two strategies together.</p>
+  <pre><code># Stage 1 - direct assessment as a compliance gate
+passing = [o for o in outputs
+           if judge_direct(o, criterion=&quot;meets policy&quot;) == &quot;yes&quot;]
+
+# Stage 2 - pairwise ranking to select the best survivor
+best = rank_pairwise(passing, criterion=&quot;clarity&quot;)[0]</code></pre>
+</figure>
+</section>
+<section id="why-use-an-llm-judge-scale-flexibility-nuance-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Why use an LLM judge: scale, flexibility, nuance</h2>
+      <a class="stamp" href="#" data-t="167">2:47</a>
+    </div>
+  </div>
+  <p class="summary">It handles volume, it adapts as your criteria shift, and it can evaluate qualities no overlap metric reaches.</p>
+  <p>Three properties make this approach worth adopting.</p>
+<p>Scale is the obvious one. If you are generating hundreds or thousands of outputs across a variety of models and prompts, hand-evaluation is simply not an option. An LLM judge handles that volume and returns structured, quick feedback.</p>
+<p>Flexibility is the one people underestimate. Traditional evaluation is rigid: the metric is fixed and your criteria must bend to fit it. In reality, criteria shift as you see more data — you build a rubric, start evaluating, and discover that what you actually care about is slightly different from what you wrote down. An LLM judge supports that refinement directly, because changing the criterion means editing a prompt rather than reimplementing a metric.</p>
+<p>Nuance is the capability that has no alternative. Questions like &#x27;does this sound human?&#x27; or &#x27;is this natural?&#x27; are inherently subjective, have no reference answer, and cannot be reduced to word overlap. A judge model can evaluate them, which opens up an entire class of quality dimensions that were previously accessible only through human review.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Scale: handles hundreds or thousands of outputs across many models and prompts, returning structured feedback quickly.</li><li>Flexibility: criteria naturally shift as you see more data, and refining a prompt is far cheaper than reimplementing a metric.</li><li>Nuance: subjective, reference-free questions like &#x27;does this sound human?&#x27; become measurable.</li><li>Criteria refinement is an expected part of the process, not a sign you got the rubric wrong.</li></ul></div>
+  <figure class="example">
+  <figcaption>Criteria refinement in practice</figcaption>
+  <p>Your first rubric asks whether a summary is clear. After reading eighty judged outputs you notice that the failures are nearly all about ordering — the facts are right but the sequence is confusing. You refine the criterion to name that explicitly, which no fixed metric would have let you do.</p>
+  <pre><code># v1
+Criterion: Is this summary clear and coherent?
+
+# v2, after seeing where it actually failed
+Criterion: Does this summary present events in an order a reader
+can follow, with each claim&#x27;s context established before it is used?</code></pre>
+</figure>
+</section>
+<section id="the-three-biases-that-skew-a-judge-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>The three biases that skew a judge</h2>
+      <a class="stamp" href="#" data-t="209">3:29</a>
+    </div>
+  </div>
+  <p class="summary">Positional, verbosity, and self-enhancement bias each make a judge favour outputs for reasons unrelated to quality.</p>
+  <p>Like human reviewers, LLM judges have blind spots, and they show up as systematic biases — errors that lean consistently in one direction rather than averaging out.</p>
+<p>Positional bias is a preference tied to where an output appears. In a pairwise comparison, a judge exhibiting positional bias keeps choosing option A regardless of what is actually in option A. The judgement is being driven by slot rather than substance.</p>
+<p>Verbosity bias is the judge treating length as a proxy for quality. It consistently favours the longer output even when that output is repetitive or wanders off track. The model reads length as thoroughness, which is exactly the failure mode you do not want in a system that is supposed to reward clarity.</p>
+<p>Self-enhancement bias is a judge favouring output it recognises as its own. Given responses from several different models, it rates its own generations more highly without their content being better.</p>
+<p>The crucial framing is the last point: bias in LLMs does not mean the system is broken. It means you need to stay vigilant. These are known, named, detectable failure modes, and good evaluation frameworks are built to catch them.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Positional bias: favouring an output because of its position, e.g. always choosing option A regardless of content.</li><li>Verbosity bias: favouring longer output regardless of quality, because length reads as thoroughness.</li><li>Self-enhancement bias: favouring output the model recognises as its own.</li><li>These biases skew results systematically rather than adding random noise, so they do not average out across a large sample.</li><li>Bias does not mean the system is broken — it means you stay vigilant and design checks for it.</li></ul></div>
+  <figure class="example">
+  <figcaption>Verbosity bias in a rubric</figcaption>
+  <p>If your judge keeps approving rambling answers, the fix is often to name the failure in the rubric rather than to abandon the judge. Say explicitly that length is not quality.</p>
+  <pre><code>Criterion: helpfulness
+
+Judge only whether the customer&#x27;s question was answered.
+Do NOT reward length. A short, complete answer is better than
+a long one that repeats itself or adds unrequested detail.
+An answer over 120 words that could have been given in 40
+should be marked down for verbosity.</code></pre>
+</figure>
+</section>
+<section id="catching-bias-with-positional-swaps-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Catching bias with positional swaps</h2>
+      <a class="stamp" href="#" data-t="294">4:54</a>
+    </div>
+  </div>
+  <p class="summary">Run the same comparison twice with the options in reverse order; if the verdict flips, the judgement was driven by position rather than content.</p>
+  <p>Positional bias has a clean, cheap test, and it is the technique good frameworks build in.</p>
+<p>Run the comparison, then run it again with the two options swapped — what was in position A now sits in position B. If the judge is evaluating content, it will pick the same output both times, and the recorded winner simply moves slots. If the judge is exhibiting positional bias, it will keep choosing whichever output happens to be in its preferred slot, and the verdict will flip.</p>
+<p>This gives you two things. First, a per-comparison consistency check: any pair whose verdict flips is unreliable and should be discarded or escalated to a human. Second, an aggregate diagnostic: measure the flip rate across many comparisons and you have a direct measurement of how positionally biased your judge is on this task. A judge whose verdicts flip half the time is producing coin tosses dressed as judgements.</p>
+<p>The general principle extends beyond position. For any suspected bias, construct a variation that changes only the suspect factor and leaves the content identical — swap order to test position, pad an answer with harmless filler to test verbosity, strip model identifiers to test self-enhancement — then see whether the verdict moves. If it does, the judge is responding to something other than quality.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Run each comparison twice with the options in reversed order.</li><li>A consistent judge picks the same output both times; a positionally biased one keeps picking the same slot, flipping the verdict.</li><li>Per-pair, a flipped verdict marks that comparison as unreliable.</li><li>In aggregate, the flip rate quantifies how positionally biased the judge is on your task.</li><li>The general method: vary only the suspected factor, hold content constant, and check whether the verdict moves.</li></ul></div>
+  <figure class="example">
+  <figcaption>Implementing a positional swap check</figcaption>
+  <p>Both orderings are judged and only agreeing verdicts are kept. The disagreement rate is itself a useful metric to track.</p>
+  <pre><code>def robust_compare(judge, x, y, criterion):
+    &quot;&quot;&quot;Judge both orderings; return a winner only if they agree.&quot;&quot;&quot;
+    first  = judge(a=x, b=y, criterion=criterion)   # x in slot A
+    second = judge(a=y, b=x, criterion=criterion)   # x in slot B
+
+    winner_1 = x if first == &quot;A&quot; else y
+    winner_2 = y if second == &quot;A&quot; else x
+
+    if winner_1 is winner_2:
+        return winner_1          # consistent - trust it
+    return None                  # flipped - positional bias
+
+results = [robust_compare(judge, a, b, &quot;clarity&quot;) for a, b in pairs]
+flip_rate = results.count(None) / len(results)
+print(f&quot;positional bias flip rate: {flip_rate:.0%}&quot;)</code></pre>
+</figure><figure class="example">
+  <figcaption>A verbosity probe</figcaption>
+  <p>The same idea applied to length. Pad a response with content that adds no information; if the judge&#x27;s score rises, it is rewarding length rather than quality.</p>
+  <pre><code>original = &quot;Your order ships tomorrow.&quot;
+padded   = (&quot;Thank you so much for reaching out to us today. &quot;
+            &quot;I completely understand your concern. &quot;
+            &quot;Your order ships tomorrow. &quot;
+            &quot;Please do not hesitate to contact us with any &quot;
+            &quot;further questions at all.&quot;)
+
+# Same information content. If padded scores higher
+# on helpfulness, the judge has verbosity bias.</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>LLM-as-a-judge</dt><dd>Using a language model to evaluate the outputs of another model, applying a criterion you specify.</dd></div><div class="term"><dt>Reference-free evaluation</dt><dd>Judging an output on its own merits, without needing a gold-standard answer to compare it against.</dd></div><div class="term"><dt>Direct assessment</dt><dd>A judging strategy where each output is scored independently against a rubric you designed.</dd></div><div class="term"><dt>Pairwise comparison</dt><dd>A judging strategy where two outputs are shown together and the judge picks which is better.</dd></div><div class="term"><dt>Rubric</dt><dd>The criterion being evaluated plus the set of options the judge may return.</dd></div><div class="term"><dt>Ranking algorithm</dt><dd>A method for converting many individual pairwise verdicts into an overall ordering of all candidates.</dd></div><div class="term"><dt>BLEU / ROUGE</dt><dd>Traditional text metrics that score an output by how much its wording overlaps with a reference answer.</dd></div><div class="term"><dt>Positional bias</dt><dd>A judge favouring an output because of the position it appeared in rather than its content.</dd></div><div class="term"><dt>Verbosity bias</dt><dd>A judge favouring longer outputs regardless of quality, treating length as a signal of thoroughness.</dd></div><div class="term"><dt>Self-enhancement bias</dt><dd>A judge rating its own generated output more highly than others&#x27;, independent of actual quality.</dd></div><div class="term"><dt>Positional swap</dt><dd>Re-running a pairwise comparison with the two options in reverse order to test whether the verdict was driven by position.</dd></div><div class="term"><dt>EvalAssist</dt><dd>IBM&#x27;s open-sourced evaluation framework, used in the user research on how people choose between judging strategies.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>You need to check whether a thousand generated replies each meet a fixed regulatory standard. Which strategy fits, and why?</summary>
+  <div class="answer"><p>Direct assessment. The standard is absolute and external, so each output must be judged on its own against a written rubric. Pairwise comparison would only tell you which reply is better than another, which is useless here — both could fail the standard and one would still win the comparison.</p></div>
+</details><details class="q">
+  <summary>Why does positional bias not average out if you simply run a large number of comparisons?</summary>
+  <div class="answer"><p>Because it is systematic rather than random. A judge that consistently prefers slot A pushes every comparison in the same direction, so more samples produce a more confident wrong answer rather than converging on the truth. Random noise averages out; a consistent lean does not.</p></div>
+</details><details class="q">
+  <summary>How does a positional swap distinguish a genuine quality judgement from a positional artefact?</summary>
+  <div class="answer"><p>Because it holds content constant and changes only position. A judge responding to content will select the same output in both orderings — the winner just moves slot. A judge responding to position keeps picking the same slot, so the winner changes. Disagreement between the two runs isolates position as the cause.</p></div>
+</details><details class="q">
+  <summary>Why is the flexibility of an LLM judge described as an advantage over traditional metrics rather than a lack of rigour?</summary>
+  <div class="answer"><p>Because criteria genuinely do shift as you see more data — you discover that what you care about is more specific than what you first wrote down. A fixed metric forces your evaluation to keep measuring the original approximation, while a prompt-based judge lets the measurement track your improved understanding. The rigour comes from validating the judge, not from freezing the criterion.</p></div>
+</details><details class="q">
+  <summary>A judge scores summaries from three different models and consistently rates one model&#x27;s output highest. What should you check before concluding that model is best?</summary>
+  <div class="answer"><p>Whether the judge is the same model that produced the favoured output, which would point to self-enhancement bias. You should also check for verbosity bias by comparing average output lengths — if the favoured model simply writes longer answers, the judge may be rewarding length. Validating against human labels settles it.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Take an existing pairwise evaluation and add a positional swap, then measure your judge&#x27;s flip rate — treat anything above a few percent as a problem to fix.</li><li>Run the padding probe on your own judge: score a concise answer, then score it again with filler added, and see whether the score moves.</li><li>Rewrite one of your rubrics to explicitly penalise verbosity, and compare the label distribution before and after.</li><li>Explore the open-source EvalAssist framework to see how a purpose-built tool structures rubrics and bias checks.</li><li>Build the two-stage pipeline: direct assessment as a compliance gate, then pairwise ranking to select the best output among those that pass.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

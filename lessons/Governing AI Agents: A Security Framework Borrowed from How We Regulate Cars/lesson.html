@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Governing AI Agents: A Security Framework Borrowed from How We Regulate Cars</title>
+<meta name="description" content="Map the infrastructure that keeps drivers safe onto the infrastructure that keeps autonomous AI agents safe.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#why-autonomous-systems-need-governance-1"><span class="n">1</span>Why autonomous systems need governance</a></li>
+<li><a href="#building-the-agent-2"><span class="n">2</span>Building the agent</a></li>
+<li><a href="#non-human-identities-the-dmv-for-agents-3"><span class="n">3</span>Non-Human Identities: the DMV for agents</a></li>
+<li><a href="#secrets-vaulting-a-place-to-keep-the-keys-4"><span class="n">4</span>Secrets vaulting: a place to keep the keys</a></li>
+<li><a href="#policy-the-rules-of-the-road-for-agents-5"><span class="n">5</span>Policy: the rules of the road for agents</a></li>
+<li><a href="#enforcement-the-checkpoint-between-agent-and-resource-6"><span class="n">6</span>Enforcement: the checkpoint between agent and resource</a></li>
+<li><a href="#putting-the-five-pieces-together-7"><span class="n">7</span>Putting the five pieces together</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">AI agent security</span></div>
+  <h1>Governing AI Agents: A Security Framework Borrowed from How We Regulate Cars</h1>
+  <p class="lede">Map the infrastructure that keeps drivers safe onto the infrastructure that keeps autonomous AI agents safe.</p>
+  <p class="muted small">For developers, security engineers, and platform teams who are starting to deploy autonomous AI agents and need a mental model for how to govern them · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=SAYmsKxNDF4" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Basic familiarity with what an AI agent is (an LLM-driven system that can take autonomous actions, not just answer questions)</li><li>General understanding of authentication vs. authorization</li><li>Some exposure to API gateways or reverse proxies is helpful but not required</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Driving a car is not a free-for-all. Society built an entire stack around it: a licensing authority that verifies who you are, keys that only work for you, laws that define acceptable behavior, and police who enforce those laws. None of that exists because cars are inherently dangerous — it exists because a two-ton machine moving at speed, controlled by an autonomous decision-maker (a human), needs guardrails before it is let loose on shared infrastructure.</p>
+<p>AI agents are the same kind of thing. They are autonomous, they act at machine speed, and they are increasingly given credentials to log into real systems, call real APIs, and touch real data. A single mistake a human makes once, an agent can repeat a million times before anyone notices. This lesson walks through a five-part governance framework for AI agents, using the car analogy as scaffolding: build the agent, issue it a verifiable identity, store its credentials securely, write policy that bounds its behavior, and enforce that policy at a checkpoint the agent cannot bypass.</p>
+<p>None of these five parts is optional in production. An agent with an identity but no vault leaks credentials. An agent with a vault but no policy has secure keys to an unbounded car. An agent with policy but no enforcement point has rules nobody checks. The pieces only work as a system.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>AI agents need governance for the same reason drivers do: autonomous action at speed requires guardrails before an actor is trusted with real systems.</li><li>Agents should be issued Non-Human Identities (NHIs) rather than sharing or hardcoding human credentials, so every action is authenticated and attributable to a specific agent.</li><li>Agent credentials belong in a secrets vault, not in code, config files, or environment variables checked into a repo — the vault issues, rotates, and revokes them centrally.</li><li>Policy for agents covers more ground than access control alone: bias, drift, hallucination, reliability, hate/abuse/profanity (HAP), and intellectual property exposure all need explicit bounds.</li><li>An enforcement layer (commonly an LLM gateway or policy-enforcement proxy) must sit between the agent and the resources it calls, checking both the outbound request and the inbound response.</li><li>Because agents can repeat a mistake thousands of times before a human notices, checks that would be optional for a human-in-the-loop process become mandatory for an autonomous one.</li><li>The five pieces — build, identity, vault, policy, enforcement — are interdependent; skipping any one leaves the others unable to make the system actually safe.</li></ul>
+  </div>
+</section>
+<section id="why-autonomous-systems-need-governance-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Why autonomous systems need governance</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">A driver&#x27;s license exists because driving is a privilege exercised through infrastructure society built to keep everyone safe; AI agents need the equivalent infrastructure before they are trusted to act autonomously.</p>
+  <p>A license to drive is not proof you own a car. It is proof that an authority verified your identity, tested your competence, and can revoke your privilege if you break the rules. That infrastructure exists because a car is powerful enough to hurt people if it is operated badly, and because the person operating it acts autonomously once they pull out of the driveway — nobody is checking every turn in real time.</p>
+<p>AI agents share both properties. They act autonomously between the moment a task starts and the moment it finishes, and they are increasingly connected to systems that matter: databases, internal APIs, payment systems, customer-facing chat. The risk is not hypothetical malice from the agent; it is that autonomy plus scale turns a small, correctable mistake into a large, repeated one. A human support rep who misreads a policy might make one bad call before a manager notices. An agent with the same misunderstanding, running continuously, can make that same bad call thousands of times in an hour.</p>
+<p>The response is not to avoid autonomy — that defeats the purpose of building agents at all — but to build the same kind of surrounding infrastructure a licensing system provides: verified identity, defined rules, and enforcement of those rules. The rest of this lesson breaks that infrastructure into five concrete pieces.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Governance infrastructure exists to make autonomy safe, not to prevent autonomy.</li><li>Agents act between checkpoints just like a driver acts between traffic stops — nobody supervises every step.</li><li>The core risk of ungoverned agents is repeatable error at machine speed, not intentional misbehavior.</li><li>The framework has five parts: build, identity, credential storage, policy, enforcement.</li></ul></div>
+  <figure class="example">
+  <figcaption>Human error vs. agent error at scale</figcaption>
+  <p>A support agent (human) misapplies a refund policy once and a manager catches it during a spot check the next day. An AI agent given the same flawed instruction processes refund requests continuously; by the time a human notices the pattern in a dashboard the next morning, it may have applied the error to every ticket it touched overnight — potentially thousands of cases instead of one.</p>
+  
+</figure>
+</section>
+<section id="building-the-agent-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Building the agent</h2>
+      <a class="stamp" href="#" data-t="136">2:16</a>
+    </div>
+  </div>
+  <p class="summary">Just as almost nobody manufactures their own car, almost nobody should hand-build agent orchestration from scratch — use an agent framework so the security work below is built on a known foundation.</p>
+  <p>The first step in the analogy is mundane on purpose: you don&#x27;t forge your own car from raw steel, you buy one built by a manufacturer who already solved crash safety, emissions, and reliability. The equivalent for agents is using an established agent framework or platform (for example LangGraph, the OpenAI Agents SDK, Semantic Kernel, or a vendor agent-builder product) rather than hand-rolling the orchestration loop, tool-calling logic, and memory management yourself.</p>
+<p>This matters for security specifically because a hand-built agent loop is one more place mistakes can hide: improper input sanitization before a tool call, missing timeout handling, or ad hoc credential passing between steps. A maintained framework has usually already had these issues found and patched by a wider community, and it typically exposes clean extension points — middleware, hooks, callbacks — where you can attach the identity, vaulting, policy, and enforcement pieces covered in the rest of this lesson.</p>
+<p>The takeaway is not &quot;never write custom orchestration,&quot; it&#x27;s that the build step should produce an agent whose behavior is observable and interceptable, because everything downstream (authentication, policy checks, logging) depends on having clean seams to attach to.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Use an established agent framework rather than a fully custom orchestration loop where practical.</li><li>A maintained framework gives you extension points (hooks/middleware) to attach identity, policy, and enforcement.</li><li>Security debt often hides in hand-rolled tool-calling and input-handling code.</li><li>The goal of the build step is an agent whose actions are observable and interceptable, not just functional.</li></ul></div>
+  <figure class="example">
+  <figcaption>An interceptable tool call</figcaption>
+  <p>A well-built agent framework exposes a hook that fires before any tool call leaves the agent, so you can attach authentication and policy checks in one place instead of scattering them through business logic.</p>
+  <pre><code># Pseudocode: framework middleware hook, not tied to one specific SDK
+def before_tool_call(agent_id: str, tool_name: str, arguments: dict):
+    # Attachment point for identity + policy checks (see later sections)
+    identity = authenticate_agent(agent_id)
+    check_policy(identity, tool_name, arguments)
+    return arguments  # possibly redacted/modified
+
+agent_runtime.register_hook(&quot;before_tool_call&quot;, before_tool_call)</code></pre>
+</figure>
+</section>
+<section id="non-human-identities-the-dmv-for-agents-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Non-Human Identities: the DMV for agents</h2>
+      <a class="stamp" href="#" data-t="182">3:02</a>
+    </div>
+  </div>
+  <p class="summary">Agents need their own verifiable identities, called Non-Human Identities (NHIs), issued and authenticated the same way a DMV issues and checks a driver&#x27;s license.</p>
+  <p>A driver&#x27;s license does two things: it proves who you are (authentication) and it records what you&#x27;re cleared to operate (authorization scope — a motorcycle endorsement is not the same as a commercial truck license). Agents need the exact same two properties, but at much greater volume, because a single product can spin up many agents, each performing a different job, each needing to log into different systems.</p>
+<p>The industry term for this is Non-Human Identity (NHI) — a credentialed identity that belongs to a piece of software (a service, script, or agent) rather than to a person. Without NHIs, teams fall back on sharing a single API key across every agent, or worse, reusing a human developer&#x27;s personal credentials. Both break attribution: if something goes wrong, you cannot tell which agent, running which task, did it. NHIs solve this by giving each agent (or each class of agent) its own identity that can be issued, scoped, monitored, and revoked independently of every other one.</p>
+<p>In practice this is usually implemented with the same building blocks used for human identity — OAuth2 client-credentials grants, mutual TLS certificates, or a workload-identity system like SPIFFE/SPIRE — just issued to a workload instead of a person. The output is the same as a license: a short-lived, scoped credential the agent presents whenever it wants to do something, which a downstream system can verify before allowing the action.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>NHI = Non-Human Identity: a credentialed identity issued to software rather than a person.</li><li>Shared or human-borrowed credentials break attribution — you can&#x27;t tell which agent did what.</li><li>NHIs should be scoped (limited to what that agent needs) not blanket-granted, mirroring a license&#x27;s endorsements.</li><li>Common implementations reuse existing identity standards: OAuth2 client credentials, mTLS, SPIFFE/SPIRE workload identity.</li><li>Because agent counts scale quickly, NHI issuance and lifecycle management needs to be automated, not manual.</li></ul></div>
+  <figure class="example">
+  <figcaption>OAuth2 client-credentials grant for an agent</figcaption>
+  <p>Instead of embedding a human&#x27;s API key, an agent authenticates itself as its own OAuth2 client and receives a short-lived, scoped access token before calling a downstream service.</p>
+  <pre><code>curl -X POST https://auth.internal.example.com/oauth/token \
+  -d grant_type=client_credentials \
+  -d client_id=agent-refund-processor-01 \
+  -d client_secret=$AGENT_CLIENT_SECRET \
+  -d scope=&quot;orders:read refunds:write&quot;
+
+# Response (truncated)
+# {
+#   &quot;access_token&quot;: &quot;eyJhbGciOi...&quot;,
+#   &quot;token_type&quot;: &quot;Bearer&quot;,
+#   &quot;expires_in&quot;: 900,
+#   &quot;scope&quot;: &quot;orders:read refunds:write&quot;
+# }
+#
+# The token expires in 15 minutes and only grants order-read and
+# refund-write scopes -- exactly what this agent&#x27;s job requires.</code></pre>
+</figure>
+</section>
+<section id="secrets-vaulting-a-place-to-keep-the-keys-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Secrets vaulting: a place to keep the keys</h2>
+      <a class="stamp" href="#" data-t="226">3:46</a>
+    </div>
+  </div>
+  <p class="summary">Once agents have credentials, those credentials need a secure central store (a vault) rather than being scattered in code, config, or a developer&#x27;s shell history.</p>
+  <p>A car key is a small, physical thing you keep on a hook by the door — that works fine when you own one car. It stops working the moment you own a fleet: you need a key box, a check-out log, and a way to deactivate a key if it&#x27;s lost. Agent credentials have the same scaling problem. One agent&#x27;s API key can live in an environment variable; a hundred agents&#x27; credentials cannot be managed that way without someone eventually committing one to a public repo or leaving one live long after the agent that used it was decommissioned.</p>
+<p>A secrets vault (HashiCorp Vault, AWS Secrets Manager, Google Secret Manager, Azure Key Vault) is purpose-built for this. It stores credentials encrypted at rest, hands them out only to callers who authenticate first, logs every access, and — critically — can issue dynamic, short-lived credentials instead of long-lived static ones. A dynamic database credential, for example, can be generated fresh for a single agent task and automatically expire minutes later, so a leaked credential has a small blast radius instead of standing access forever.</p>
+<p>The security property this buys you is separation: the agent&#x27;s business logic never needs to know a long-term secret. It authenticates to the vault (using the NHI from the previous section), asks for the specific credential it needs for the task at hand, uses it, and lets it expire. If the agent&#x27;s code or logs are ever exposed, there&#x27;s no standing secret sitting inside them to steal.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Credentials should live in a dedicated vault, never hardcoded or committed to source control.</li><li>A vault centralizes access logging, rotation, and revocation for every agent&#x27;s credentials at once.</li><li>Dynamic (short-lived, generated-on-demand) secrets shrink the blast radius of a leak compared to static long-lived keys.</li><li>Agents authenticate to the vault using their NHI, then request only the specific credential their current task needs.</li><li>This separates identity (who is asking) from secrets (what they&#x27;re allowed to hold), which is what makes revocation fast and safe.</li></ul></div>
+  <figure class="example">
+  <figcaption>Requesting a dynamic database credential from HashiCorp Vault</figcaption>
+  <p>An agent authenticates with its own identity, then asks Vault to generate a brand-new, time-limited database username and password rather than using a static one that would exist indefinitely.</p>
+  <pre><code># Agent authenticates using its NHI (e.g. a Kubernetes service account token)
+vault write auth/kubernetes/login \
+  role=agent-refund-processor \
+  jwt=$K8S_SA_TOKEN
+
+# Vault returns a short-lived Vault token; the agent uses it to request
+# a dynamically generated DB credential, valid for 10 minutes:
+vault read database/creds/refunds-readonly
+
+# Output (example)
+# Key                Value
+# ---                -----
+# lease_id            database/creds/refunds-readonly/abc123
+# lease_duration      10m
+# username            v-agent-a1b2c3d4
+# password            A1b2C3d4E5f6...
+#
+# After 10 minutes Vault automatically revokes this database user.</code></pre>
+</figure>
+</section>
+<section id="policy-the-rules-of-the-road-for-agents-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Policy: the rules of the road for agents</h2>
+      <a class="stamp" href="#" data-t="270">4:30</a>
+    </div>
+  </div>
+  <p class="summary">Traffic laws define acceptable behavior for drivers; agent policy has to define acceptable behavior across several distinct risk categories, not just &quot;who can access what.&quot;</p>
+  <p>Traffic law isn&#x27;t one rule, it&#x27;s a set of them covering speed, right of way, signaling, and more. Agent policy needs the same breadth. Access control (who can call what) is necessary but not sufficient — an agent can be perfectly authorized to use a tool and still cause harm by using it badly. The categories worth calling out explicitly are bias, drift, hallucination/reliability, hate-abuse-and-profanity (HAP), and intellectual property exposure.</p>
+<p>Bias is when the system&#x27;s outputs systematically favor or disfavor certain inputs or groups in a way that wasn&#x27;t intended — for example an agent that recognizes requests phrased one way but consistently mishandles requests phrased another way. Drift is when a system&#x27;s behavior degrades or shifts away from its original tested behavior over time, often because the underlying model, prompt, or data changed underneath it without anyone re-validating the outputs. Hallucination is when an LLM-based agent states something false with the same confidence as something true; because an agent&#x27;s outputs can trigger real actions, an unchecked hallucination doesn&#x27;t just mislead a reader, it can trigger a wrong refund, a wrong database write, or a wrong email. HAP (hate, abuse, and profanity) filtering keeps an agent&#x27;s language from becoming a liability with customers. IP exposure covers the risk of an agent leaking proprietary data, source code, or trade secrets, either directly in its output or indirectly by incorporating them into a response to an untrusted party.</p>
+<p>Writing policy means making each of these bounds explicit and checkable, usually as machine-readable rules (not just a wiki page) so they can be evaluated automatically by the enforcement layer covered next. A policy that only a human periodically reviews doesn&#x27;t scale to agents acting continuously and autonomously.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Policy has to cover more than access control: bias, drift, hallucination/reliability, HAP, and IP exposure are separate risk categories.</li><li>Bias: systematically skewed handling of certain inputs or groups.</li><li>Drift: behavior changing away from validated baseline behavior over time.</li><li>Hallucination is dangerous specifically because an agent&#x27;s output can trigger a real, irreversible action, not just mislead a reader.</li><li>Policy needs to be machine-readable so it can be checked automatically at agent speed, not just reviewed by humans periodically.</li></ul></div>
+  <figure class="example">
+  <figcaption>Machine-readable policy as a Rego rule (Open Policy Agent)</figcaption>
+  <p>A policy that an enforcement gateway (next section) can evaluate automatically: an agent may issue a refund only up to a value threshold, and never to an account flagged for fraud review, regardless of what the LLM&#x27;s reasoning concluded.</p>
+  <pre><code>package agent.policy
+
+default allow = false
+
+allow {
+  input.action == &quot;issue_refund&quot;
+  input.amount &lt;= 500
+  not input.account.fraud_flag
+}
+
+deny_reason[&quot;amount_exceeds_limit&quot;] {
+  input.action == &quot;issue_refund&quot;
+  input.amount &gt; 500
+}
+
+deny_reason[&quot;account_under_fraud_review&quot;] {
+  input.account.fraud_flag == true
+}</code></pre>
+</figure>
+</section>
+<section id="enforcement-the-checkpoint-between-agent-and-resource-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Enforcement: the checkpoint between agent and resource</h2>
+      <a class="stamp" href="#" data-t="353">5:53</a>
+    </div>
+  </div>
+  <p class="summary">A rule without enforcement is a suggestion; agents need a gateway that checks the outbound request before it reaches an LLM or resource, and checks the response again before it reaches the agent.</p>
+  <p>Traffic laws matter because there&#x27;s a police force that can pull you over. Without that, speed limits are just numbers on a sign. Agent policy needs the same real teeth: an enforcement point that actually evaluates every action against the policy defined above, not a document nobody consults at runtime.</p>
+<p>The common pattern is a gateway — sometimes called an AI gateway or LLM proxy — placed between the agent and whatever it&#x27;s trying to reach, whether that&#x27;s an LLM, a database, or another internal service. When the agent (or a user going through the agent) wants to make a call, the request goes to the gateway first. The gateway checks the request against policy: is this agent authorized for this action, does the request fit within bounds like the refund-amount rule above, is there anything in the input that looks like a prompt-injection attempt. If it passes, the gateway forwards the request to the actual LLM or resource.</p>
+<p>The important detail is that enforcement happens twice: once on the way out (before the call is made) and again on the way back (before the result is handed back to the agent or the end user). A response check catches things a pure request check can&#x27;t — a hallucinated fact, leaked PII or proprietary data pulled from a retrieved document, or HAP-violating language generated by the model itself. Only after both checks pass does the result actually reach whoever asked for it.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Policy without an enforcement mechanism has no real effect — a gateway is what gives policy teeth.</li><li>The common architecture places a gateway/proxy between the agent and the LLM or resource it&#x27;s calling.</li><li>The gateway checks the outbound request against policy before it&#x27;s allowed to reach the LLM or resource.</li><li>The gateway checks the inbound response too, since problems like hallucination, PII leaks, or HAP violations can appear only in the output.</li><li>Enforcement, identity, and vaulted credentials work together: the gateway can use the agent&#x27;s NHI to know which policy rules even apply to it.</li></ul></div>
+  <figure class="example">
+  <figcaption>A minimal LLM gateway checking both directions</figcaption>
+  <p>A proxy sits between the agent and the LLM. It authenticates the caller, evaluates the request against policy, forwards the call only if allowed, and screens the response before returning it.</p>
+  <pre><code>def handle_agent_request(request):
+    identity = authenticate_agent(request.nhi_token)
+
+    decision = policy_engine.evaluate(
+        actor=identity,
+        action=request.action,
+        payload=request.payload,
+    )
+    if not decision.allow:
+        log_denied(identity, request, decision.reason)
+        raise PermissionError(decision.reason)
+
+    llm_response = call_llm(request.payload)
+
+    output_check = policy_engine.evaluate_output(
+        actor=identity,
+        response=llm_response,
+    )
+    if not output_check.allow:
+        log_denied(identity, request, output_check.reason)
+        raise PermissionError(output_check.reason)
+
+    return llm_response</code></pre>
+</figure>
+</section>
+<section id="putting-the-five-pieces-together-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Putting the five pieces together</h2>
+      <a class="stamp" href="#" data-t="439">7:19</a>
+    </div>
+  </div>
+  <p class="summary">Build, identity, vaulted credentials, policy, and enforcement form one integrated system; removing any single piece leaves the rest unable to actually secure the agent.</p>
+  <p>Each piece of this framework covers for the weaknesses of the others. An agent built on a solid framework but with no NHI is anonymous — nobody can tell it apart from any other caller. An agent with an NHI but no vault has a verifiable identity attached to a credential sitting in plaintext somewhere. An agent with vaulted credentials but no policy is fully authenticated and fully able to do anything its credentials permit, with no bound on whether it should. And policy without enforcement is just documentation an autonomous system will never read.</p>
+<p>This is also why the car analogy holds up: nobody would consider a licensing system complete if it stopped at issuing licenses and never checked anyone&#x27;s driving, and nobody would consider traffic law complete if there were no police to enforce it. Both halves — the rules and the mechanism that applies them — have to exist together.</p>
+<p>For a team standing this up, the practical order roughly follows the order covered in this lesson: pick or build the agent framework first, get NHI issuance and authentication working second, wire the agent to a vault for credentials third, then define the policy categories that matter for your use case, and finally put a gateway in place that actually evaluates that policy on every request and response. Skipping ahead — for example writing detailed policy before any enforcement point exists to apply it — produces documentation, not security.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The five pieces are interdependent; each covers a gap the others leave open.</li><li>An identity without a vault, a vault without policy, or policy without enforcement each fail to secure the agent on their own.</li><li>A practical build order: framework, then NHI/authentication, then vaulted credentials, then policy, then enforcement.</li><li>Enforcement is what turns written policy into something that actually constrains an autonomous system&#x27;s behavior.</li></ul></div>
+  <figure class="example">
+  <figcaption>Failure mode when one piece is missing</figcaption>
+  <p>A team ships an agent with a vault-backed credential and a well-written policy document, but no gateway evaluates that policy at runtime. The agent&#x27;s credential lets it issue refunds of any size; the $500 limit exists only in a wiki page. A malformed prompt causes it to issue a $50,000 refund, and the written policy never had a chance to stop it because nothing was checking against it.</p>
+  
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Non-Human Identity (NHI)</dt><dd>A credentialed identity issued to a piece of software (a service, script, or agent) rather than to a person, allowing its actions to be authenticated and attributed individually.</dd></div><div class="term"><dt>Secrets vault</dt><dd>A centralized, access-controlled system (e.g. HashiCorp Vault, AWS Secrets Manager) that stores credentials encrypted at rest and hands them out only to authenticated callers, often issuing short-lived dynamic credentials instead of static ones.</dd></div><div class="term"><dt>Dynamic secret</dt><dd>A credential generated on demand for a specific task and automatically expiring shortly after, as opposed to a static credential that remains valid indefinitely.</dd></div><div class="term"><dt>LLM gateway</dt><dd>A proxy placed between an agent and the LLM or resources it calls, which checks both outbound requests and inbound responses against policy before letting them through.</dd></div><div class="term"><dt>Policy enforcement point</dt><dd>The specific component (often the gateway) where a policy decision is actually applied to a real request, rather than merely documented.</dd></div><div class="term"><dt>Drift</dt><dd>A gradual change in a system&#x27;s behavior away from its originally validated baseline, often caused by an underlying model, prompt, or data source changing without re-validation.</dd></div><div class="term"><dt>Hallucination</dt><dd>An LLM producing a false statement with the same apparent confidence as a true one; dangerous in an agent context because the false output can trigger a real downstream action.</dd></div><div class="term"><dt>HAP (Hate, Abuse, and Profanity)</dt><dd>A category of content-safety policy that filters an agent&#x27;s language for hateful, abusive, or profane content before it reaches a user.</dd></div><div class="term"><dt>Least privilege</dt><dd>The principle that an identity (human or non-human) should be granted only the minimum access needed to perform its specific task, and nothing more.</dd></div><div class="term"><dt>OAuth2 client-credentials grant</dt><dd>An OAuth2 flow designed for machine-to-machine authentication, where a service or agent presents its own client ID and secret to obtain an access token, without a human user in the loop.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why does giving each agent its own Non-Human Identity matter more than simply giving every agent a valid API key?</summary>
+  <div class="answer"><p>A shared or generic API key authenticates that *some* caller is valid but not *which* one, so when something goes wrong you cannot attribute the action to a specific agent or task. A distinct NHI per agent (or agent class) makes every action attributable and lets you scope, monitor, and revoke that one agent&#x27;s access without affecting any other agent.</p></div>
+</details><details class="q">
+  <summary>Why is a dynamic, short-lived credential from a vault safer than a static one stored in a config file, even if both are technically &#x27;in a vault&#x27;?</summary>
+  <div class="answer"><p>A static credential, once leaked, remains usable until someone notices and manually rotates it. A dynamic credential is generated for one task and expires automatically within minutes, so even if it leaks, its usable window is small — the leak&#x27;s blast radius is bounded by time rather than by whoever eventually finds and fixes it.</p></div>
+</details><details class="q">
+  <summary>Why does the enforcement gateway need to check the LLM&#x27;s response, not just the agent&#x27;s outbound request?</summary>
+  <div class="answer"><p>Some risks only exist in the output, not the input — a hallucinated fact, PII pulled from a retrieved document, or HAP-violating language generated by the model itself can&#x27;t be predicted by inspecting the request alone. Checking only outbound traffic would authorize the action but leave the actual generated content completely unscreened.</p></div>
+</details><details class="q">
+  <summary>Why does the lesson treat &#x27;policy written down&#x27; and &#x27;policy enforced&#x27; as two separate, both-necessary things rather than one step?</summary>
+  <div class="answer"><p>A written policy has no runtime effect on an autonomous system unless something evaluates every actual request and response against it. Without an enforcement point, the policy is only ever checked by a human reading a document, which doesn&#x27;t scale to an agent acting continuously and at machine speed — so the rule can be violated indefinitely before anyone notices.</p></div>
+</details><details class="q">
+  <summary>An agent has a valid NHI and pulls its database credential from a vault correctly, but no policy engine or gateway is in place. What is the actual security posture of this agent, and why?</summary>
+  <div class="answer"><p>The agent is fully authenticated but effectively unbounded: it can do anything its underlying credential permits, because nothing is evaluating whether a specific action should be allowed. Identity and vaulting solve &#x27;is this really the agent it claims to be and does it hold its credential securely,&#x27; but neither one answers &#x27;should this specific action be allowed right now&#x27; — that&#x27;s what policy and enforcement are for.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Look into workload identity standards like SPIFFE/SPIRE to see a production-grade implementation of Non-Human Identity issuance.</li><li>Compare a few secrets managers (HashiCorp Vault, AWS Secrets Manager, Google Secret Manager) specifically on dynamic-secret support for databases you use.</li><li>Read Open Policy Agent (OPA) / Rego documentation to see how machine-readable policy like the refund example can be evaluated at runtime.</li><li>Investigate existing AI/LLM gateway products (e.g. open-source proxies or vendor offerings) to see how request/response policy checks are implemented in practice.</li><li>Watch the companion lesson on the Promptware Kill Chain to see a concrete attack this governance framework is designed to stop.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+{
+  "video_url": "https://www.youtube.com/watch?v=oanQrXEiCy4",
+  "channel": "",
+  "lesson": {
+    "title": "What is an AI Code Generator? LLM Coding, Productivity, & Risk",
+    "subtitle": "Understand how LLM-based coding tools translate natural language into code, what that mechanism gets you and costs you, and how to tell a consumer-grade assistant from one you can trust in production.",
+    "topic": "AI Code Generation",
+    "difficulty": "Intermediate",
+    "audience": "software engineers and engineering leaders deciding how to adopt or govern AI coding tools",
+    "overview": "Software development has always been a translation problem: you start with what you want, turn it into formal logic, then into code, then a machine translates that code into instructions it can run. Compilers, high-level languages, and IDE autocomplete each automated another link in that chain, and each drew the same objection at the time: it will make programmers lazy, it isn't \"real\" programming. AI code generators are simply the next link in that chain, translating directly from natural language into working code.\n\nUnder the hood, an AI code generator is a large language model (LLM) trained on enormous amounts of existing code, mostly from open-source repositories. It does not understand code the way a person does; it predicts the statistically most likely continuation of a prompt based on billions of similar examples it has seen. That single fact — predicts, not knows — explains why the same engine can generate code from a description, explain code back to you, port code between languages, and fix bugs, and also why it can produce code that looks clean while being deeply wrong.\n\nThe productivity gains from this are large and measured: roughly a third more output per developer, faster onboarding onto unfamiliar code, and code reviews that shift from style nitpicks to design discussions. But the same mechanism that makes the tool fast also makes it reproduce insecure patterns confidently, because insecure code was common in its training data too. The practical decision facing a team isn't whether to use an AI code generator — adoption is already near-universal — but which category of tool to trust with which kind of work, and what to check before you do."
+    ,
+    "key_takeaways": [
+      "Software development is a chain of translations — intent to formal logic to code to machine instructions — and every generation of tooling (compilers, high-level languages, IDEs, AI code generators) automates one more link in that chain.",
+      "An AI code generator is a large language model that predicts the statistically likely code for a prompt based on patterns learned from billions of code examples; it does not verify correctness or security.",
+      "The same engine runs in both directions: it can generate code from a description, explain existing code in plain language, port code between languages, and fix bugs — all as the same underlying prediction task.",
+      "Reported productivity gains are large: roughly 35% more output and about 3.5 hours saved per developer per week, mostly from eliminating boilerplate and speeding up unfamiliar-codebase onboarding.",
+      "AI-generated code frequently contains real vulnerabilities, such as SQL injection or plaintext credential storage, while still passing tests and looking clean — an \"illusion of correctness\" that makes human review mandatory, not optional.",
+      "General-purpose AI coding chat assistants and production-grade AI code generators differ mainly in trust: where the training data came from, where your code goes when you use the tool, and whether the process can be audited.",
+      "Enterprise-grade tools typically add four things consumer tools lack: provenance tracking, policy governance with audit trails, on-prem or hybrid deployment, and curated (permissively licensed) training data."
+    ],
+    "prerequisites": [
+      "Basic familiarity with the software development lifecycle (writing, reviewing, and shipping code)",
+      "A rough idea of what a large language model (LLM) is"
+    ],
+    "sections": [
+      {
+        "title": "Coding as a translation problem",
+        "timestamp": "0:00",
+        "summary": "Every generation of programming tools has automated one more step in the chain from intent to running code, and each was accused of making programmers lazy.",
+        "explanation": "Every layer of software history has moved the point where a human stops writing exact machine instructions and starts writing something closer to intent. Machine code required specifying literal opcodes and addresses. Assembly gave instructions names. Compilers — starting with Grace Hopper's in 1952 — let programmers write structured, human-readable syntax that got translated down to machine code, and were denounced at the time as something that would make programmers lazy and make them forget how to \"really\" program. High-level languages, then IDEs with autocomplete, each moved the boundary further up the stack, and each provoked the same complaint.\n\nWhat makes AI code generators categorically different is the input format, not the goal. A compiler translates structured source code into machine instructions; an AI code generator translates unstructured natural language — a sentence describing what you want — directly into source code. The chain from intent to running program hasn't changed; only how much of it is now automated has moved.\n\nThis reframing matters for two reasons. First, it defuses the \"is this really programming\" argument, since every tool in this lineage automated part of the same chain and drew the identical objection every time. Second, it sets up how to think about failure: if AI code generators are translators, their failure modes are translation failures — mistranslating intent — not signs of malice or creativity. That's the lens the rest of this lesson uses.",
+        "key_points": [
+          "Software development is a chain of translations: intent, then formal logic, then code, then machine instructions.",
+          "Compilers (1952), high-level languages, and IDE autocomplete each automated one more layer of that chain, and each was accused of making programmers lazy.",
+          "AI code generators automate the newest layer: translating natural language directly into source code.",
+          "Treating AI coding tools as translators, not oracles, predicts both their strengths and their failure modes."
+        ],
+        "examples": [
+          {
+            "title": "From a sentence to a query",
+            "description": "A request like \"return a paginated list of users matching this filter, sorted by created_at desc\" is exactly the kind of natural-language intent an AI code generator translates directly into runnable code, skipping the step of a person hand-writing the SQL.",
+            "code": "-- Natural language: \"return a paginated list of users matching this\n-- filter, sorted by created_at desc\"\nSELECT id, name, email, created_at\nFROM users\nWHERE status = :filter_status\nORDER BY created_at DESC\nLIMIT :page_size OFFSET :page_size * (:page_number - 1);"
+          }
+        ]
+      },
+      {
+        "title": "The engine inside: prediction, not understanding",
+        "timestamp": "2:49",
+        "summary": "An AI code generator is a large language model that predicts the statistically likely code for a prompt, and the same mechanism runs in every translation direction.",
+        "explanation": "The mechanism behind an AI code generator is a large language model (LLM) trained on huge quantities of existing code, overwhelmingly pulled from public open-source repositories. During training, the model sees billions of examples of how loops look in Python, how REST endpoints get structured, how Java classes are organized — enough that, statistically, it has \"read\" more code than any person could in a lifetime.\n\nWhen given a prompt, the model does not reason about the problem the way a person would. It computes the most statistically likely continuation of the text, based on everything similar it saw during training. Feed it \"write a function that takes a city name and returns today's weather forecast\" and it predicts a function matching the shape of thousands of similar functions it has seen: imports, a request call, basic error handling, a docstring — without any actual knowledge of whether that specific API endpoint exists or whether that specific error case matters here. That distinction, predicts rather than knows, explains most of the failure modes covered later in this lesson.\n\nBecause it is fundamentally a translation engine, the same statistical machinery works in every direction. Point it at code and ask for an explanation, and it predicts the most likely English description. Point it at code in one language and ask for another, and it predicts the equivalent syntax. Point it at broken code and ask for a fix, and it predicts a corrected version. The direction of translation is just a different prompt against the same underlying model.",
+        "key_points": [
+          "The model is trained on very large code corpora, mostly open source, and learns statistical patterns rather than semantics.",
+          "Given a prompt, it predicts the most statistically likely continuation; it does not verify or \"understand\" correctness.",
+          "The same model works bidirectionally: code-to-English, language-to-language, and buggy-code-to-fixed-code are all the same prediction task with a different prompt.",
+          "\"Predicts, not knows\" is the root cause of the reliability gap covered in later sections."
+        ],
+        "examples": [
+          {
+            "title": "Natural language in, working function out",
+            "description": "A one-sentence spec is enough for the model to predict a complete, idiomatic function, because it has seen thousands of near-identical requests during training.",
+            "code": "import requests\n\ndef get_weather_forecast(city: str) -> dict:\n    \"\"\"Return today's weather forecast for the given city.\"\"\"\n    response = requests.get(\n        \"https://api.weatherprovider.com/v1/forecast\",\n        params={\"q\": city, \"days\": 1},\n    )\n    response.raise_for_status()\n    return response.json()"
+          }
+        ]
+      },
+      {
+        "title": "Individual productivity: where the time savings come from",
+        "timestamp": "4:14",
+        "summary": "Reported gains cluster around 35% more output and 3.5 hours saved per week, mostly by collapsing two specific time sinks: reading unfamiliar code and writing boilerplate.",
+        "explanation": "The productivity effect shows up first at the individual level. Reported gains cluster around a 35% increase in output, roughly three and a half hours saved per developer per week. The gains do not come from the model writing entire systems; they come from collapsing two specific categories of time sink.\n\nThe first is orientation time in unfamiliar code. Inheriting a service nobody has touched in years used to mean a day or two of reading before you could make a safe change. Asking a code generator to explain what a function or module does turns that into something closer to twenty minutes, because the model can summarize structure and intent directly from the code rather than requiring a person to trace it by hand.\n\nThe second is boilerplate: code whose shape is well-known and repeated constantly across projects, such as input validation, a JSON parser, or a regex for a common format. This is exactly the kind of code an LLM predicts well, because it has seen thousands of near-identical examples. Removing this category of work doesn't just save time; it shifts where attention goes, toward architecture, API design, and trade-off decisions the model can't make on its own — which is also why reported job satisfaction rises alongside productivity.",
+        "key_points": [
+          "Reported productivity gain: roughly 35% more output, about 3.5 hours saved per developer per week.",
+          "Biggest time savings come from two sources: understanding unfamiliar or legacy code faster, and eliminating boilerplate.",
+          "Boilerplate (parsers, common regexes, config syntax) is exactly what LLMs predict most reliably, since it's heavily repeated in training data.",
+          "Freed time shifts toward architecture and design decisions the model can't make, correlating with higher reported job satisfaction."
+        ],
+        "examples": [
+          {
+            "title": "Boilerplate that used to cost an hour",
+            "description": "A correct email-validation regex is the kind of small, well-defined utility developers used to spend real time hunting for or hand-tuning; a code generator predicts it near-instantly because the pattern is extremely common in its training data.",
+            "code": "import re\n\nEMAIL_RE = re.compile(r\"^[\\w.+-]+@[\\w-]+\\.[a-zA-Z]{2,}$\")\n\ndef is_valid_email(email: str) -> bool:\n    return bool(EMAIL_RE.match(email))"
+          }
+        ]
+      },
+      {
+        "title": "Team-level impact: leverage, not just speed",
+        "timestamp": "5:37",
+        "summary": "The productivity effect compounds at the team level: juniors ramp up faster, smaller teams cover more scope, and code review shifts from style nitpicks to design questions.",
+        "explanation": "Beyond individual output, the effect compounds at the team level because an AI code generator functions as an always-available resource with no cost to asking a \"basic\" question. Pairing a junior engineer with the tool is closer to giving them a senior engineer on call around the clock — one who never gets impatient or makes the junior feel bad for asking.\n\nThat leverage changes team shape. A four-person team can credibly cover work that used to require a team of eight, partly because less time goes to explaining status to teammates when a large share of routine implementation is generated and reviewed rather than hand-typed line by line.\n\nIt also changes what a code review is for. When boilerplate and syntax are generated rather than hand-typed, reviewers stop spending attention on stylistic nitpicks — tabs versus spaces, var versus let — and instead ask whether the underlying design decision was the right one. That's a genuine productivity gain in its own right, since design review is where senior engineering judgment adds the most value. It's also exactly the part of the pipeline that still requires a human, since the next section shows the model has no judgment to contribute there.",
+        "key_points": [
+          "An AI code generator acts like an always-available, infinitely patient pairing partner, accelerating junior developers' ramp-up.",
+          "Smaller teams can cover more scope: a 4-person team credibly doing work that used to take an 8-person team.",
+          "Code review shifts from stylistic nitpicking toward design-level questions, cutting pedantic review comments substantially.",
+          "This shift concentrates human attention on the judgment calls the model can't make, which is where review effort should already have been going."
+        ],
+        "examples": [
+          {
+            "title": "How a review comment changes",
+            "description": "The same pull request draws a different kind of comment once syntax-level mistakes are no longer the bottleneck: reviewers move from formatting nits to questioning the design itself.",
+            "code": "# Old-style review comment (style nit)\n- if (x == True):\n+ if x:\n    do_something()\n\n# New-style review comment (design question)\n# \"This makes a synchronous DB call inside the request loop -\n#  should this be batched or cached instead?\""
+          }
+        ]
+      },
+      {
+        "title": "The illusion of correctness: why AI code fails silently",
+        "timestamp": "7:02",
+        "summary": "AI-generated code frequently looks clean and passes tests while containing real vulnerabilities, because the model predicts common patterns rather than verifying safety.",
+        "explanation": "The same statistical mechanism that makes AI code generators productive also makes them unreliable in a specific, dangerous way. Because the model predicts what code should look like rather than verifying what it should do, it reproduces patterns that are common in its training data even when those patterns are insecure. String-concatenated SQL queries, for example, were extremely common in older tutorials and codebases, so the model reproduces that shape confidently, complete with clean variable names and helpful comments.\n\nIndependent measurement backs this up: a 2025 Veracode study found that 55% of AI-generated code contained at least one security vulnerability, and that AI-written code was roughly 1.88 times more likely to introduce a vulnerability than equivalent human-written code. Developers seem to sense this instinctively: only about 30% of AI suggestions get accepted as-is, meaning even enthusiastic users reject 70% of what the tool proposes.\n\nThe core concept is what's called the illusion of correctness: code that reads as clean, is well-commented, uses sensible names, passes the tests you happened to write, and is still deeply wrong in a way that only shows up under adversarial input or later scrutiny. A generated login function might store passwords in plain text with a comment noting that this \"isn't ideal\" — the model has effectively seen the correct answer during training and can produce the caveat, but doesn't refuse or fix it, because refusing isn't part of what \"predict the likely continuation\" means.\n\nThe practical conclusion is that AI-generated code needs the same scrutiny as code from an unfamiliar, moderately careless contributor, never a rubber stamp. The translation isn't finished when the model outputs text; it's finished when a human has reviewed it for the specific failure classes the model is prone to — injection, plaintext secrets, missing authorization checks — rather than just checking that it runs.",
+        "key_points": [
+          "AI models reproduce insecure patterns common in training data (e.g., string-concatenated SQL) as confidently as secure ones.",
+          "Veracode (2025): 55% of AI-generated code contains a security vulnerability; AI code is about 1.88x more likely to introduce one than human-written code.",
+          "Only about 30% of AI suggestions are accepted as-is; developers reject the large majority of what the tool proposes.",
+          "\"Illusion of correctness\": code that looks clean and passes tests can still be deeply insecure, so human review must specifically target known failure classes, not just check that the code runs."
+        ],
+        "examples": [
+          {
+            "title": "SQL injection: looks right, isn't",
+            "description": "String-concatenated SQL passes normal-input tests but lets an attacker alter the query's meaning; a parameterized query closes the hole without changing the function's behavior for legitimate input.",
+            "code": "# Vulnerable: AI-generated, passes functional tests\ndef get_account(user_id):\n    query = \"SELECT * FROM accounts WHERE user_id = '\" + user_id + \"'\"\n    return db.execute(query)  # user_id = \"1' OR '1'='1\" leaks every account\n\n# Fixed: parameterized query\ndef get_account(user_id):\n    query = \"SELECT * FROM accounts WHERE user_id = ?\"\n    return db.execute(query, (user_id,))"
+          },
+          {
+            "title": "Plaintext passwords with a guilty comment",
+            "description": "A generated authentication function can store a password in plain text while literally commenting that this isn't ideal, because the model reproduces the common pattern rather than refusing to.",
+            "code": "# Vulnerable: AI-generated, \"looks right\"\ndef store_password(user, password):\n    user.password = password  # stored as plain text\n    user.save()\n\n# Fixed: hash before storing\nimport bcrypt\n\ndef store_password(user, password):\n    user.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())\n    user.save()"
+          }
+        ]
+      },
+      {
+        "title": "Choosing a translator you can trust",
+        "timestamp": "8:34",
+        "summary": "General-purpose AI coding chat assistants and production-grade AI code generators split along the same line as a free translation app versus a certified professional translator: trust.",
+        "explanation": "Given that risk, the practical question isn't whether to use an AI code generator but which category of tool to trust with which task. A useful analogy: a free phone translation app is fine for asking where the bathroom is on vacation — low stakes, speed matters more than precision. Translating a legal contract or a medical diagnosis calls for a certified professional translator who specializes in the domain and can be held accountable for mistakes.\n\nAI code generators split along the same line. General-purpose AI coding chat assistants are quick to sign up for, useful for drafts and exploration, and trained on whatever the vendor could gather from the public internet, with no visibility into where any specific suggestion came from and no guarantee about where your code goes once you paste it in. Production-grade AI code generators are trained on curated data, can be customized to a specific team's codebase and standards, integrate into the existing development workflow, and — critically — can keep your code inside your own infrastructure instead of sending it to a third-party service.\n\nThe dividing line is trust, and trust reduces to three concrete questions: where did the training data come from, where does your code go when you use the tool, and can you audit what happened afterward. A free translation app, and a general-purpose coding assistant, typically can't answer these well. A professional translator, and a production-grade coding tool, can.",
+        "key_points": [
+          "Match the tool to the stakes: low-stakes, exploratory work tolerates a general-purpose assistant; production code calls for a tool you can hold accountable.",
+          "General-purpose assistants: fast to adopt, trained on public internet data, no provenance visibility, code may leave your environment.",
+          "Production-grade tools: curated and customizable training data, workflow integration, code can stay inside your infrastructure.",
+          "Trust reduces to three questions: where the training data came from, where your code goes, and whether the process is auditable."
+        ],
+        "examples": [
+          {
+            "title": "A three-question trust check",
+            "description": "Before relying on a coding tool for anything beyond low-stakes exploration, these three questions separate tools you can hold accountable from ones you can't.",
+            "code": "Three questions to ask before trusting an AI code tool:\n1. Where did the training data come from? (public scrape vs. curated/licensed)\n2. Where does my code go when I use it? (leaves your environment vs. stays in your infrastructure)\n3. Can I audit what happened? (no record vs. full audit trail)"
+          }
+        ]
+      },
+      {
+        "title": "The four pillars of enterprise-grade trust",
+        "timestamp": "10:39",
+        "summary": "Enterprise-grade coding tools are defined by four concrete capabilities: provenance, governance, on-prem or hybrid deployment, and curated training data.",
+        "explanation": "When engineering organizations say \"enterprise-grade,\" they generally mean four specific capabilities, not a vague quality label. The first is provenance: the ability to trace where a specific piece of generated code originated. This matters concretely the day a junior engineer merges AI-generated code into a shared repository and legal needs to determine whether it's derived from GPL-licensed source, a licensing question that can force a rewrite if it can't be answered.\n\nThe second is governance: policy enforcement over what the tool is allowed to do, such as which repositories it can touch and what kinds of code it can generate, plus audit trails that compliance reviews can inspect later. The third is on-prem or hybrid deployment: for organizations bound by regulations like HIPAA, SOX, or the EU AI Act, code and prompts, which can contain sensitive data, cannot be sent to an external SaaS endpoint at all, regardless of how good the model is.\n\nThe fourth is curated training data: models trained on permissively licensed code rather than an unfiltered internet scrape, which reduces both licensing risk and, often, the security-pattern risk described earlier, since the training set itself is cleaner. Put together, these four properties are what separate a tool you'd hand a beginner for practice from one your legal and security teams will actually sign off on for production use. With adoption projected to reach 90% of enterprise developers by 2028, the open question for most teams isn't whether they'll use one of these tools, but which one they can trust.",
+        "key_points": [
+          "Provenance: trace a generated snippet back to its origin, for IP and licensing accountability.",
+          "Governance: policy enforcement on tool behavior plus audit trails for compliance reviews.",
+          "On-prem or hybrid deployment: required when regulations such as HIPAA, SOX, or the EU AI Act prohibit sending code or prompts to external services.",
+          "Curated training data: permissively licensed sources reduce both legal risk and, often, the insecure-pattern risk seen in general-purpose tools.",
+          "Adoption is projected to reach 90% of enterprise developers by 2028 — the strategic question is which tool to trust, not whether to adopt one."
+        ],
+        "examples": [
+          {
+            "title": "A provenance record attached to a suggestion",
+            "description": "An enterprise-grade tool can attach a record like this to every accepted suggestion, so when legal later asks whether a snippet is GPL-tainted, there's a paper trail instead of a guess.",
+            "code": "{\n  \"snippet_id\": \"gen-88213\",\n  \"source_license\": \"MIT\",\n  \"training_corpus\": \"curated-internal-v3\",\n  \"suggested_at\": \"2026-03-14T02:11:00Z\",\n  \"accepted_by\": \"jdoe\",\n  \"audit_trail_id\": \"AUD-556212\"\n}"
+          }
+        ]
+      }
+    ],
+    "glossary": [
+      {"term": "Large language model (LLM)", "definition": "A machine learning model trained on huge amounts of text or code that generates output by predicting the most statistically likely continuation of a given input."},
+      {"term": "Next-token prediction", "definition": "The core mechanism by which an LLM generates output: choosing the most probable next unit of text, one step at a time, based on patterns learned during training."},
+      {"term": "Boilerplate", "definition": "Code that follows a well-known, repetitive pattern, such as input validation or a common parser, and doesn't vary much between projects."},
+      {"term": "SQL injection", "definition": "A vulnerability where untrusted input is inserted directly into a database query string, letting an attacker alter the query's meaning, for example to bypass authentication or read unauthorized data."},
+      {"term": "Illusion of correctness", "definition": "Code that appears clean, passes tests, and reads as well-written, while containing a real defect, often a security flaw, that only manifests under specific or adversarial conditions."},
+      {"term": "Provenance (in code generation)", "definition": "The ability to trace a piece of generated code back to the training data or process that produced it, used to assess licensing and intellectual-property risk."},
+      {"term": "GPL taint", "definition": "The risk that code derived from GPL-licensed source is subject to the GPL's copyleft terms, which can force a project to open-source code that was meant to stay proprietary."},
+      {"term": "On-prem / hybrid deployment", "definition": "Running a tool or model inside an organization's own infrastructure rather than sending data to an external cloud service, so sensitive code and prompts never leave the organization's control."}
+    ],
+    "quiz": [
+      {
+        "question": "An AI code generator can explain unfamiliar code, translate COBOL to Java, and fix broken Python, all with the same underlying model. Why does one mechanism support all three tasks?",
+        "answer": "Because the model isn't doing three different things; it's running the same next-token-prediction engine on different inputs. Explaining, translating, and fixing are all instances of \"predict the most likely continuation of this prompt,\" just with a different prompt each time — the direction of translation is a property of the prompt, not the model."
+      },
+      {
+        "question": "AI-generated code can pass all of your tests and still contain a SQL injection vulnerability. Why doesn't passing tests catch this?",
+        "answer": "Tests only check the behaviors you thought to write assertions for, typically the happy path. A model that reproduces a string-concatenated query generates code that behaves correctly for normal input; the vulnerability only appears with adversarial input, such as a value containing SQL syntax, that the test suite never exercised. The model optimizes for a plausible-looking pattern, not for adversarial robustness."
+      },
+      {
+        "question": "Why would a hospital's engineering team need an on-prem or hybrid deployment of a code generation tool instead of just using a general-purpose AI coding chat assistant?",
+        "answer": "Regulations like HIPAA restrict where patient-related data, and code or prompts that might reference it, can be sent. A general-purpose SaaS chat assistant processes prompts on a third-party server outside the organization's control, which can itself be a compliance violation regardless of how accurate the generated code is. On-prem or hybrid deployment keeps that data inside the organization's own infrastructure."
+      },
+      {
+        "question": "Code reviews reportedly shift from style nitpicks to design questions once a team adopts AI code generators. Why does that shift happen rather than review effort simply dropping?",
+        "answer": "The kinds of errors AI code generators are good at eliminating, such as inconsistent formatting, boilerplate mistakes, and syntax slips, are exactly what style-focused review comments used to catch. Removing that source of errors doesn't remove the need for review; it reallocates reviewer attention to the thing the model still can't judge: whether the chosen design and trade-offs are actually right for the problem."
+      },
+      {
+        "question": "Provenance sounds like a legal concern more than a technical one. Why does it belong on a checklist of things engineering teams should evaluate before adopting a coding tool?",
+        "answer": "A model trained on scraped public code can reproduce sequences derived from copyleft-licensed (e.g., GPL) source without any signal that it did so. If that code ends up in a proprietary codebase, the company may be legally obligated to open-source code it intended to keep closed. Provenance tracking is what lets an engineering organization detect and answer that question before it becomes a legal incident rather than after."
+      }
+    ],
+    "further_exploration": [
+      "Read the Veracode 2025 State of Software Security report to see the full breakdown of vulnerability classes found in AI-generated code, beyond the headline 55% figure.",
+      "Cross-reference the SQL injection and plaintext-password examples in this lesson against the OWASP Top 10 to see how many other common AI-code failure patterns map to that list.",
+      "Take one real prompt you'd normally send to a general-purpose AI coding assistant and run it through a production-grade tool your organization already licenses, if any, and compare the outputs for provenance and audit metadata.",
+      "Look up your jurisdiction's relevant regulation (HIPAA, SOX, or the EU AI Act) to check whether it has specific language covering AI-generated code or AI tool data handling, since most teams haven't checked this yet."
+    ]
+  }
+}

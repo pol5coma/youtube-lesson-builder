@@ -1,0 +1,859 @@
+{
+  "_note": "Per-concept authoritative sources and inline SVG diagrams, merged into data.json by build.py. SVGs use single-quoted attributes so they nest cleanly in JSON, and use currentColor plus var(--cluster) so they follow the page theme. arXiv IDs and official pages were verified against the web where practical.",
+  "kinds-of-intelligence": {
+    "sources": [
+      {
+        "title": "Google — Rules of Machine Learning (best practices)",
+        "url": "https://developers.google.com/machine-learning/guides/rules-of-ml"
+      },
+      {
+        "title": "Hastie, Tibshirani & Friedman — The Elements of Statistical Learning",
+        "url": "https://hastie.su.domains/ElemStatLearn/"
+      }
+    ]
+  },
+  "why-rag-fails": {
+    "sources": [
+      {
+        "title": "Gao et al. (2023) — Retrieval-Augmented Generation for LLMs: A Survey",
+        "url": "https://arxiv.org/abs/2312.10997"
+      },
+      {
+        "title": "Barnett et al. (2024) — Seven Failure Points When Engineering a RAG System",
+        "url": "https://arxiv.org/abs/2401.05856"
+      }
+    ]
+  },
+  "ai-code-generation": {
+    "sources": [
+      {
+        "title": "Peng et al. (2023) — The Impact of AI on Developer Productivity: Evidence from GitHub Copilot",
+        "url": "https://arxiv.org/abs/2302.06590"
+      },
+      {
+        "title": "OWASP — Top 10 for LLM Applications (insecure output handling)",
+        "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+      }
+    ]
+  },
+  "ai-code-review": {
+    "sources": [
+      {
+        "title": "OWASP — Static (SAST) and Dynamic (DAST) application security testing",
+        "url": "https://owasp.org/www-community/Source_Code_Analysis_Tools"
+      }
+    ]
+  },
+  "ai-code-refactoring": {
+    "sources": [
+      {
+        "title": "Martin Fowler — Refactoring (definition and catalog)",
+        "url": "https://refactoring.com/"
+      }
+    ]
+  },
+  "workload-orchestration": {
+    "sources": [
+      {
+        "title": "Kubernetes — Concepts (official docs)",
+        "url": "https://kubernetes.io/docs/concepts/"
+      }
+    ]
+  },
+  "machine-learning": {
+    "sources": [
+      {
+        "title": "scikit-learn — Machine Learning in Python (official docs)",
+        "url": "https://scikit-learn.org/stable/"
+      },
+      {
+        "title": "Hastie, Tibshirani & Friedman — The Elements of Statistical Learning (free)",
+        "url": "https://hastie.su.domains/ElemStatLearn/"
+      },
+      {
+        "title": "Goodfellow, Bengio & Courville — Deep Learning (Ch. 5, ML Basics)",
+        "url": "https://www.deeplearningbook.org/"
+      }
+    ]
+  },
+  "neurosymbolic": {
+    "sources": [
+      {
+        "title": "Neuro-symbolic AI — overview and references",
+        "url": "https://en.wikipedia.org/wiki/Neuro-symbolic_AI"
+      },
+      {
+        "title": "Garcez & Lamb — Neurosymbolic AI: The 3rd Wave (survey)",
+        "url": "https://arxiv.org/abs/2012.05876"
+      }
+    ]
+  },
+  "neuron": {
+    "sources": [
+      {
+        "title": "3Blue1Brown — Neural Networks (visual series)",
+        "url": "https://www.3blue1brown.com/topics/neural-networks"
+      },
+      {
+        "title": "Goodfellow, Bengio & Courville — Deep Learning (Ch. 6)",
+        "url": "https://www.deeplearningbook.org/"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 340 150' role='img' aria-label='A neuron multiplies each input by a weight, sums them with a bias, and applies an activation function to produce one output'><g stroke='currentColor' stroke-width='1.4' fill='none'><circle cx='30' cy='28' r='12'/><circle cx='30' cy='75' r='12'/><circle cx='30' cy='122' r='12'/><line x1='42' y1='32' x2='118' y2='68'/><line x1='42' y1='75' x2='118' y2='75'/><line x1='42' y1='118' x2='118' y2='82'/><rect x='118' y='58' width='44' height='34' rx='7' style='fill:var(--cluster);opacity:0.14'/><rect x='118' y='58' width='44' height='34' rx='7'/><line x1='162' y1='75' x2='206' y2='75'/><rect x='206' y='58' width='44' height='34' rx='7'/><line x1='250' y1='75' x2='300' y2='75'/></g><g fill='currentColor' font-family='sans-serif' font-size='11' text-anchor='middle'><text x='30' y='32'>x₁</text><text x='30' y='79'>x₂</text><text x='30' y='126'>x₃</text><text x='140' y='79'>Σ</text><text x='228' y='80'>f</text><text x='306' y='79' text-anchor='start'>ŷ</text></g><g fill='currentColor' font-family='sans-serif' font-size='9' opacity='0.7' text-anchor='middle'><text x='78' y='44'>w₁</text><text x='74' y='68'>w₂</text><text x='78' y='106'>w₃</text><text x='140' y='106'>weighted sum + bias</text><text x='228' y='106'>activation</text></g></svg>"
+  },
+  "layers": {
+    "sources": [
+      {
+        "title": "3Blue1Brown — But what is a neural network?",
+        "url": "https://www.3blue1brown.com/topics/neural-networks"
+      },
+      {
+        "title": "Goodfellow, Bengio & Courville — Deep Learning (Ch. 6, Deep Feedforward Networks)",
+        "url": "https://www.deeplearningbook.org/"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 340 120' role='img' aria-label='Data flows through an input layer, hidden layers with nonlinear activations, and an output layer'><g stroke='currentColor' stroke-width='1.4' fill='none' font-family='sans-serif'><rect x='8' y='42' width='56' height='38' rx='7'/><rect x='96' y='42' width='56' height='38' rx='7' style='fill:var(--cluster);opacity:0.14'/><rect x='96' y='42' width='56' height='38' rx='7'/><rect x='188' y='42' width='56' height='38' rx='7' style='fill:var(--cluster);opacity:0.14'/><rect x='188' y='42' width='56' height='38' rx='7'/><rect x='276' y='42' width='56' height='38' rx='7'/><line x1='64' y1='61' x2='96' y2='61'/><line x1='152' y1='61' x2='188' y2='61'/><line x1='244' y1='61' x2='276' y2='61'/></g><g fill='currentColor' font-family='sans-serif' font-size='10.5' text-anchor='middle'><text x='36' y='65'>input</text><text x='124' y='65'>hidden</text><text x='216' y='65'>hidden</text><text x='304' y='65'>output</text></g><g fill='currentColor' font-family='sans-serif' font-size='9' opacity='0.7' text-anchor='middle'><text x='80' y='34'>ReLU</text><text x='170' y='34'>ReLU</text><text x='170' y='104'>nonlinearity between layers is what makes depth useful</text></g></svg>"
+  },
+  "backprop": {
+    "sources": [
+      {
+        "title": "Rumelhart, Hinton & Williams (1986) — Learning representations by back-propagating errors (Nature)",
+        "url": "https://www.nature.com/articles/323533a0"
+      },
+      {
+        "title": "3Blue1Brown — Backpropagation, visually",
+        "url": "https://www.3blue1brown.com/lessons/backpropagation"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 320 160' role='img' aria-label='Gradient descent steps the weights downhill along the loss curve toward a minimum'><g stroke='currentColor' stroke-width='1.3' fill='none'><line x1='34' y1='18' x2='34' y2='140'/><line x1='34' y1='140' x2='300' y2='140'/><path d='M48,34 Q170,196 292,34' stroke-width='1.6'/></g><g fill='var(--cluster)' stroke='none'><circle cx='74' cy='72' r='5'/><circle cx='104' cy='100' r='5'/><circle cx='134' cy='119' r='5'/><circle cx='162' cy='128' r='5'/></g><g stroke='var(--cluster)' stroke-width='1.4' fill='none' opacity='0.8'><path d='M80,74 l18,20' marker-end='url(#arrow)'/><path d='M110,102 l16,13' marker-end='url(#arrow)'/></g><g fill='currentColor' font-family='sans-serif' font-size='10' opacity='0.85'><text x='40' y='16'>loss</text><text x='250' y='156'>weight →</text><text x='176' y='126'>minimum</text></g></svg>"
+  },
+  "cnn-rnn": {
+    "sources": [
+      {
+        "title": "LeCun et al. (1998) — Gradient-Based Learning Applied to Document Recognition (CNNs)",
+        "url": "http://yann.lecun.com/exdb/publis/pdf/lecun-98.pdf"
+      },
+      {
+        "title": "Hochreiter & Schmidhuber (1997) — Long Short-Term Memory (RNN/LSTM)",
+        "url": "https://www.bioinf.jku.at/publications/older/2604.pdf"
+      }
+    ]
+  },
+  "gnn": {
+    "sources": [
+      {
+        "title": "Distill — A Gentle Introduction to Graph Neural Networks",
+        "url": "https://distill.pub/2021/gnn-intro/"
+      },
+      {
+        "title": "Kipf & Welling (2017) — Semi-Supervised Classification with GCNs",
+        "url": "https://arxiv.org/abs/1609.02907"
+      }
+    ]
+  },
+  "transformer-arch": {
+    "sources": [
+      {
+        "title": "Vaswani et al. (2017) — Attention Is All You Need",
+        "url": "https://arxiv.org/abs/1706.03762"
+      },
+      {
+        "title": "Jay Alammar — The Illustrated Transformer",
+        "url": "https://jalammar.github.io/illustrated-transformer/"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 300 176' role='img' aria-label='Tokens become embeddings plus positions, then pass through a stack of attention and feed-forward layers'><g stroke='currentColor' stroke-width='1.3' fill='none' font-family='sans-serif'><rect x='96' y='150' width='108' height='20' rx='5'/><rect x='96' y='120' width='108' height='22' rx='5'/><rect x='90' y='40' width='120' height='68' rx='8'/><rect x='104' y='50' width='92' height='22' rx='5' style='fill:var(--cluster);opacity:0.16'/><rect x='104' y='50' width='92' height='22' rx='5'/><rect x='104' y='78' width='92' height='22' rx='5'/><rect x='96' y='10' width='108' height='20' rx='5'/><line x1='150' y1='150' x2='150' y2='142'/><line x1='150' y1='120' x2='150' y2='108'/><line x1='150' y1='40' x2='150' y2='30'/></g><g fill='currentColor' font-family='sans-serif' font-size='9.5' text-anchor='middle'><text x='150' y='164'>tokens</text><text x='150' y='135'>embeddings + positions</text><text x='150' y='65'>self-attention</text><text x='150' y='93'>feed-forward</text><text x='150' y='24'>next-token probabilities</text></g><g fill='currentColor' font-family='sans-serif' font-size='8.5' opacity='0.65' text-anchor='middle'><text x='240' y='78'>×N</text></g></svg>"
+  },
+  "attention": {
+    "sources": [
+      {
+        "title": "Vaswani et al. (2017) — Attention Is All You Need",
+        "url": "https://arxiv.org/abs/1706.03762"
+      },
+      {
+        "title": "Jay Alammar — The Illustrated Transformer (self-attention)",
+        "url": "https://jalammar.github.io/illustrated-transformer/"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 340 168' role='img' aria-label='A query is scored against every key to produce weights that blend the values into a context vector'><g font-family='sans-serif'><g stroke='currentColor' stroke-width='1.3' fill='none'><rect x='8' y='70' width='70' height='28' rx='6'/></g><text x='43' y='88' fill='currentColor' font-size='10' text-anchor='middle'>query “it”</text><g stroke='currentColor' stroke-width='1' fill='none' opacity='0.8'><line x1='78' y1='84' x2='150' y2='34'/><line x1='78' y1='84' x2='150' y2='84'/><line x1='78' y1='84' x2='150' y2='134'/></g><g font-size='9.5' fill='currentColor'><text x='156' y='38'>key: the</text><text x='156' y='88'>key: cat</text><text x='156' y='138'>key: sat</text></g><g stroke='none'><rect x='210' y='28' width='70' height='11' rx='3' style='fill:var(--cluster);opacity:0.9'/><rect x='210' y='79' width='20' height='11' rx='3' style='fill:var(--cluster);opacity:0.5'/><rect x='210' y='129' width='34' height='11' rx='3' style='fill:var(--cluster);opacity:0.5'/></g><g font-size='8.5' fill='currentColor' opacity='0.75'><text x='286' y='37'>0.7</text><text x='286' y='88'>0.1</text><text x='286' y='138'>0.2</text></g><text x='250' y='158' fill='currentColor' font-size='9' text-anchor='middle' opacity='0.8'>softmax weights → weighted sum of values</text></g></svg>"
+  },
+  "tokens": {
+    "sources": [
+      {
+        "title": "Brown et al. (2020) — Language Models are Few-Shot Learners (GPT-3)",
+        "url": "https://arxiv.org/abs/2005.14165"
+      },
+      {
+        "title": "Sennrich et al. (2016) — Neural Machine Translation of Rare Words with Subword Units (BPE)",
+        "url": "https://arxiv.org/abs/1508.07909"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 340 158' role='img' aria-label='Given a prompt, the model outputs a probability for every possible next token'><text x='12' y='24' fill='currentColor' font-family='sans-serif' font-size='11'>“The cat sat on the ___”</text><g font-family='sans-serif' font-size='10'><g stroke='none'><rect x='70' y='44' width='150' height='14' rx='3' style='fill:var(--cluster);opacity:0.9'/><rect x='70' y='70' width='60' height='14' rx='3' style='fill:var(--cluster);opacity:0.55'/><rect x='70' y='96' width='34' height='14' rx='3' style='fill:var(--cluster);opacity:0.4'/><rect x='70' y='122' width='18' height='14' rx='3' style='fill:var(--cluster);opacity:0.3'/></g><g fill='currentColor' text-anchor='end'><text x='64' y='55'>mat</text><text x='64' y='81'>floor</text><text x='64' y='107'>roof</text><text x='64' y='133'>sofa</text></g><g fill='currentColor' opacity='0.7' font-size='9'><text x='228' y='55'>0.60</text><text x='138' y='81'>0.20</text><text x='112' y='107'>0.10</text><text x='96' y='133'>0.05</text></g></g></svg>"
+  },
+  "training-pipeline": {
+    "sources": [
+      {
+        "title": "Ouyang et al. (2022) — Training LMs to follow instructions with human feedback (InstructGPT / RLHF)",
+        "url": "https://arxiv.org/abs/2203.02155"
+      },
+      {
+        "title": "Brown et al. (2020) — Language Models are Few-Shot Learners (pretraining, GPT-3)",
+        "url": "https://arxiv.org/abs/2005.14165"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 350 96' role='img' aria-label='Pretraining, then supervised fine-tuning, then alignment from feedback'><g font-family='sans-serif'><g stroke='currentColor' stroke-width='1.3' fill='none'><rect x='6' y='34' width='96' height='34' rx='7'/><rect x='128' y='34' width='96' height='34' rx='7'/><rect x='250' y='34' width='96' height='34' rx='7' style='fill:var(--cluster);opacity:0.14'/><rect x='250' y='34' width='96' height='34' rx='7'/><line x1='102' y1='51' x2='128' y2='51' marker-end='url(#arrow)'/><line x1='224' y1='51' x2='250' y2='51' marker-end='url(#arrow)'/></g><g fill='currentColor' font-size='10' text-anchor='middle'><text x='54' y='48'>Pretrain</text><text x='54' y='61' font-size='8' opacity='0.7'>trillions of tokens</text><text x='176' y='48'>SFT</text><text x='176' y='61' font-size='8' opacity='0.7'>instructions</text><text x='298' y='48'>Align</text><text x='298' y='61' font-size='8' opacity='0.7'>RLHF / RLAIF</text></g><text x='176' y='88' fill='currentColor' font-size='8.5' opacity='0.65' text-anchor='middle'>almost all compute is spent once, in pretraining</text></g></svg>"
+  },
+  "kv-cache": {
+    "sources": [
+      {
+        "title": "Kwon et al. (2023) — Efficient Memory Management for LLM Serving with PagedAttention (vLLM)",
+        "url": "https://arxiv.org/abs/2309.06180"
+      },
+      {
+        "title": "vLLM — PagedAttention design docs",
+        "url": "https://docs.vllm.ai/en/latest/design/paged_attention/"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 340 140' role='img' aria-label='Prefill processes the whole prompt in parallel; decode generates one token at a time, reusing cached keys and values'><g font-family='sans-serif'><text x='8' y='24' fill='currentColor' font-size='10' font-weight='600'>Prefill (parallel)</text><g stroke='none'><rect x='8' y='32' width='26' height='20' rx='3' style='fill:var(--cluster);opacity:0.5'/><rect x='38' y='32' width='26' height='20' rx='3' style='fill:var(--cluster);opacity:0.5'/><rect x='68' y='32' width='26' height='20' rx='3' style='fill:var(--cluster);opacity:0.5'/><rect x='98' y='32' width='26' height='20' rx='3' style='fill:var(--cluster);opacity:0.5'/></g><text x='150' y='46' fill='currentColor' font-size='9' opacity='0.75'>→ fills the KV cache</text><text x='8' y='84' fill='currentColor' font-size='10' font-weight='600'>Decode (one at a time)</text><g stroke='currentColor' stroke-width='1.2' fill='none'><rect x='8' y='92' width='26' height='20' rx='3'/><rect x='38' y='92' width='26' height='20' rx='3'/></g><rect x='68' y='92' width='26' height='20' rx='3' style='fill:var(--cluster);opacity:0.9'/><g stroke='currentColor' stroke-width='1.1' fill='none' opacity='0.7'><line x1='94' y1='102' x2='118' y2='102' marker-end='url(#arrow)'/></g><text x='150' y='106' fill='currentColor' font-size='9' opacity='0.75'>each new token reuses cached K,V</text></g></svg>"
+  },
+  "prompt-caching": {
+    "sources": [
+      {
+        "title": "Anthropic — Prompt caching (official docs)",
+        "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching"
+      },
+      {
+        "title": "Kwon et al. (2023) — PagedAttention (prefix sharing)",
+        "url": "https://arxiv.org/abs/2309.06180"
+      }
+    ]
+  },
+  "moe": {
+    "sources": [
+      {
+        "title": "Shazeer et al. (2017) — Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer",
+        "url": "https://arxiv.org/abs/1701.06538"
+      }
+    ]
+  },
+  "reasoning-models": {
+    "sources": [
+      {
+        "title": "Wei et al. (2022) — Chain-of-Thought Prompting Elicits Reasoning in LLMs",
+        "url": "https://arxiv.org/abs/2201.11903"
+      }
+    ]
+  },
+  "diffusion": {
+    "sources": [
+      {
+        "title": "Ho, Jain & Abbeel (2020) — Denoising Diffusion Probabilistic Models",
+        "url": "https://arxiv.org/abs/2006.11239"
+      },
+      {
+        "title": "Lilian Weng — What are Diffusion Models?",
+        "url": "https://lilianweng.github.io/posts/2021-07-11-diffusion-models/"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 340 110' role='img' aria-label='Training adds noise to an image; generation starts from noise and denoises step by step toward the prompt'><g font-family='sans-serif'><g stroke='currentColor' stroke-width='1.2' fill='none'><rect x='10' y='36' width='40' height='40' rx='5'/><rect x='106' y='36' width='40' height='40' rx='5'/><rect x='202' y='36' width='40' height='40' rx='5'/><rect x='294' y='36' width='40' height='40' rx='5' style='fill:var(--cluster);opacity:0.16'/><rect x='294' y='36' width='40' height='40' rx='5'/><line x1='150' y1='56' x2='198' y2='56' marker-end='url(#arrow)'/><line x1='246' y1='56' x2='290' y2='56' marker-end='url(#arrow)'/></g><g fill='currentColor' opacity='0.5'><circle cx='118' cy='48' r='1.4'/><circle cx='134' cy='62' r='1.4'/><circle cx='126' cy='54' r='1.4'/><circle cx='210' cy='50' r='1.4'/><circle cx='226' cy='60' r='1.4'/><circle cx='218' cy='66' r='1.4'/><circle cx='232' cy='46' r='1.4'/><circle cx='214' cy='58' r='1.4'/></g><g fill='currentColor' font-size='9' text-anchor='middle'><text x='30' y='94'>noise</text><text x='222' y='94'>denoise →</text><text x='314' y='94'>image</text></g></g></svg>"
+  },
+  "context-window": {
+    "sources": [
+      {
+        "title": "Liu et al. (2023) — Lost in the Middle: How Language Models Use Long Contexts",
+        "url": "https://arxiv.org/abs/2307.03172"
+      }
+    ]
+  },
+  "hallucination": {
+    "sources": [
+      {
+        "title": "Ji et al. (2023) — Survey of Hallucination in Natural Language Generation",
+        "url": "https://arxiv.org/abs/2202.03629"
+      }
+    ]
+  },
+  "embeddings": {
+    "sources": [
+      {
+        "title": "Mikolov et al. (2013) — Efficient Estimation of Word Representations (word2vec)",
+        "url": "https://arxiv.org/abs/1301.3781"
+      },
+      {
+        "title": "Devlin et al. (2019) — BERT (contextual embeddings)",
+        "url": "https://arxiv.org/abs/1810.04805"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 300 190' role='img' aria-label='Embeddings place related words near each other; king minus man plus woman lands near queen'><g stroke='currentColor' stroke-width='1.2' fill='none'><line x1='28' y1='16' x2='28' y2='170'/><line x1='28' y1='170' x2='284' y2='170'/></g><g fill='var(--cluster)' stroke='none'><circle cx='96' cy='60' r='4'/><circle cx='188' cy='44' r='4'/><circle cx='84' cy='128' r='4'/><circle cx='176' cy='112' r='4'/></g><g stroke='var(--cluster)' stroke-width='1.2' fill='none' opacity='0.6' stroke-dasharray='3 3'><line x1='84' y1='128' x2='96' y2='60' marker-end='url(#arrow)'/><line x1='176' y1='112' x2='188' y2='44' marker-end='url(#arrow)'/></g><g fill='currentColor' font-family='sans-serif' font-size='10'><text x='104' y='58'>king</text><text x='196' y='42'>queen</text><text x='60' y='142'>man</text><text x='150' y='126'>woman</text></g><text x='150' y='186' fill='currentColor' font-family='sans-serif' font-size='8.5' opacity='0.7' text-anchor='middle'>similar meanings sit close; directions carry meaning</text></svg>"
+  },
+  "vector-db": {
+    "sources": [
+      {
+        "title": "Malkov & Yashunin (2018) — Approximate Nearest Neighbor Search using HNSW graphs",
+        "url": "https://arxiv.org/abs/1603.09320"
+      },
+      {
+        "title": "Johnson, Douze & Jégou (2017) — Billion-scale similarity search (FAISS)",
+        "url": "https://arxiv.org/abs/1702.08734"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 300 180' role='img' aria-label='A query vector finds its nearest neighbors among stored vectors'><g fill='currentColor' opacity='0.45' stroke='none'><circle cx='60' cy='40' r='3'/><circle cx='110' cy='70' r='3'/><circle cx='200' cy='36' r='3'/><circle cx='240' cy='90' r='3'/><circle cx='70' cy='130' r='3'/><circle cx='210' cy='150' r='3'/><circle cx='150' cy='120' r='3'/></g><circle cx='150' cy='90' r='6' style='fill:var(--cluster)'/><g stroke='var(--cluster)' stroke-width='1.3' fill='none' opacity='0.85'><circle cx='150' cy='90' r='44' stroke-dasharray='4 4'/></g><g fill='var(--cluster)' stroke='none'><circle cx='110' cy='70' r='4'/><circle cx='150' cy='120' r='4'/></g><g fill='currentColor' font-family='sans-serif' font-size='10'><text x='150' y='82' text-anchor='middle'>query</text><text x='150' y='168' text-anchor='middle' font-size='8.5' opacity='0.7'>nearest neighbors = most similar meaning</text></g></svg>"
+  },
+  "semantic-search": {
+    "sources": [
+      {
+        "title": "Reimers & Gurevych (2019) — Sentence-BERT (bi-encoders & cross-encoders)",
+        "url": "https://arxiv.org/abs/1908.10084"
+      },
+      {
+        "title": "Robertson & Zaragoza (2009) — The Probabilistic Relevance Framework: BM25 and Beyond",
+        "url": "https://www.staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf"
+      }
+    ]
+  },
+  "rag": {
+    "sources": [
+      {
+        "title": "Lewis et al. (2020) — Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
+        "url": "https://arxiv.org/abs/2005.11401"
+      },
+      {
+        "title": "Gao et al. (2023) — Retrieval-Augmented Generation for LLMs: A Survey",
+        "url": "https://arxiv.org/abs/2312.10997"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 356 108' role='img' aria-label='RAG retrieves documents, augments the prompt with them, and generates a grounded answer'><g font-family='sans-serif'><g stroke='currentColor' stroke-width='1.3' fill='none'><rect x='6' y='40' width='58' height='30' rx='6'/><rect x='96' y='40' width='70' height='30' rx='6'/><rect x='198' y='40' width='66' height='30' rx='6'/><rect x='296' y='40' width='54' height='30' rx='6' style='fill:var(--cluster);opacity:0.14'/><rect x='296' y='40' width='54' height='30' rx='6'/><line x1='64' y1='55' x2='96' y2='55' marker-end='url(#arrow)'/><line x1='166' y1='55' x2='198' y2='55' marker-end='url(#arrow)'/><line x1='264' y1='55' x2='296' y2='55' marker-end='url(#arrow)'/><path d='M131,40 C131,20 131,20 131,16' /><ellipse cx='131' cy='12' rx='20' ry='6'/></g><g fill='currentColor' font-size='9.5' text-anchor='middle'><text x='35' y='59'>query</text><text x='131' y='59'>retrieve</text><text x='231' y='59'>augment</text><text x='323' y='59'>LLM</text><text x='131' y='15' font-size='8'>docs</text></g><text x='178' y='98' fill='currentColor' font-size='8.5' opacity='0.65' text-anchor='middle'>answer is grounded in the retrieved passages</text></g></svg>"
+  },
+  "chunking": {
+    "sources": [
+      {
+        "title": "Lewis et al. (2020) — Retrieval-Augmented Generation",
+        "url": "https://arxiv.org/abs/2005.11401"
+      }
+    ]
+  },
+  "reranker": {
+    "sources": [
+      {
+        "title": "Reimers & Gurevych (2019) — Sentence-BERT (cross-encoder reranking)",
+        "url": "https://arxiv.org/abs/1908.10084"
+      }
+    ]
+  },
+  "rag-evolution": {
+    "sources": [
+      {
+        "title": "Gao et al. (2023) — Retrieval-Augmented Generation for LLMs: A Survey",
+        "url": "https://arxiv.org/abs/2312.10997"
+      }
+    ]
+  },
+  "long-context": {
+    "sources": [
+      {
+        "title": "Liu et al. (2023) — Lost in the Middle: How Language Models Use Long Contexts",
+        "url": "https://arxiv.org/abs/2307.03172"
+      }
+    ]
+  },
+  "attention-dilution": {
+    "sources": [
+      {
+        "title": "Liu et al. (2023) — Lost in the Middle: How Language Models Use Long Contexts",
+        "url": "https://arxiv.org/abs/2307.03172"
+      }
+    ]
+  },
+  "grounding": {
+    "sources": [
+      {
+        "title": "Lewis et al. (2020) — Retrieval-Augmented Generation",
+        "url": "https://arxiv.org/abs/2005.11401"
+      }
+    ]
+  },
+  "prompt-engineering": {
+    "sources": [
+      {
+        "title": "Prompt Engineering Guide (DAIR.AI)",
+        "url": "https://www.promptingguide.ai/"
+      },
+      {
+        "title": "Brown et al. (2020) — Few-shot prompting (GPT-3)",
+        "url": "https://arxiv.org/abs/2005.14165"
+      }
+    ]
+  },
+  "context-engineering": {
+    "sources": [
+      {
+        "title": "Anthropic — Effective context engineering for AI agents",
+        "url": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"
+      }
+    ]
+  },
+  "fine-tuning": {
+    "sources": [
+      {
+        "title": "Ouyang et al. (2022) — InstructGPT (supervised fine-tuning + RLHF)",
+        "url": "https://arxiv.org/abs/2203.02155"
+      },
+      {
+        "title": "Hu et al. (2021) — LoRA: Low-Rank Adaptation of Large Language Models",
+        "url": "https://arxiv.org/abs/2106.09685"
+      }
+    ]
+  },
+  "lora": {
+    "sources": [
+      {
+        "title": "Hu et al. (2021) — LoRA: Low-Rank Adaptation of Large Language Models",
+        "url": "https://arxiv.org/abs/2106.09685"
+      },
+      {
+        "title": "Hugging Face — PEFT (parameter-efficient fine-tuning) docs",
+        "url": "https://huggingface.co/docs/peft/index"
+      }
+    ]
+  },
+  "synthetic-data": {
+    "sources": [
+      {
+        "title": "Liu et al. (2024) — Best Practices and Lessons Learned on Synthetic Data for LMs",
+        "url": "https://arxiv.org/abs/2404.07503"
+      }
+    ]
+  },
+  "evaluation": {
+    "sources": [
+      {
+        "title": "Hamel Husain — Your AI Product Needs Evals",
+        "url": "https://hamel.dev/blog/posts/evals/"
+      },
+      {
+        "title": "Husain & Shankar — A Field Guide to Rapidly Improving AI Products (analyze–measure–improve)",
+        "url": "https://hamel.dev/blog/posts/field-guide/"
+      },
+      {
+        "title": "Liang et al. (2022) — Holistic Evaluation of Language Models (HELM)",
+        "url": "https://arxiv.org/abs/2211.09110"
+      },
+      {
+        "title": "Anthropic — Create strong empirical evaluations (official docs)",
+        "url": "https://docs.claude.com/en/docs/test-and-evaluate/develop-tests"
+      }
+    ]
+  },
+  "generative-vs-agentic": {
+    "sources": [
+      {
+        "title": "Yao et al. (2022) — ReAct: Synergizing Reasoning and Acting in Language Models",
+        "url": "https://arxiv.org/abs/2210.03629"
+      }
+    ]
+  },
+  "agent-loop": {
+    "sources": [
+      {
+        "title": "Yao et al. (2022) — ReAct: Synergizing Reasoning and Acting",
+        "url": "https://arxiv.org/abs/2210.03629"
+      },
+      {
+        "title": "Sumers et al. (2023) — Cognitive Architectures for Language Agents (CoALA)",
+        "url": "https://arxiv.org/abs/2309.02427"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 200 200' role='img' aria-label='An agent loops: perceive, decide, act, observe, repeating toward a goal'><g stroke='currentColor' stroke-width='1.3' fill='none'><circle cx='100' cy='100' r='66' stroke-dasharray='3 5' opacity='0.5'/></g><g font-family='sans-serif' font-size='10' fill='currentColor' text-anchor='middle'><g stroke='currentColor' stroke-width='1.2' fill='none'><rect x='66' y='14' width='68' height='24' rx='12'/><rect x='150' y='88' width='44' height='24' rx='12'/><rect x='66' y='162' width='68' height='24' rx='12'/><rect x='6' y='88' width='52' height='24' rx='12'/></g><text x='100' y='30'>perceive</text><text x='172' y='104'>decide</text><text x='100' y='178'>act</text><text x='32' y='104'>observe</text></g><g stroke='var(--cluster)' stroke-width='1.4' fill='none'><path d='M138,30 A70,70 0 0 1 176,80' marker-end='url(#arrow)'/><path d='M170,116 A70,70 0 0 1 138,168' marker-end='url(#arrow)'/><path d='M64,170 A70,70 0 0 1 30,116' marker-end='url(#arrow)'/><path d='M28,84 A70,70 0 0 1 64,32' marker-end='url(#arrow)'/></g><text x='100' y='104' fill='currentColor' font-family='sans-serif' font-size='9' opacity='0.6' text-anchor='middle'>goal</text></svg>"
+  },
+  "tools": {
+    "sources": [
+      {
+        "title": "Schick et al. (2023) — Toolformer: Language Models Can Teach Themselves to Use Tools",
+        "url": "https://arxiv.org/abs/2302.04761"
+      }
+    ]
+  },
+  "mcp": {
+    "sources": [
+      {
+        "title": "Model Context Protocol — official documentation",
+        "url": "https://modelcontextprotocol.io/"
+      },
+      {
+        "title": "Anthropic — Introducing the Model Context Protocol",
+        "url": "https://www.anthropic.com/news/model-context-protocol"
+      }
+    ]
+  },
+  "skills": {
+    "sources": [
+      {
+        "title": "Anthropic — Introducing Agent Skills",
+        "url": "https://www.anthropic.com/news/skills"
+      }
+    ]
+  },
+  "agent-memory": {
+    "sources": [
+      {
+        "title": "Sumers, Yao, Narasimhan & Griffiths (2023) — Cognitive Architectures for Language Agents (CoALA)",
+        "url": "https://arxiv.org/abs/2309.02427"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 320 150' role='img' aria-label='Four kinds of agent memory: working, semantic, procedural, and episodic'><g font-family='sans-serif'><circle cx='160' cy='75' r='26' style='fill:var(--cluster);opacity:0.16' stroke='none'/><circle cx='160' cy='75' r='26' stroke='currentColor' stroke-width='1.2' fill='none'/><text x='160' y='72' fill='currentColor' font-size='9' text-anchor='middle'>working</text><text x='160' y='84' fill='currentColor' font-size='7.5' text-anchor='middle' opacity='0.7'>(context)</text><g stroke='currentColor' stroke-width='1.2' fill='none'><rect x='16' y='16' width='96' height='30' rx='8'/><rect x='208' y='16' width='96' height='30' rx='8'/><rect x='208' y='104' width='96' height='30' rx='8'/><rect x='16' y='104' width='96' height='30' rx='8'/><line x1='112' y1='40' x2='138' y2='62' opacity='0.5'/><line x1='208' y1='40' x2='182' y2='62' opacity='0.5'/><line x1='182' y1='88' x2='208' y2='108' opacity='0.5'/><line x1='138' y1='88' x2='112' y2='108' opacity='0.5'/></g><g fill='currentColor' font-size='9' text-anchor='middle'><text x='64' y='35'>semantic</text><text x='256' y='35'>procedural</text><text x='256' y='123'>episodic</text><text x='64' y='123'>skills</text></g></g></svg>"
+  },
+  "working-memory": {
+    "sources": [
+      {
+        "title": "Sumers et al. (2023) — CoALA",
+        "url": "https://arxiv.org/abs/2309.02427"
+      }
+    ]
+  },
+  "semantic-memory": {
+    "sources": [
+      {
+        "title": "Sumers et al. (2023) — CoALA",
+        "url": "https://arxiv.org/abs/2309.02427"
+      }
+    ]
+  },
+  "procedural-memory": {
+    "sources": [
+      {
+        "title": "Sumers et al. (2023) — CoALA",
+        "url": "https://arxiv.org/abs/2309.02427"
+      }
+    ]
+  },
+  "episodic-memory": {
+    "sources": [
+      {
+        "title": "Sumers et al. (2023) — CoALA",
+        "url": "https://arxiv.org/abs/2309.02427"
+      }
+    ]
+  },
+  "agent-frameworks": {
+    "sources": [
+      {
+        "title": "LangGraph — docs",
+        "url": "https://langchain-ai.github.io/langgraph/"
+      },
+      {
+        "title": "CrewAI — docs",
+        "url": "https://docs.crewai.com/"
+      }
+    ]
+  },
+  "agentic-rag": {
+    "sources": [
+      {
+        "title": "Gao et al. (2023) — Retrieval-Augmented Generation for LLMs: A Survey",
+        "url": "https://arxiv.org/abs/2312.10997"
+      }
+    ]
+  },
+  "prompt-injection": {
+    "sources": [
+      {
+        "title": "OWASP — Top 10 for Large Language Model Applications",
+        "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+      },
+      {
+        "title": "Simon Willison — Prompt injection series",
+        "url": "https://simonwillison.net/series/prompt-injection/"
+      }
+    ]
+  },
+  "promptware": {
+    "sources": [
+      {
+        "title": "Lockheed Martin — The Cyber Kill Chain (the analogy's origin)",
+        "url": "https://www.lockheedmartin.com/en-us/capabilities/cyber/cyber-kill-chain.html"
+      },
+      {
+        "title": "OWASP — Top 10 for LLM Applications",
+        "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+      }
+    ]
+  },
+  "agent-security": {
+    "sources": [
+      {
+        "title": "OWASP — Top 10 for LLM Applications",
+        "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+      },
+      {
+        "title": "NIST — AI Risk Management Framework",
+        "url": "https://www.nist.gov/itl/ai-risk-management-framework"
+      }
+    ]
+  },
+  "shadow-ai": {
+    "sources": [
+      {
+        "title": "NIST — AI Risk Management Framework",
+        "url": "https://www.nist.gov/itl/ai-risk-management-framework"
+      }
+    ]
+  },
+  "ai-sdlc": {
+    "sources": [
+      {
+        "title": "METR (2025) — Measuring the impact of AI on developer productivity",
+        "url": "https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/"
+      }
+    ]
+  },
+  "developer-productivity": {
+    "sources": [
+      {
+        "title": "DORA — DevOps Research & Assessment metrics",
+        "url": "https://dora.dev/"
+      },
+      {
+        "title": "Goodhart's Law — overview",
+        "url": "https://en.wikipedia.org/wiki/Goodhart%27s_law"
+      }
+    ]
+  },
+  "ai-governance": {
+    "sources": [
+      {
+        "title": "ISO/IEC 42001:2023 — AI management system (official)",
+        "url": "https://www.iso.org/standard/81230.html"
+      },
+      {
+        "title": "NIST — AI Risk Management Framework",
+        "url": "https://www.nist.gov/itl/ai-risk-management-framework"
+      }
+    ]
+  },
+  "risk-architecture": {
+    "sources": [
+      {
+        "title": "NIST — AI Risk Management Framework (AI RMF 1.0)",
+        "url": "https://www.nist.gov/itl/ai-risk-management-framework"
+      },
+      {
+        "title": "EU — Regulatory framework for AI (AI Act)",
+        "url": "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai"
+      }
+    ]
+  },
+  "explainability": {
+    "sources": [
+      {
+        "title": "DARPA — Explainable AI (XAI) program",
+        "url": "https://www.darpa.mil/program/explainable-artificial-intelligence"
+      }
+    ]
+  },
+  "when-not-to-use-ai": {
+    "sources": [
+      {
+        "title": "NIST — AI Risk Management Framework",
+        "url": "https://www.nist.gov/itl/ai-risk-management-framework"
+      }
+    ]
+  },
+  "ai-jobs": {
+    "sources": [
+      {
+        "title": "Jevons paradox — overview",
+        "url": "https://en.wikipedia.org/wiki/Jevons_paradox"
+      }
+    ]
+  },
+  "reinforcement-learning": {
+    "sources": [
+      {
+        "title": "Sutton & Barto — Reinforcement Learning: An Introduction (2nd ed., the standard textbook)",
+        "url": "http://incompleteideas.net/book/the-book.html"
+      },
+      {
+        "title": "Ouyang et al. (2022) — Training language models to follow instructions with human feedback (InstructGPT / RLHF)",
+        "url": "https://arxiv.org/abs/2203.02155"
+      },
+      {
+        "title": "DeepSeek-AI (2025) — DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning (RLVR)",
+        "url": "https://arxiv.org/abs/2501.12948"
+      }
+    ]
+  },
+  "scaling-laws": {
+    "sources": [
+      {
+        "title": "Kaplan et al. (2020) — Scaling Laws for Neural Language Models",
+        "url": "https://arxiv.org/abs/2001.08361"
+      },
+      {
+        "title": "Hoffmann et al. (2022) — Training Compute-Optimal Large Language Models (Chinchilla)",
+        "url": "https://arxiv.org/abs/2203.15556"
+      }
+    ]
+  },
+  "multimodal": {
+    "sources": [
+      {
+        "title": "Radford et al. (2021) — Learning Transferable Visual Models From Natural Language Supervision (CLIP)",
+        "url": "https://arxiv.org/abs/2103.00020"
+      },
+      {
+        "title": "Alayrac et al. (2022) — Flamingo: a Visual Language Model for Few-Shot Learning",
+        "url": "https://arxiv.org/abs/2204.14198"
+      }
+    ]
+  },
+  "eval-types": {
+    "sources": [
+      {
+        "title": "Hamel Husain — Your AI Product Needs Evals",
+        "url": "https://hamel.dev/blog/posts/evals/"
+      },
+      {
+        "title": "Anthropic — Create strong empirical evaluations (official docs)",
+        "url": "https://docs.claude.com/en/docs/test-and-evaluate/develop-tests"
+      }
+    ]
+  },
+  "eval-rubric": {
+    "sources": [
+      {
+        "title": "IBM EvalAssist — open-source LLM-as-a-Judge tooling (direct + pairwise assessment)",
+        "url": "https://github.com/IBM/eval-assist"
+      },
+      {
+        "title": "Liu et al. (2023) — G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment",
+        "url": "https://arxiv.org/abs/2303.16634"
+      }
+    ]
+  },
+  "golden-dataset": {
+    "sources": [
+      {
+        "title": "Husain & Shankar — A Field Guide to Rapidly Improving AI Products (analyze–measure–improve)",
+        "url": "https://hamel.dev/blog/posts/field-guide/"
+      },
+      {
+        "title": "Anthropic — Create strong empirical evaluations (official docs)",
+        "url": "https://docs.claude.com/en/docs/test-and-evaluate/develop-tests"
+      }
+    ]
+  },
+  "llm-as-judge": {
+    "sources": [
+      {
+        "title": "Zheng et al. (2023) — Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+        "url": "https://arxiv.org/abs/2306.05685"
+      },
+      {
+        "title": "Liu et al. (2023) — G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment",
+        "url": "https://arxiv.org/abs/2303.16634"
+      },
+      {
+        "title": "IBM EvalAssist — open-source LLM-as-a-Judge tooling (direct + pairwise assessment)",
+        "url": "https://github.com/IBM/eval-assist"
+      }
+    ]
+  },
+  "judge-strategies": {
+    "sources": [
+      {
+        "title": "IBM EvalAssist — open-source LLM-as-a-Judge tooling (direct + pairwise assessment)",
+        "url": "https://github.com/IBM/eval-assist"
+      },
+      {
+        "title": "Ashktorab et al. (2025) — EvalAssist: A Human-Centered Tool for LLM-as-a-Judge",
+        "url": "https://arxiv.org/abs/2507.02186"
+      },
+      {
+        "title": "Zheng et al. (2023) — Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+        "url": "https://arxiv.org/abs/2306.05685"
+      }
+    ]
+  },
+  "judge-bias": {
+    "sources": [
+      {
+        "title": "Zheng et al. (2023) — Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+        "url": "https://arxiv.org/abs/2306.05685"
+      },
+      {
+        "title": "Ashktorab et al. (2025) — EvalAssist: A Human-Centered Tool for LLM-as-a-Judge",
+        "url": "https://arxiv.org/abs/2507.02186"
+      }
+    ]
+  },
+  "judge-alignment": {
+    "sources": [
+      {
+        "title": "Zheng et al. (2023) — Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+        "url": "https://arxiv.org/abs/2306.05685"
+      },
+      {
+        "title": "Husain & Shankar — A Field Guide to Rapidly Improving AI Products (analyze–measure–improve)",
+        "url": "https://hamel.dev/blog/posts/field-guide/"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 356 126' role='img' aria-label='Judge alignment compares each human label with the judge label to compute an agreement score'><g font-family='sans-serif'><g fill='currentColor' font-size='9' text-anchor='middle' opacity='0.7'><text x='66' y='15'>human label</text><text x='176' y='15'>judge label</text><text x='266' y='15'>match</text></g><g stroke='currentColor' stroke-width='1.3' fill='none'><rect x='26' y='23' width='80' height='18' rx='5'/><rect x='136' y='23' width='80' height='18' rx='5'/><rect x='26' y='47' width='80' height='18' rx='5'/><rect x='136' y='47' width='80' height='18' rx='5'/><rect x='26' y='71' width='80' height='18' rx='5'/><rect x='136' y='71' width='80' height='18' rx='5'/><line x1='106' y1='32' x2='136' y2='32'/><line x1='106' y1='56' x2='136' y2='56'/><line x1='106' y1='80' x2='136' y2='80'/></g><g fill='currentColor' font-size='9' text-anchor='middle'><text x='66' y='36'>good</text><text x='176' y='36'>good</text><text x='266' y='37'>✓</text><text x='66' y='60'>bad</text><text x='176' y='60'>bad</text><text x='266' y='61'>✓</text><text x='66' y='84'>bad</text><text x='176' y='84'>good</text><text x='266' y='85'>✗</text></g><g font-size='10' text-anchor='middle' style='fill:var(--cluster);font-weight:600'><text x='176' y='113'>agreement = 2 / 3 = 67%</text></g></g></svg>"
+  },
+  "eval-levels": {
+    "sources": [
+      {
+        "title": "Husain & Shankar — A Field Guide to Rapidly Improving AI Products (analyze–measure–improve)",
+        "url": "https://hamel.dev/blog/posts/field-guide/"
+      },
+      {
+        "title": "OpenAI Evals — open-source framework for evaluating LLM systems",
+        "url": "https://github.com/openai/evals"
+      }
+    ],
+    "diagram": "<svg viewBox='0 0 356 122' role='img' aria-label='Three levels of evals: unit tests on every change, human and model review weekly, A/B tests on major releases'><g font-family='sans-serif'><g stroke='currentColor' stroke-width='1.3' fill='none'><rect x='6' y='86' width='250' height='26' rx='6'/><rect x='6' y='50' width='190' height='26' rx='6'/><rect x='6' y='14' width='130' height='26' rx='6' style='fill:var(--cluster);opacity:0.14'/><rect x='6' y='14' width='130' height='26' rx='6'/><line x1='340' y1='112' x2='340' y2='14' marker-end='url(#arrow)'/></g><g fill='currentColor' font-size='9.5'><text x='16' y='103'>L1 · unit tests</text><text x='16' y='67'>L2 · human + model</text><text x='16' y='31'>L3 · A/B test</text></g><g fill='currentColor' font-size='8.5' opacity='0.75'><text x='264' y='103'>every change</text><text x='204' y='67'>weekly</text><text x='144' y='31'>major release</text><text x='318' y='66' text-anchor='middle'>cost</text></g></g></svg>"
+  },
+  "eval-unit-tests": {
+    "sources": [
+      {
+        "title": "OpenAI Evals — open-source framework for evaluating LLM systems",
+        "url": "https://github.com/openai/evals"
+      },
+      {
+        "title": "Anthropic — Create strong empirical evaluations (official docs)",
+        "url": "https://docs.claude.com/en/docs/test-and-evaluate/develop-tests"
+      }
+    ]
+  },
+  "ab-testing": {
+    "sources": [
+      {
+        "title": "Husain & Shankar — A Field Guide to Rapidly Improving AI Products (analyze–measure–improve)",
+        "url": "https://hamel.dev/blog/posts/field-guide/"
+      }
+    ]
+  },
+  "eval-metrics": {
+    "sources": [
+      {
+        "title": "Liu et al. (2023) — G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment",
+        "url": "https://arxiv.org/abs/2303.16634"
+      },
+      {
+        "title": "Liang et al. (2022) — Holistic Evaluation of Language Models (HELM)",
+        "url": "https://arxiv.org/abs/2211.09110"
+      }
+    ]
+  },
+  "eval-driven-workflow": {
+    "sources": [
+      {
+        "title": "Husain & Shankar — A Field Guide to Rapidly Improving AI Products (analyze–measure–improve)",
+        "url": "https://hamel.dev/blog/posts/field-guide/"
+      },
+      {
+        "title": "Hamel Husain — Your AI Product Needs Evals",
+        "url": "https://hamel.dev/blog/posts/evals/"
+      }
+    ]
+  }
+}

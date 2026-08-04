@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADK vs RAG: How to Choose the Right AI Stack</title>
+<meta name="description" content="Use a simple test — should the AI act or should it recall — to decide between an agent architecture, a retrieval pipeline, or both.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-hardware-store-analogy-two-kinds-of-ai-systems-1"><span class="n">1</span>The Hardware Store Analogy: Two Kinds of AI Systems</a></li>
+<li><a href="#adk-designing-ai-that-acts-and-reasons-2"><span class="n">2</span>ADK: Designing AI That Acts and Reasons</a></li>
+<li><a href="#rag-designing-ai-that-retrieves-and-knows-3"><span class="n">3</span>RAG: Designing AI That Retrieves and Knows</a></li>
+<li><a href="#choosing-adk-when-your-ai-needs-to-do-things-4"><span class="n">4</span>Choosing ADK: When Your AI Needs To Do Things</a></li>
+<li><a href="#choosing-rag-when-your-data-is-the-source-of-truth-5"><span class="n">5</span>Choosing RAG: When Your Data Is the Source of Truth</a></li>
+<li><a href="#hybrid-systems-reasoning-paired-with-domain-knowledge-6"><span class="n">6</span>Hybrid Systems: Reasoning Paired With Domain Knowledge</a></li>
+<li><a href="#a-practical-decision-checklist-7"><span class="n">7</span>A Practical Decision Checklist</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">AI System Architecture</span></div>
+  <h1>ADK vs RAG: How to Choose the Right AI Stack</h1>
+  <p class="lede">Use a simple test — should the AI act or should it recall — to decide between an agent architecture, a retrieval pipeline, or both.</p>
+  <p class="muted small">For developers and technical product people deciding whether to build an AI agent, a retrieval system, or a combination of the two · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=7HSSR1n8dgc" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Basic understanding of what a large language model (LLM) does when it generates text</li><li>Familiarity with the idea of calling a function or API from code</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Every AI system design eventually runs into the same fork: should the system perform actions, or should it answer questions grounded in a body of knowledge? Agent architectures (often built with an Agent Development Kit, or ADK) are optimized for the first job — following instructions, calling tools, and executing multi-step workflows. Retrieval-Augmented Generation (RAG) is optimized for the second — grounding answers in documents so the model isn&#x27;t relying on guesswork baked into its training data.</p>
+<p>These aren&#x27;t competing technologies so much as answers to different questions. An agent framework gives a language model hands: it can call a function, follow a decision tree, and keep doing that reliably every time it&#x27;s asked. A retrieval pipeline gives a language model a library card: before it answers, it looks something up, so its response reflects your documents instead of whatever it happened to memorize during training.</p>
+<p>Most production systems that look sophisticated from the outside are not choosing one over the other — they&#x27;re combining them. An agent orchestrates the steps of a task, and one or more of those steps calls a retrieval pipeline to fetch grounded facts before continuing. Understanding when each piece is doing the work, and why, is what makes that combination deliberate instead of accidental.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Agent architectures (ADK-style) are for AI that needs to act: follow steps, call tools, and produce consistent, repeatable behavior.</li><li>RAG is for AI that needs to know: it retrieves relevant text from your documents before generating an answer, so the answer is grounded in that source instead of the model&#x27;s internal training.</li><li>The fastest way to choose is to ask one question: does this system need to act, or does it need to recall?</li><li>ADK suits multi-step workflows, tool use, and tasks where the value comes from reasoning and repeatable logic, not memory.</li><li>RAG suits domains where the source of truth is a document set that is large, detailed, or changes often — retrieval keeps answers current without retraining a model.</li><li>Hybrid systems are the norm in real deployments: the agent layer handles task flow and decisions, while a retrieval layer supplies it with accurate, up-to-date facts.</li><li>A retrieval step and a tool-calling step are not mutually exclusive — retrieval can itself be exposed to an agent as just another tool it decides to call.</li></ul>
+  </div>
+</section>
+<section id="the-hardware-store-analogy-two-kinds-of-ai-systems-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The Hardware Store Analogy: Two Kinds of AI Systems</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">A hardware store has a tool aisle for doing work and a reference aisle for knowing how to do it correctly — AI systems split the same way.</p>
+  <p>Walk into a hardware store to fix something and you&#x27;ll notice two distinct aisles. One holds tools: drills, saws, sanders. You point a tool at a task and it performs the work directly. The other holds reference material: manuals, diagrams, buying guides. A manual does not drive a single screw for you, but it tells you which screw to use and how deep to sink it.</p>
+<p>AI system design splits along the same line. Some AI is built to perform work directly — take an instruction, carry out a sequence of steps, and produce a result. Other AI is built to supply accurate knowledge — answer a question correctly by consulting a source, rather than acting on the world. Neither kind is more advanced than the other; they solve different problems, the same way a drill and a manual solve different problems in the same repair job.</p>
+<p>The rest of this lesson names these two approaches: ADK-style agent architectures for the &#x27;tool&#x27; role, and RAG for the &#x27;reference&#x27; role. Keeping the analogy in mind makes the architectural decision concrete instead of abstract — you&#x27;re not choosing a trendier technology, you&#x27;re choosing the aisle that matches what the job actually requires.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Tools act on the world; reference material informs decisions but doesn&#x27;t act on its own.</li><li>Neither approach is inherently more advanced — they answer different questions.</li><li>The analogy maps directly onto two AI architecture styles covered next: ADK (acts) and RAG (knows).</li></ul></div>
+  <figure class="example">
+  <figcaption>Fixing a bookshelf</figcaption>
+  <p>Building a bookshelf needs a drill (a tool, acting) and possibly a joinery diagram (a reference, informing). You wouldn&#x27;t try to drive a screw with the diagram, and you wouldn&#x27;t expect the drill to tell you which screw to use. Most real carpentry projects, like most real AI systems, need both.</p>
+  
+</figure>
+</section>
+<section id="adk-designing-ai-that-acts-and-reasons-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>ADK: Designing AI That Acts and Reasons</h2>
+      <a class="stamp" href="#" data-t="43">0:43</a>
+    </div>
+  </div>
+  <p class="summary">ADK-style systems give an AI model the ability to reason step by step and call tools to complete multi-step tasks predictably.</p>
+  <p>ADK stands for Agent Development Kit, and the term is used here for a broader pattern: agent architectures built around action and reasoning. Instead of producing a single block of text as its final output, an ADK-style agent is put inside a loop. On each turn it can call a workflow, invoke a tool (a function, an API, a database query), follow an explicit rule or process, and then decide what to do next based on what came back.</p>
+<p>The defining characteristics are step-by-step reasoning, use of external tools, adherence to rules or logic, and — importantly — consistent, repeatable behavior. Because the agent follows the same decision logic every time it&#x27;s given a similar input, its behavior is easier to test and evaluate than a single freeform generation. This loop is sometimes called the ReAct pattern (reason, then act, then observe the result, then reason again), and it&#x27;s the mechanical core of almost every agent framework, whether or not it&#x27;s branded &#x27;ADK&#x27;.</p>
+<p>ADK works well specifically when your AI needs to perform a task in a predictable sequence — draft a document, triage a support ticket, fill out a form, coordinate a handoff between systems. The value it provides comes from reasoning through steps and taking action, not from remembering facts. If you asked an ADK-style agent &#x27;what does section 4.2 of our contract say,&#x27; it has no built-in way to know — that&#x27;s not the job it&#x27;s built for.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>ADK-style agents run in a loop: reason about the next step, call a tool, observe the result, reason again.</li><li>Core traits: step-by-step reasoning, tool use, explicit rules/logic, and repeatable behavior across runs.</li><li>Repeatability is what makes agent behavior testable — the same input tends to trigger the same decision path.</li><li>The agent&#x27;s value is in reasoning and acting, not in recalling facts it was never given.</li></ul></div>
+  <figure class="example">
+  <figcaption>A minimal tool-calling agent loop</figcaption>
+  <p>This is the mechanical skeleton every ADK-style agent shares: give the model a set of callable tools, let it decide whether to call one or answer directly, feed the tool&#x27;s result back in, and repeat until it has enough information to respond. The &#x27;llm&#x27; and &#x27;tools&#x27; objects stand in for a real model client and real functions.</p>
+  <pre><code>def run_agent(user_request, tools, llm, max_steps=6):
+    &quot;&quot;&quot;A minimal ReAct-style agent loop: reason, act, observe, repeat.&quot;&quot;&quot;
+    messages = [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: user_request}]
+
+    for step in range(max_steps):
+        response = llm.chat(messages, tools=tools)
+
+        if response.tool_call is None:
+            # Model decided it has enough information to answer directly
+            return response.content
+
+        # Execute the tool the model asked for
+        tool_name = response.tool_call.name
+        tool_args = response.tool_call.arguments
+        result = tools[tool_name](**tool_args)
+
+        # Feed the observation back so the model can reason further
+        messages.append({&quot;role&quot;: &quot;assistant&quot;, &quot;tool_call&quot;: response.tool_call})
+        messages.append({&quot;role&quot;: &quot;tool&quot;, &quot;name&quot;: tool_name, &quot;content&quot;: str(result)})
+
+    return &quot;Max steps reached without a final answer.&quot;</code></pre>
+</figure>
+</section>
+<section id="rag-designing-ai-that-retrieves-and-knows-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>RAG: Designing AI That Retrieves and Knows</h2>
+      <a class="stamp" href="#" data-t="126">2:06</a>
+    </div>
+  </div>
+  <p class="summary">RAG connects a model to your documents and retrieves the relevant pieces before it answers, trading the model&#x27;s internal guesswork for grounded, sourced text.</p>
+  <p>RAG stands for Retrieval-Augmented Generation. Where ADK focuses on action, RAG focuses on knowledge and accuracy. Instead of relying on whatever a model absorbed during training, a RAG system connects to your actual documents, retrieves the specific passages relevant to the current question, and only then generates a response — using those passages as its source material.</p>
+<p>Mechanically, this means every document is broken into chunks and converted into embeddings: numeric vectors that place similar meanings near each other in a high-dimensional space. Those vectors sit in a vector database. When a question arrives, it&#x27;s embedded the same way, and the database returns the chunks whose vectors are closest to the question&#x27;s vector. Those chunks get inserted into the prompt as context, and the model is instructed to answer using that context rather than its own memory.</p>
+<p>The payoff is groundedness: the answer traces back to a specific document, and updating that document changes future answers immediately, with no retraining. This matters most exactly where a model&#x27;s memorized knowledge is unreliable — information that&#x27;s high-volume, highly detailed, or that changes on a schedule a training run can&#x27;t keep up with.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>RAG retrieves relevant document chunks before generating a response, instead of answering from memorized training data.</li><li>Documents are chunked and embedded into vectors; a vector database finds chunks whose meaning is closest to the question.</li><li>Retrieved chunks are inserted into the prompt as context that the model is told to rely on.</li><li>Updating the underlying documents changes future answers immediately — no retraining required.</li></ul></div>
+  <figure class="example">
+  <figcaption>A minimal RAG answer function</figcaption>
+  <p>This function embeds the incoming question, retrieves the top-k most relevant chunks from a vector store, builds a context block from them, and instructs the model to answer only from that context. If nothing relevant was retrieved, the model is told to say so rather than fill the gap with a guess.</p>
+  <pre><code>def answer_with_rag(question, vector_store, llm, top_k=4):
+    &quot;&quot;&quot;Retrieve relevant document chunks, then generate a grounded answer.&quot;&quot;&quot;
+    query_embedding = embed(question)
+    chunks = vector_store.search(query_embedding, top_k=top_k)
+
+    context = &quot;\n\n&quot;.join(f&quot;[{c.source}] {c.text}&quot; for c in chunks)
+    prompt = (
+        &quot;Answer using ONLY the context below. &quot;
+        &quot;If the answer isn&#x27;t there, say so.\n\n&quot;
+        f&quot;Context:\n{context}\n\nQuestion: {question}&quot;
+    )
+    return llm.complete(prompt)</code></pre>
+</figure>
+</section>
+<section id="choosing-adk-when-your-ai-needs-to-do-things-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Choosing ADK: When Your AI Needs To Do Things</h2>
+      <a class="stamp" href="#" data-t="171">2:51</a>
+    </div>
+  </div>
+  <p class="summary">The core test is &#x27;act or recall?&#x27; — ADK says &#x27;do something for me,&#x27; and it fits anywhere the value comes from reasoning through steps rather than looking something up.</p>
+  <p>With both approaches defined, the choice comes down to one question: is this AI meant to act, or is it meant to recall? An ADK-style agent says &#x27;do something for me.&#x27; A RAG system says &#x27;tell me something about my data.&#x27; Nearly every architectural decision downstream of this point follows from which of those two sentences describes the task.</p>
+<p>Choose ADK when you want the system to be procedural — when there&#x27;s a sequence of steps that needs to happen in order, regardless of what any single document says. Typical use cases include multi-step workflows, drafting or transforming content, IT or HR assistance, and task coordination or triage, where an incoming request has to be routed, classified, or escalated according to a rule set.</p>
+<p>The other reason to choose ADK is reliability of behavior. Because the agent follows the same logic on every run, its outputs are far more consistent than a single open-ended generation, which makes evaluation and debugging tractable — you can point at the exact step where a run diverged from what you expected, because the steps are explicit and repeatable.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The one-question test: does the AI need to act (ADK) or recall (RAG)?</li><li>ADK fits multi-step workflows, content drafting/transformation, IT/HR assistance, and triage or routing tasks.</li><li>Choose ADK when the value comes from reasoning through a decision, not from looking up a fact.</li><li>Consistent, repeatable logic makes ADK-style systems easier to evaluate than free-form generation.</li></ul></div>
+  <figure class="example">
+  <figcaption>IT support triage as a procedural task</figcaption>
+  <p>A request like &#x27;my VPN keeps disconnecting&#x27; needs to be classified (network vs. account issue), routed to the right queue, and possibly have a ticket created — the same three steps every time, regardless of which specific document might describe VPN troubleshooting. That repeatable sequence is exactly what an ADK-style agent is built to execute.</p>
+  
+</figure>
+</section>
+<section id="choosing-rag-when-your-data-is-the-source-of-truth-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Choosing RAG: When Your Data Is the Source of Truth</h2>
+      <a class="stamp" href="#" data-t="217">3:37</a>
+    </div>
+  </div>
+  <p class="summary">Choose RAG when accuracy has to come directly from documents, especially where content is high-volume, detailed, or constantly changing.</p>
+  <p>RAG is the right choice when your data is the source of truth and the model&#x27;s own internal knowledge isn&#x27;t good enough to rely on — either because it was never trained on that material, or because the material has since changed. Ideal content for RAG includes PDFs, policies and regulations, technical documentation, product manuals, and long-form knowledge bases: exactly the kind of material a human would flip through rather than memorize.</p>
+<p>RAG shines specifically where a system needs to &#x27;remember&#x27; things no person could reasonably hold in their head — high volume, high detail, and frequently updated information. It also handles open-ended questions well, the kind where the exact phrasing varies each time: &#x27;where is this topic mentioned,&#x27; &#x27;what does this report say,&#x27; &#x27;summarize this section.&#x27; A fixed workflow can&#x27;t anticipate every phrasing in advance, but retrieval doesn&#x27;t need to — it just needs the question&#x27;s meaning to be close, in embedding space, to the relevant passage.</p>
+<p>Common use cases follow directly from this: knowledge search across internal wikis, research assistance, legal or medical document lookup, and technical support that has to be grounded in actual documentation rather than a support agent&#x27;s best guess.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Use RAG when accuracy must trace back to a document, not to the model&#x27;s internal guesswork.</li><li>Best-fit content: PDFs, policies, regulations, technical docs, product manuals, long-form knowledge bases.</li><li>RAG handles information too large or detailed for a person (or a fixed prompt) to hold in full.</li><li>It also handles widely varying question phrasing, since retrieval matches on meaning rather than a fixed script.</li></ul></div>
+  <figure class="example">
+  <figcaption>Legal document lookup</figcaption>
+  <p>A question like &#x27;does our vendor contract with Acme allow termination for convenience&#x27; can&#x27;t be answered from a model&#x27;s training — it depends on the specific contract text. A RAG system retrieves the relevant clause from the actual contract PDF and answers from that clause, rather than producing a plausible-sounding but unverified guess.</p>
+  
+</figure>
+</section>
+<section id="hybrid-systems-reasoning-paired-with-domain-knowledge-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Hybrid Systems: Reasoning Paired With Domain Knowledge</h2>
+      <a class="stamp" href="#" data-t="260">4:20</a>
+    </div>
+  </div>
+  <p class="summary">Most real systems use both: an ADK-style agent handles the task flow and decisions, while a RAG component supplies it with grounded facts along the way.</p>
+  <p>Most real-world AI systems don&#x27;t strictly pick one architecture — they combine them. In a hybrid system, the ADK layer handles task flow, decision logic, and the sequence of steps, while the RAG layer supplies accurate information pulled from documents whenever a step in that sequence needs a fact. The result is a system that is both intelligent (it can reason and act) and well-informed (its answers are grounded in real sources).</p>
+<p>A useful way to place a system on this map: content generation with low retrieval need and high reasoning need points to ADK. Internal knowledge search where the answer depends entirely on documents points to RAG. Automation, IT assistance, and multi-step tool use point to ADK. Domain-expert co-pilot work that needs both deep retrieval and complex reasoning — legal and engineering co-pilots, healthcare assistants, enterprise task co-pilots — is where the hybrid approach earns its complexity.</p>
+<p>The cleanest way to build a hybrid system is not to bolt RAG on beside the agent, but to expose retrieval to the agent as just another tool. The agent&#x27;s reasoning loop decides when a step requires grounded information, calls the retrieval function like any other tool, and folds the result back into its next decision. This keeps a single control loop in charge of the whole task, with RAG as one capability inside it rather than a separate, disconnected system.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Hybrid = ADK controls the task flow and decisions; RAG supplies grounded facts at the steps that need them.</li><li>Content generation / high reasoning / low retrieval -&gt; ADK. Answers dependent entirely on documents -&gt; RAG.</li><li>Domain-expert co-pilots (legal, engineering, healthcare) typically need both deep retrieval and complex reasoning.</li><li>The cleanest integration exposes retrieval to the agent as one more callable tool, not a separate parallel system.</li></ul></div>
+  <figure class="example">
+  <figcaption>A support agent with retrieval as a tool</figcaption>
+  <p>The agent loop from the ADK section is reused unchanged. One of its tools, &#x27;retrieve_docs&#x27;, is simply the RAG function from the previous section. The agent decides on its own when a step needs a grounded fact and calls that tool, then continues reasoning and acting with whatever it learned.</p>
+  <pre><code>tools = {
+    &quot;retrieve_docs&quot;: lambda query: answer_with_rag(query, vector_store, llm),
+    &quot;create_ticket&quot;: create_ticket,
+    &quot;send_email&quot;: send_email,
+}
+
+run_agent(
+    &quot;A customer is asking about our refund policy for damaged items. &quot;
+    &quot;Look it up and draft a reply.&quot;,
+    tools=tools,
+    llm=llm,
+)</code></pre>
+</figure>
+</section>
+<section id="a-practical-decision-checklist-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>A Practical Decision Checklist</h2>
+      <a class="stamp" href="#" data-t="342">5:42</a>
+    </div>
+  </div>
+  <p class="summary">Back to the hardware store: use the tool aisle to build, the reference aisle to make sure the build is correct, and pick based on whether the task is to act, to know, or both.</p>
+  <p>Back to the hardware store one more time: ADK is the tool aisle — it performs the steps, it acts, it builds. RAG is the reference aisle — it provides information and grounds the work in facts. Most successful projects use both aisles: tools to build, guides to make sure the build is correct.</p>
+<p>In practice, the decision reduces to two yes/no questions. Does the system need to take actions or follow a multi-step process (needs_action)? Does the system need to answer from a specific, possibly changing, body of documents (needs_current_docs)? The answers place the system in one of four positions: pure ADK, pure RAG, a hybrid of both, or — for the simplest cases — a direct model call with no architecture on top at all.</p>
+<p>Answering those two questions first, before picking a framework or a vendor, is what keeps the architecture matched to the job. The mistake this lesson is built to prevent is building an elaborate retrieval pipeline for a task that was purely procedural, or building a rigid multi-step agent for a task that was really just &#x27;go look this up.&#x27;</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>ADK = tool aisle (acts, builds); RAG = reference aisle (informs, grounds).</li><li>Two questions decide the architecture: does it need to act? Does it need current, document-grounded knowledge?</li><li>Four possible outcomes: ADK only, RAG only, hybrid, or a plain model call with no extra architecture.</li><li>Deciding this before picking a framework prevents over- or under-building the system.</li></ul></div>
+  <figure class="example">
+  <figcaption>A two-question decision function</figcaption>
+  <p>A direct translation of the hardware-store heuristic into code. It&#x27;s deliberately simple — the point isn&#x27;t the code, it&#x27;s that the two questions are enough to place almost any system into the right quadrant before any framework gets chosen.</p>
+  <pre><code>def choose_architecture(needs_action, needs_current_docs):
+    if needs_action and needs_current_docs:
+        return &quot;Hybrid: ADK orchestrates the task, RAG supplies grounded facts&quot;
+    if needs_action:
+        return &quot;ADK: a procedural, tool-using agent&quot;
+    if needs_current_docs:
+        return &quot;RAG: retrieval over your documents&quot;
+    return &quot;A plain model call may be enough&quot;
+
+
+# Examples from the lesson
+print(choose_architecture(needs_action=True,  needs_current_docs=False))  # IT triage
+print(choose_architecture(needs_action=False, needs_current_docs=True))   # legal lookup
+print(choose_architecture(needs_action=True,  needs_current_docs=True))   # legal co-pilot</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>ADK (Agent Development Kit)</dt><dd>A term for agent-style architectures built around action and reasoning — the AI follows steps, calls tools, and produces consistent, repeatable behavior.</dd></div><div class="term"><dt>RAG (Retrieval-Augmented Generation)</dt><dd>An architecture where a model retrieves relevant text from a document store before generating its answer, so the answer is grounded in that source material.</dd></div><div class="term"><dt>Agent</dt><dd>An AI system that runs in a loop, deciding on each turn whether to call a tool or produce a final answer, rather than generating one response in isolation.</dd></div><div class="term"><dt>Tool use / function calling</dt><dd>The mechanism by which a model can invoke an external function or API mid-conversation and receive its result back as new information to reason over.</dd></div><div class="term"><dt>Embedding</dt><dd>A numeric vector representation of a piece of text, positioned so that text with similar meaning ends up close together in vector space.</dd></div><div class="term"><dt>Vector database</dt><dd>A database optimized for storing embeddings and finding the ones closest in meaning to a given query vector.</dd></div><div class="term"><dt>Grounding</dt><dd>Basing a model&#x27;s answer on retrieved source material rather than on patterns memorized during training, so the answer can be traced back to a specific document.</dd></div><div class="term"><dt>ReAct pattern</dt><dd>An agent loop of reason, then act, then observe the result, then reason again — the mechanical basis of most tool-calling agents.</dd></div><div class="term"><dt>Triage</dt><dd>Classifying and routing an incoming request (a ticket, a message) to the right handler or process based on rules or logic.</dd></div><div class="term"><dt>Hybrid system</dt><dd>An architecture where an agent (ADK-style) controls the task flow and calls a retrieval pipeline (RAG) as one of its tools whenever a step needs grounded information.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>A support bot answers questions about a 200-page policy manual that gets revised every month. Why would a RAG system stay accurate after a revision while a plain fine-tuned model would not?</summary>
+  <div class="answer"><p>RAG retrieves from the live document at answer time, so an edit to the source document is reflected in the very next query. A fine-tuned model bakes the old text into its weights at training time; it keeps answering from the stale version until it&#x27;s retrained, which is slower and more expensive than just updating a document.</p></div>
+</details><details class="q">
+  <summary>Why is an ADK-style agent easier to evaluate than a single free-form model generation?</summary>
+  <div class="answer"><p>Because the agent follows explicit, repeatable steps (reason, call a tool, observe, repeat), the same input tends to produce the same decision path each run. That repeatability lets you inspect and test individual steps, whereas a single open-ended generation gives you no intermediate points to check.</p></div>
+</details><details class="q">
+  <summary>In the hybrid support-agent example, retrieval is exposed to the agent as just another tool rather than as a separate pipeline running alongside it. Why does that design choice matter?</summary>
+  <div class="answer"><p>Keeping retrieval inside the agent&#x27;s own tool set means one control loop decides when grounded information is actually needed for the current step, instead of always running retrieval whether or not the step calls for it. It also means the retrieved result flows back into the agent&#x27;s next reasoning step naturally, the same way any other tool result would.</p></div>
+</details><details class="q">
+  <summary>A multi-step onboarding workflow (create account, assign role, send welcome email) doesn&#x27;t reference any documents. Why would adding a RAG layer here likely be wasted effort?</summary>
+  <div class="answer"><p>The task&#x27;s value comes entirely from executing a fixed sequence correctly, not from looking anything up — there&#x27;s no changing, document-based fact the workflow needs to consult. RAG solves a knowledge problem, and this task doesn&#x27;t have one.</p></div>
+</details><details class="q">
+  <summary>Why does &#x27;does the answer change when I update a document&#x27; work as a quick test for whether a system needs RAG?</summary>
+  <div class="answer"><p>If updating a document should change future answers, the system&#x27;s correctness depends on live document content, not on task logic — which is exactly the situation retrieval is built for. If the answer wouldn&#x27;t change no matter what the document said, the system is really about executing steps, which points to an agent architecture instead.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Build a minimal ReAct-style tool-calling loop in Python against a real LLM API and give it two or three simple tools (a calculator, a date lookup, a mock ticket creator).</li><li>Implement a small RAG pipeline end to end: chunk a handful of PDFs, embed them with an open-source embedding model, store the vectors in a local vector database (e.g. Chroma or FAISS), and query it.</li><li>Take one real workflow you&#x27;re considering automating and run it through the two-question checklist (needs_action, needs_current_docs) before choosing a framework.</li><li>Look up Google&#x27;s Agent Development Kit documentation to see a concrete, production implementation of the agent loop pattern described in this lesson.</li><li>Read about the ReAct paper (Yao et al., 2022) for the original formulation of the reason-act-observe loop underlying most modern tool-calling agents.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

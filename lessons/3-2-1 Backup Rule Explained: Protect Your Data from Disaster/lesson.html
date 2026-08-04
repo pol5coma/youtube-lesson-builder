@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3-2-1 Backup Rule Explained: Protect Your Data from Disaster</title>
+<meta name="description" content="Learn how three copies, two media types, one offsite location, one immutable copy, and zero untested backups combine into a real disaster-recovery strategy.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#why-one-backup-is-not-enough-1"><span class="n">1</span>Why One Backup Is Not Enough</a></li>
+<li><a href="#the-rule-of-three-keep-three-copies-of-your-data-2"><span class="n">2</span>The Rule of Three: Keep Three Copies of Your Data</a></li>
+<li><a href="#the-rule-of-two-use-two-different-types-of-media-3"><span class="n">3</span>The Rule of Two: Use Two Different Types of Media</a></li>
+<li><a href="#the-rule-of-one-keep-a-copy-offsite-with-real-geographic-separation-4"><span class="n">4</span>The Rule of One: Keep a Copy Offsite, With Real Geographic Separation</a></li>
+<li><a href="#one-immutable-or-air-gapped-copy-ransomware-insurance-5"><span class="n">5</span>One Immutable or Air-Gapped Copy: Ransomware Insurance</a></li>
+<li><a href="#zero-errors-test-your-backups-6"><span class="n">6</span>Zero Errors: Test Your Backups</a></li>
+<li><a href="#encrypt-everything-and-eliminate-single-points-of-failure-7"><span class="n">7</span>Encrypt Everything and Eliminate Single Points of Failure</a></li>
+<li><a href="#the-payoff-disaster-recovery-attack-resilience-and-the-cost-of-availability-8"><span class="n">8</span>The Payoff: Disaster Recovery, Attack Resilience, and the Cost of Availability</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Beginner</span><span class="pill ghost">Data backup and disaster recovery</span><span class="muted">IBM Technology</span></div>
+  <h1>3-2-1 Backup Rule Explained: Protect Your Data from Disaster</h1>
+  <p class="lede">Learn how three copies, two media types, one offsite location, one immutable copy, and zero untested backups combine into a real disaster-recovery strategy.</p>
+  <p class="muted small">For for IT professionals, sysadmins, and technical decision-makers who want a systematic way to protect organizational data from loss · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=WJzsX32qMJY" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Data loss is not a hypothetical risk. Hardware fails, software corrupts files, people make mistakes, and attackers deliberately target backups along with primary systems. A single backup copy does not solve this problem so much as relocate it: if that one backup also fails, you are exactly where you started, with nothing. The 3-2-1 rule is a compact set of principles for building a backup strategy that survives the failure of any single component.</p>
+<p>The name describes three requirements: keep three total copies of your data, store them on two different types of media, and keep at least one of those copies offsite with real geographic separation. Modern practice extends this with two more numbers: at least one copy should be immutable or air-gapped so ransomware cannot alter it, and you should aim for zero untested backups, because a backup nobody has restored from is unproven. Encryption and the elimination of single points of failure run underneath all of it.</p>
+<p>Done well, this strategy pays off in three concrete ways: it protects against accidental disasters (fire, flood, hardware failure), it protects against deliberate attacks like ransomware, and it lets an organization make a deliberate, informed tradeoff between how much downtime it can tolerate and how much resilience it is willing to pay for.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>The 3-2-1 rule means three total copies of your data, on two different media types, with at least one copy stored offsite.</li><li>A backup is only as protective as its independence from whatever could take out the primary copy — same-media or same-location copies can fail together.</li><li>True offsite means real geographic separation: far enough that one regional disaster (storm, power grid failure, earthquake) cannot reach both locations.</li><li>Immutable or air-gapped copies protect against ransomware because a write-once copy cannot be altered after the fact, even if the primary and other backups are encrypted by an attacker.</li><li>Untested backups are unproven backups; periodic restore drills are what make the &#x27;zero errors&#x27; goal achievable in practice.</li><li>Encrypting every copy and hunting down single points of failure closes gaps that the 3-2-1 rule alone leaves open.</li><li>Backup strategy is ultimately an economic decision: each additional &#x27;nine&#x27; of availability reduces allowed downtime roughly tenfold and costs disproportionately more to achieve.</li></ul>
+  </div>
+</section>
+<section id="why-one-backup-is-not-enough-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Why One Backup Is Not Enough</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">A single backup does not eliminate your single point of failure — it just moves it one step downstream.</p>
+  <p>Data is often described as the lifeblood of an organization: customer records, financial history, source code, and institutional knowledge that cannot simply be recreated. Treating it casually and assuming &#x27;you can always make more&#x27; ignores how much of it is irreplaceable.</p>
+<p>The obvious first step is to keep a backup copy alongside the primary, working copy of the data. That already helps: if the primary fails, you can recover from the backup. But this setup has a hidden weakness. The instant you rely on exactly one backup, that backup becomes a new single point of failure. If it degrades, gets deleted, or is hit by the same event that took out the primary, you are left with nothing at all. Any backup strategy has to be built around the assumption that any single copy, anywhere, can fail.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Data loss risk is not hypothetical: hardware, software, and human error all fail in practice.</li><li>A lone backup does not remove your single point of failure, it just relocates it.</li><li>A sound backup strategy assumes any one copy, anywhere, can fail at any time.</li></ul></div>
+  <figure class="example">
+  <figcaption>One backup, one failure away from zero</figcaption>
+  <p>A company keeps its production database on one server and a nightly backup on a second drive in the same machine. A controller failure, a fire in the server room, or a ransomware attack that reaches both drives destroys the primary and the only backup in a single event.</p>
+  
+</figure>
+</section>
+<section id="the-rule-of-three-keep-three-copies-of-your-data-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>The Rule of Three: Keep Three Copies of Your Data</h2>
+      <a class="stamp" href="#" data-t="84">1:24</a>
+    </div>
+  </div>
+  <p class="summary">Keep a working primary copy plus two independent backups, so the loss of any one copy still leaves two behind.</p>
+  <p>The first number in 3-2-1 is three: one primary copy that is actively used in production, plus two separate backup copies. With two backups instead of one, losing any single copy — including a backup — still leaves a working copy of the data available.</p>
+<p>The key word is independent. Three copies only help if they can fail separately from one another. Three folders on the same disk are still one point of failure wearing a disguise; three copies on genuinely separate storage, ideally in separate systems, are what the rule actually requires.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Three copies = one primary (production) copy plus two backups.</li><li>Losing any single copy, including a backup, still leaves a working copy available.</li><li>Copies must be independent of one another, not just duplicated within the same disk or system.</li></ul></div>
+  <figure class="example">
+  <figcaption>A basic three-copy topology</figcaption>
+  <p>A production database is backed up nightly to an on-premises NAS device and, on a separate schedule, synced to cloud object storage. If the production server or the NAS fails, the cloud copy is still intact.</p>
+  <pre><code># Primary: production database on db-server
+
+# Backup 1: nightly sync to on-prem NAS
+rsync -avz --delete /data/db/ nas-server:/backups/db/
+
+# Backup 2: weekly sync to cloud object storage
+aws s3 sync /data/db/ s3://company-backups/db/ --storage-class STANDARD_IA</code></pre>
+</figure>
+</section>
+<section id="the-rule-of-two-use-two-different-types-of-media-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>The Rule of Two: Use Two Different Types of Media</h2>
+      <a class="stamp" href="#" data-t="127">2:07</a>
+    </div>
+  </div>
+  <p class="summary">Spreading backups across different storage technologies protects against a failure mode that wipes out an entire class of hardware at once.</p>
+  <p>Hardware sometimes fails in ways that are correlated across an entire batch or technology, not just one unit. A manufacturer&#x27;s bad batch of SSDs, for instance, can cause many drives of the same model to fail around the same time. If every copy of your data lives on the same type of storage, that kind of common-mode failure can take out all of them together.</p>
+<p>The fix is to diversify the underlying technology: a solid-state drive for one copy, a spinning hard disk drive for another, network-attached storage (NAS) for a third, and cloud storage as another option entirely. None of these technologies share the same failure modes, so a defect or outage affecting one is very unlikely to affect the others.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A common-mode failure (like a bad manufacturing batch) can take out every drive of the same type at once.</li><li>Diversify across SSD, HDD, NAS, and cloud storage rather than using one technology for every copy.</li><li>Different media types have unrelated failure modes, so one failing does not imply the others will too.</li></ul></div>
+  <figure class="example">
+  <figcaption>SSD batch failure scenario</figcaption>
+  <p>An organization stores its primary copy on an SSD. A manufacturing defect in that SSD&#x27;s batch begins causing drives to fail across the fleet. Because a backup also lives on a spinning hard disk drive and another in the cloud, the SSD issue does not touch either of them.</p>
+  
+</figure>
+</section>
+<section id="the-rule-of-one-keep-a-copy-offsite-with-real-geographic-separation-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>The Rule of One: Keep a Copy Offsite, With Real Geographic Separation</h2>
+      <a class="stamp" href="#" data-t="169">2:49</a>
+    </div>
+  </div>
+  <p class="summary">At least one copy needs to be far enough away that a single regional disaster cannot destroy it along with the others.</p>
+  <p>Fires, floods, and earthquakes do not care how many backup copies you have if they are all in the same building — all of them can be destroyed at once. The rule of one addresses this by requiring at least one copy to be stored offsite.</p>
+<p>Offsite has to mean genuinely separated, not just a different building. A backup site just across a river from the primary site is still inside the same storm system and the same regional power grid; a hurricane or major winter storm can knock out both locations together. Real geographic separation means picking a site far enough away — a different region or a different part of the country — that the disasters likely to hit one site are unlikely to hit the other.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>At least one copy must be stored offsite to survive a localized disaster like fire, flood, or earthquake.</li><li>&#x27;Offsite&#x27; only counts if it has real geographic separation from the primary site.</li><li>A backup site sharing the same regional weather system or power grid as the primary does not provide meaningful protection.</li><li>Cloud storage in a distant region is an easy way to satisfy the offsite requirement.</li></ul></div>
+  <figure class="example">
+  <figcaption>Same river, same risk</figcaption>
+  <p>A company&#x27;s main data center sits in New York City, with its offsite backup just across the river in New Jersey. A major storm that cuts power across the metro area threatens both sites together — the backup was never truly geographically separated. Pairing New York with a site in Arizona instead would give the backup meaningful protection from regional events.</p>
+  
+</figure>
+</section>
+<section id="one-immutable-or-air-gapped-copy-ransomware-insurance-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>One Immutable or Air-Gapped Copy: Ransomware Insurance</h2>
+      <a class="stamp" href="#" data-t="252">4:12</a>
+    </div>
+  </div>
+  <p class="summary">At least one copy should be impossible to overwrite or alter after the fact, so ransomware that encrypts everything else still leaves a clean copy behind.</p>
+  <p>3-2-1 protects against hardware failure and physical disaster, but it does not automatically protect against ransomware, which can spread to and encrypt writable backups just as easily as the primary copy. The extension addresses this with one more requirement: keep at least one copy immutable or air-gapped.</p>
+<p>An immutable backup behaves like a diode: data can be written in one direction only. Once written, existing data can never be overwritten, though new data can still be appended. If ransomware encrypts the primary copy, it cannot rewrite what has already been locked into an immutable backup. An air-gapped backup goes further: at some point the connection between the backup and the live system is physically or logically severed, freezing a snapshot in time. This offers strong protection but comes with a real tradeoff — because there is no ongoing connection, an air-gapped copy cannot be refreshed continuously, so it steadily grows more out of date the longer it stays disconnected.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Immutable storage is append-only: existing data can never be overwritten, only added to.</li><li>An air-gapped backup has zero live connection to production systems, frozen at the moment it was separated.</li><li>Immutability keeps a backup relatively current; air-gapping trades currency for stronger isolation.</li><li>Either approach protects against ransomware that can otherwise encrypt every writable copy it can reach.</li></ul></div>
+  <figure class="example">
+  <figcaption>S3 Object Lock as an immutable backup target</figcaption>
+  <p>Cloud object storage with a write-once-read-many (WORM) policy enforces immutability automatically: once an object is written and locked, it cannot be modified or deleted until its retention period expires, even by an administrator.</p>
+  <pre><code>aws s3api put-object-lock-configuration \
+  --bucket ransomware-resistant-backups \
+  --object-lock-configuration &#x27;{
+    &quot;ObjectLockEnabled&quot;: &quot;Enabled&quot;,
+    &quot;Rule&quot;: {
+      &quot;DefaultRetention&quot;: {
+        &quot;Mode&quot;: &quot;COMPLIANCE&quot;,
+        &quot;Days&quot;: 90
+      }
+    }
+  }&#x27;</code></pre>
+</figure>
+</section>
+<section id="zero-errors-test-your-backups-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Zero Errors: Test Your Backups</h2>
+      <a class="stamp" href="#" data-t="382">6:22</a>
+    </div>
+  </div>
+  <p class="summary">A backup that has never been restored is a hypothesis, not a guarantee — periodic recovery tests are what make it real protection.</p>
+  <p>Following 3-2-1 faithfully still is not enough if the backups themselves turn out to be broken when you actually need them. Backup jobs can silently fail, write incomplete data, or produce files that are technically present but unusable, and none of that shows up until someone tries to restore from them.</p>
+<p>The fix is to periodically test recovery, not just confirm that a backup job completed. This means actually restoring data from a backup, in a way that proves it works end to end, on a regular schedule — not waiting until a real disaster to find out for the first time whether the backups are any good.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A completed backup job does not guarantee a usable, restorable backup.</li><li>Only a real restore test proves that a backup can actually recover data.</li><li>Test recovery periodically and on a schedule, not only after a disaster forces the issue.</li><li>Untested backups are the most common way that a otherwise correct 3-2-1 strategy still fails.</li></ul></div>
+  <figure class="example">
+  <figcaption>A bank that never tested recovery</figcaption>
+  <p>A bank diligently backed up all of its data for years but never tested restoring from those backups. When a real disaster hit and they finally tried to recover, the backups turned out to be useless — all of the effort spent backing up had produced no real protection.</p>
+  
+</figure><figure class="example">
+  <figcaption>Automated monthly restore drill</figcaption>
+  <p>A scheduled job restores last month&#x27;s backup into an isolated scratch environment and verifies the data with checksums, catching silent corruption long before a real emergency.</p>
+  <pre><code># crontab entry: run a restore drill on the 1st of every month at 2am
+0 2 1 * * /opt/scripts/restore-test.sh &gt;&gt; /var/log/restore-test.log 2&gt;&amp;1
+
+# restore-test.sh (simplified)
+#!/usr/bin/env bash
+set -euo pipefail
+RESTORE_DIR=/scratch/restore-test
+rm -rf &quot;$RESTORE_DIR&quot; &amp;&amp; mkdir -p &quot;$RESTORE_DIR&quot;
+aws s3 sync s3://company-backups/db/ &quot;$RESTORE_DIR&quot;
+sha256sum -c &quot;$RESTORE_DIR/checksums.sha256&quot;</code></pre>
+</figure>
+</section>
+<section id="encrypt-everything-and-eliminate-single-points-of-failure-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Encrypt Everything and Eliminate Single Points of Failure</h2>
+      <a class="stamp" href="#" data-t="424">7:04</a>
+    </div>
+  </div>
+  <p class="summary">Encrypt every copy so a stolen backup is worthless without the key, and audit the whole system for any one thing whose failure could take down everything.</p>
+  <p>Backups are attractive theft targets: a stolen backup can hand over exactly the same sensitive data as breaking into the primary system, sometimes with weaker access controls guarding it. Encrypting every copy, both at rest and in transit, means that even if a backup is copied or stolen, it is unreadable without the encryption key.</p>
+<p>Running through this entire strategy is a single theme: eliminate single points of failure (SPOFs). A single point of failure is any one component whose failure would bring down the whole system — one media type, one location, one unencrypted copy, one untested restore path. Each of the 3-2-1 rules, plus immutability and testing, exists specifically to remove one such point of failure from the overall design.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Encrypt backups at rest and in transit so a stolen copy is useless without the key.</li><li>A single point of failure (SPOF) is any one component whose failure takes down the whole system.</li><li>Every element of the 3-2-1(+1+0) strategy targets a specific SPOF: same disk, same media, same site, same mutability, same untested status.</li><li>Key management for backup encryption needs its own resilience too — losing the only copy of the key is its own SPOF.</li></ul></div>
+  <figure class="example">
+  <figcaption>Encrypting a backup archive before it leaves the building</figcaption>
+  <p>Before syncing a backup archive offsite, it is encrypted locally with a public key, so the plaintext data never exists outside the trusted network, even if the storage destination is later compromised.</p>
+  <pre><code>tar czf - /data/db | age -r age1qy...examplekey -o db-backup-2026-07-27.tar.gz.age</code></pre>
+</figure>
+</section>
+<section id="the-payoff-disaster-recovery-attack-resilience-and-the-cost-of-availability-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>The Payoff: Disaster Recovery, Attack Resilience, and the Cost of Availability</h2>
+      <a class="stamp" href="#" data-t="466">7:46</a>
+    </div>
+  </div>
+  <p class="summary">A solid 3-2-1(+1+0) strategy defends against both accidental disasters and deliberate attacks, and turns uptime into a deliberate cost tradeoff rather than a wish.</p>
+  <p>The failures this whole strategy guards against fall into two categories. Accidental failures follow something like Murphy&#x27;s Law: fires, floods, hardware faults, and outages that were never intended by anyone but will eventually happen. Deliberate attacks are intentional: an attacker who encrypts your primary data with ransomware and demands payment loses their leverage entirely if you already hold an independent, uncorrupted copy.</p>
+<p>The third payoff is about downtime, and it is where the real cost of resilience becomes visible. Every organization says it wants 24/7/365 uptime, but availability is usually measured in &#x27;nines,&#x27; and each additional nine buys a dramatically smaller downtime budget for a dramatically higher cost. Ninety-nine percent uptime (&#x27;two nines&#x27;) still allows about three days of downtime a year. Ninety-nine point nine percent (&#x27;three nines&#x27;) cuts that to about eight hours — roughly a single workday. Ninety-nine point nine nine percent (&#x27;four nines&#x27;) brings it down to about 52 minutes. Ninety-nine point nine nine nine percent (&#x27;five nines&#x27;) gets to around five minutes. Outages are going to happen regardless; the real question a backup strategy answers is how resilient the organization will be when they do.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Murphy&#x27;s Law failures are accidental (hardware, disasters); attacks are deliberate (ransomware, hacking) — the same strategy defends against both.</li><li>Sufficient independent backups remove an attacker&#x27;s leverage in a ransomware negotiation.</li><li>Each additional &#x27;nine&#x27; of availability shrinks allowed downtime by roughly a factor of ten.</li><li>24/7/365 uptime is an aspiration; real targets are chosen by weighing downtime cost against the investment needed to prevent it.</li></ul></div>
+  <figure class="example">
+  <figcaption>Nines of availability and their downtime budgets</figcaption>
+  <p>The relationship between an uptime percentage and how much downtime it actually permits in a year, as referenced in the video&#x27;s own figures.</p>
+  <pre><code>Uptime %      Downtime / year     Common name
+99%           ~3 days             &quot;two nines&quot;
+99.9%         ~8 hours            &quot;three nines&quot;
+99.99%        ~52 minutes         &quot;four nines&quot;
+99.999%       ~5 minutes          &quot;five nines&quot;</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>3-2-1 rule</dt><dd>A backup principle: keep three total copies of your data, on two different types of storage media, with at least one copy stored offsite.</dd></div><div class="term"><dt>Immutable backup</dt><dd>A backup that can be written to (appended) but never overwritten or deleted once data is stored, protecting it from being altered by ransomware or accidental changes.</dd></div><div class="term"><dt>Air-gapped backup</dt><dd>A backup with no live connection to production systems, physically or logically separated at a point in time, so it is frozen as a snapshot and cannot be reached remotely.</dd></div><div class="term"><dt>Offsite backup</dt><dd>A copy of data stored at a location with real geographic separation from the primary site, so a regional disaster cannot destroy both at once.</dd></div><div class="term"><dt>Single point of failure (SPOF)</dt><dd>Any one component in a system whose failure alone is enough to bring down the entire system.</dd></div><div class="term"><dt>Ransomware</dt><dd>Malicious software that encrypts an organization&#x27;s data and demands payment in exchange for the decryption key.</dd></div><div class="term"><dt>Network-attached storage (NAS)</dt><dd>A dedicated storage device connected to a network, allowing multiple systems to read and write files to it, commonly used as a backup target distinct from local drives.</dd></div><div class="term"><dt>Nines of availability</dt><dd>A shorthand for uptime percentage (e.g. 99.9% is &#x27;three nines&#x27;) where each additional nine represents roughly a tenfold reduction in permitted downtime per year.</dd></div><div class="term"><dt>Common-mode failure</dt><dd>A failure that affects multiple supposedly independent components at once because they share an underlying cause, such as the same hardware batch or the same storage technology.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why doesn&#x27;t adding a single backup copy fully solve the single-point-of-failure problem?</summary>
+  <div class="answer"><p>A lone backup just becomes a new single point of failure: if it fails, degrades, or is destroyed alongside the primary, there is nothing left. The rule of three addresses this by requiring two independent backups, so the loss of any one copy still leaves a working copy behind.</p></div>
+</details><details class="q">
+  <summary>Why does the 3-2-1 rule call for two different types of storage media instead of just multiple copies on the same kind of drive?</summary>
+  <div class="answer"><p>Copies on the same media technology can fail together through a common-mode failure, such as a manufacturer&#x27;s bad batch of SSDs. Using different technologies (SSD, HDD, NAS, cloud) means a defect or outage affecting one type is unlikely to affect the others.</p></div>
+</details><details class="q">
+  <summary>Why doesn&#x27;t a backup site just across a river from the primary site count as adequate offsite protection?</summary>
+  <div class="answer"><p>It still shares the same regional weather system and power grid as the primary site, so a hurricane or major storm can take out both locations together. Real offsite protection requires geographic separation wide enough that the same regional disaster cannot reach both.</p></div>
+</details><details class="q">
+  <summary>What&#x27;s the practical tradeoff between an immutable backup and an air-gapped backup?</summary>
+  <div class="answer"><p>An immutable backup can keep accepting new writes (append-only) while remaining safe from overwrites, so it stays relatively current. An air-gapped backup has zero live connection at all, which is more secure but freezes it as a snapshot that grows increasingly stale the longer it stays disconnected.</p></div>
+</details><details class="q">
+  <summary>Why is testing backups just as important as creating them in the first place?</summary>
+  <div class="answer"><p>A backup job can complete successfully while still producing data that is incomplete, corrupted, or unusable, and this only becomes visible during an actual restore. Only a real recovery test proves the backup works, which is why an organization that never tested its backups discovered they were useless only after a real disaster.</p></div>
+</details><details class="q">
+  <summary>Why does moving from three nines to five nines of availability cost so much more, even though the absolute downtime difference (about 8 hours versus about 5 minutes per year) sounds small?</summary>
+  <div class="answer"><p>Each additional nine requires eliminating progressively rarer and harder failure modes, usually through added redundancy at every layer of the system. The relationship between availability and the engineering effort needed to achieve it is highly nonlinear, so small gains in the decimal places get expensive fast.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Look into AWS S3 Object Lock, Azure Immutable Blob Storage, or Backblaze Object Lock to see how immutability is implemented in practice on cloud storage.</li><li>Research the 3-2-1-1-0 and 4-3-2 backup strategy variants used in enterprise data protection guidance.</li><li>Read about real-world ransomware recovery cases where immutable or air-gapped backups did or did not save the organization.</li><li>Calculate the exact downtime budget for your own systems at 99%, 99.9%, 99.99%, and 99.999% availability and compare it to your current recovery time objective (RTO).</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

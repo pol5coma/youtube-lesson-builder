@@ -8,14 +8,11 @@ env/
 build/
 dist/
 
-# Generated output
-lessons/
-*.html
-!docs/**/*.html
-transcript.txt
-
 # Environment
 .env
+
+# Queue state for the concept map: transient, per-machine
+ai-guide/inbox/
 
 # macOS
 .DS_Store

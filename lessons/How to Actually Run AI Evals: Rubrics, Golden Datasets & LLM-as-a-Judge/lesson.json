@@ -1,0 +1,293 @@
+{
+  "video_url": "https://www.youtube.com/watch?v=TL527yTpxlk",
+  "channel": "Peter Yang",
+  "lesson": {
+    "title": "How to Actually Run AI Evals: Rubrics, Golden Datasets & LLM-as-a-Judge",
+    "subtitle": "Walk the full evaluation loop end to end — write the rubric, hand-label a golden dataset, build an LLM judge, and prove the judge agrees with you.",
+    "topic": "AI evaluation",
+    "difficulty": "Intermediate",
+    "audience": "product managers and engineers shipping an LLM feature who need to know whether it is actually good enough to deploy",
+    "overview": "Every model provider tells you to evaluate your AI system, and almost nobody explains what that concretely looks like on a Tuesday afternoon. This lesson follows one worked example the whole way down: a customer-support agent for a running-shoe brand, taken from a blank prompt to a measured, trustworthy evaluation.\n\nThe core claim is unglamorous. Evaluation starts in a spreadsheet, with a human reading model outputs one at a time and arguing with a teammate about whether each one is good. Every automated technique that follows — LLM-as-a-judge, scaled scoring, continuous monitoring — is built on top of that hand-labelled foundation, and inherits its quality. Get the labels wrong and everything downstream is confidently wrong.\n\nYou will learn the four kinds of eval and when each applies, how to turn vague quality intuitions into a rubric your team can grade against, how many examples you actually need, how to encode that rubric as a judge prompt, and — the step most teams skip — how to measure whether your judge agrees with your humans before you trust a single one of its scores.",
+    "key_takeaways": [
+      "There are four kinds of eval: code-based assertions, human labels, LLM-as-a-judge, and user/business signals. They form a ladder of scale, and each one is validated by the one before it.",
+      "The golden dataset is the foundation. If your hand-labelled examples are bad, every automated eval built on them is bad, no matter how sophisticated the tooling.",
+      "A rubric turns 'is this good?' into named dimensions with written definitions — for a support agent: product knowledge, policy compliance, and tone, each graded good/average/bad.",
+      "Start with about 10 labelled rows for internal iteration; get to 100 or more before you trust a number for production.",
+      "More data means more confidence but slower iteration. These are orthogonal dimensions and you must consciously pick a point between them.",
+      "An LLM judge must output an explanation, not just a score, so you can audit its reasoning rather than trusting a bare label.",
+      "Match rate — how often the judge's label equals the human's label — is what tells you whether the judge can be trusted. A judge that scores everything 'good' has a great average and zero value.",
+      "Disagreement between teammates during labelling is a feature: it surfaces genuine product decisions the specification never settled."
+    ],
+    "prerequisites": [
+      "You have prompted an LLM and seen it produce a confidently wrong answer",
+      "Comfort with spreadsheets — genuinely, that is the main tool here",
+      "A rough idea of what a system prompt is"
+    ],
+    "sections": [
+      {
+        "title": "Why evaluation became the defining product skill",
+        "timestamp": "1:22",
+        "summary": "LLMs hallucinate, so the only way to know your product works is to measure it — which is why the people selling you the models tell you to check the models' answers.",
+        "explanation": "The argument for evaluation is short. Language models produce fluent, confident output whether or not that output is correct, and no amount of prompt polish removes that property. If you ship a feature built on one, the question 'is it good?' cannot be answered by looking at a couple of responses and feeling reassured.\n\nThe telling detail is who is making this argument. The chief product officers of the companies selling the models are the ones telling customers to build evaluations. When the vendor's own pitch includes 'check the model's answer', that is a strong signal about the reliability you are actually buying.\n\nWhat follows from this is a shift in what the job is. Evaluation is not a QA step bolted on before launch; it is the instrument panel you steer the product by. Without it, changing a prompt is guesswork — you alter some wording, read two outputs, and have no idea whether you improved the system or quietly broke a case you were not looking at.",
+        "key_points": [
+          "LLMs hallucinate as a structural property, not an occasional bug, so quality has to be measured rather than assumed.",
+          "Model vendors themselves push customers to build evals — the strongest available admission of how much verification is required.",
+          "Evals measure the quality of your AI system, which is what turns prompt changes from guesswork into engineering.",
+          "Without evals you cannot tell whether a change improved the system or broke something you were not watching."
+        ],
+        "examples": [
+          {
+            "title": "The one-example trap",
+            "description": "You ask the support agent a return-policy question, get a polished answer, and feel good about shipping. But you have sampled a single point from a distribution of thousands of possible user questions. The response you happened to see tells you almost nothing about the ones you did not.",
+            "code": ""
+          }
+        ]
+      },
+      {
+        "title": "The four types of eval",
+        "timestamp": "2:44",
+        "summary": "Code-based, human, LLM-as-a-judge, and user evals form a ladder from cheap and narrow to expensive and real.",
+        "explanation": "Essentially every evaluation you will build falls into one of four buckets, and knowing which one you are reaching for keeps you from using an expensive tool on a cheap problem.\n\nCode-based evals are deterministic pass/fail assertions — checking for the presence or absence of a string, validating a format, confirming a field is in an allowed set. They are level zero, they are nearly free, and modern code generation makes them fast to write. The classic case is a competitor check: if you are United, an answer explaining how to book a flight on Delta is a failure you can detect with a substring match, no judgement required.\n\nHuman evals are a person — ideally the PM or a subject-matter expert — reading an interaction and grading it. This is the slowest and most expensive form per example, and it is also the only one that defines what 'good' means in the first place. LLM-as-a-judge scales that human judgement by having a model apply the same rubric, and is the most widely used way to evaluate at volume. User evals are the closest thing to a business metric: real feedback from real people using the product, whether that is an explicit thumbs-down or a downstream conversion number.\n\nThe ordering matters. Each level is validated by the level above it in cost and below it in scale: the judge is only trustworthy because humans checked it, and human labels are only meaningful because someone defined criteria worth grading against.",
+        "key_points": [
+          "Code-based eval: binary pass/fail assertions like string presence, format checks, allowed-value checks. Cheap, deterministic, easy to generate.",
+          "Human eval: a PM or domain expert grading interactions by hand. The slowest per example and the source of truth for everything else.",
+          "LLM-as-a-judge: a model applying your rubric at scale, imitating how a human would label. The most common way to evaluate large volumes.",
+          "User eval: real-world signal from actual users — thumbs up/down, complaints, downstream business metrics.",
+          "Do not fully outsource human eval to contractors or labelling vendors: the person who owns the product judgement has to be in the spreadsheet."
+        ],
+        "examples": [
+          {
+            "title": "A code-based eval in a few lines",
+            "description": "The competitor-mention check needs no model and no rubric. It runs in milliseconds on every response and catches an embarrassing, unambiguous class of failure.",
+            "code": "COMPETITORS = {\"delta\", \"united\", \"american airlines\"}\n\ndef no_competitor_mentioned(response: str, own_brand: str) -> bool:\n    \"\"\"Pass/fail: the reply must not steer a customer to a rival.\"\"\"\n    text = response.lower()\n    return not any(c in text for c in COMPETITORS - {own_brand.lower()})\n\nassert no_competitor_mentioned(\n    \"You can book that on our site.\", own_brand=\"United\"\n)"
+          },
+          {
+            "title": "Choosing the right level",
+            "description": "'Did the reply include a support link?' is a code-based eval — it is a substring check, and using a language model for it would be slower, costlier, and less reliable. 'Was the tone appropriately warm?' cannot be a substring check and needs a human or a judge.",
+            "code": ""
+          }
+        ]
+      },
+      {
+        "title": "Step one: the prompt and the context it needs",
+        "timestamp": "7:30",
+        "summary": "Before you can evaluate anything you need a system to evaluate — and the prompt's quality is mostly determined by the context you feed it.",
+        "explanation": "The worked example is a customer-support agent for On, a running-shoe brand. Building it starts with a prompt, and the useful insight is that the prompt is less about clever wording than about identifying which variables the agent needs at run time.\n\nThree pieces of context turn out to be necessary: the user's question, the product information (the catalogue — names, descriptions, prices), and the policy information (return windows, cancellation rules). Those become template variables rather than hard-coded text, which is what makes the prompt reusable across every incoming question.\n\nYou do not have to write this from a blank page. A prompt-generation tool — the Anthropic Console's workbench is the one used here — will produce a solid first draft with the variables already parameterised and an example interaction included. Treat that as a starting point, not an answer: it gets you to a running system quickly so you can begin collecting the data that actually teaches you what to fix.\n\nA warning about automated prompt optimisation, which the same tools offer. Asking a model to 'make this friendlier' can produce an elaborate rewrite — extra rules, formal scaffolding, a longer prompt — that is not obviously better and sometimes worse. Without real data and human taste to judge against, you have no way to tell. This is precisely the gap evaluation fills.",
+        "key_points": [
+          "Identify the run-time variables first: user question, product info, policy info. These become template placeholders, not hard-coded text.",
+          "Prompt-generation tools give you a reasonable first draft with variables and examples already scaffolded — a fine starting point.",
+          "Product and policy context can be assembled quickly by having a model extract it from your own public website.",
+          "Automated prompt optimisation often adds bulk without adding quality; you cannot tell whether it helped without evals and real data."
+        ],
+        "examples": [
+          {
+            "title": "The parameterised support prompt",
+            "description": "The skeleton of the agent. Everything variable is injected per request, so the same prompt serves every customer question and can be evaluated as a fixed artefact.",
+            "code": "SYSTEM_PROMPT = \"\"\"You are a customer support agent for On running shoes.\n\nAnswer using only the product and policy information provided.\nIf the answer is not covered by the policy, say so directly\nand give the customer the support contact route.\n\n<product_info>\n{product_info}\n</product_info>\n\n<policy_info>\n{policy_info}\n</policy_info>\n\"\"\"\n\nmessages = [\n    {\"role\": \"system\", \"content\": SYSTEM_PROMPT.format(\n        product_info=catalogue, policy_info=returns_policy)},\n    {\"role\": \"user\", \"content\": user_question},\n]"
+          }
+        ]
+      },
+      {
+        "title": "Step two: write the rubric before you grade anything",
+        "timestamp": "15:08",
+        "summary": "Turn 'is this good?' into named dimensions with written definitions, so that two people grading the same output reach the same label for the same reason.",
+        "explanation": "A rubric is the bridge between a vague sense of quality and a number you can act on. Instead of grading an output as good or bad overall, you name the dimensions that matter for your product and grade each one separately.\n\nFor the support agent, three dimensions emerge naturally from what could go wrong. Product knowledge: does it actually know about the company's products? Policy compliance: is it following the rules it was given? Tone: does it sound the way this brand should sound? Each is graded good, average, or bad, and — this is the part teams skip — each grade needs a written definition, so 'average tone' means the same thing to everyone on the team.\n\nThe reason for splitting dimensions apart is diagnostic. A single overall score tells you the output was bad; a three-dimension rubric tells you it was bad *because* it violated policy while its product knowledge was fine. Those two failures have completely different fixes — one is a prompt or policy problem, the other is a retrieval or catalogue problem.\n\nWrite the rubric with your team, and feel free to draft it with AI. What matters is that it is explicit and shared before anyone starts labelling, because a rubric invented while grading drifts as you go.",
+        "key_points": [
+          "Name dimensions, do not grade a single overall 'good'. For a support agent: product knowledge, policy compliance, tone.",
+          "Write an explicit definition of what good, average, and bad mean for each dimension, so labels are consistent between people.",
+          "Separate dimensions are diagnostic: they tell you which part of the system to fix, not just that something is wrong.",
+          "Draft the rubric before labelling begins — one invented mid-grading drifts and produces inconsistent labels."
+        ],
+        "examples": [
+          {
+            "title": "A three-dimension rubric with written grade definitions",
+            "description": "This is the whole rubric for the support agent. It is small enough to fit on one screen and specific enough that two people grading the same reply usually land on the same label.",
+            "code": "Dimension: PRODUCT KNOWLEDGE\n  good    - names the correct product, accurate specs and price\n  average - correct product, vague or incomplete detail\n  bad     - wrong product, invented specs, or claims no knowledge\n\nDimension: POLICY COMPLIANCE\n  good    - applies the stated policy correctly, cites the rule,\n            and gives the next action the policy provides\n  average - correct outcome, missing the route to resolution\n  bad     - misapplies the policy, invents a rule, or deflects\n            to another team without giving contact details\n\nDimension: TONE\n  good    - warm, concise, on-brand\n  average - correct but formal or noticeably long\n  bad     - cold, robotic, or so verbose the answer is buried"
+          }
+        ]
+      },
+      {
+        "title": "Step three: build the golden dataset by hand",
+        "timestamp": "16:30",
+        "summary": "Run real questions through the system, put inputs and outputs in a spreadsheet, and grade each row against the rubric with your team.",
+        "explanation": "The golden dataset is a table: one row per interaction, columns for the user question, the system's answer, and one grade per rubric dimension, plus a free-text note. You produce it by running questions through the prompt and grading what comes back. That is the entire technique, and the spreadsheet is genuinely the right tool.\n\nWhat makes this worth the tedium is that grading forces specificity. Consider a real row: a customer bought shoes three weeks ago, is inside the 30-day return window, but has thrown away the box. The agent answers correctly on the window and then says 'I'd recommend contacting our customer support team' — without giving any contact details. Product knowledge: good. Policy compliance: bad, because the policy does contain support contact information the agent failed to surface. Tone: average, a little formal for the brand.\n\nNotice what that single row produced. It surfaced a product decision nobody had made — what *should* the agent do when a case is not covered by policy? Deflect to a human, or state plainly that it is not covered? It also revealed a gap in the policy document itself, which never addressed lost packaging. Neither would have been found by reading the answer casually and nodding.\n\nWrite notes next to the bad rows. At the end of a labelling session you can feed all the notes to a model and ask for the top three things to fix, which turns a pile of scattered observations into a prioritised list.",
+        "key_points": [
+          "One row per interaction: question, response, one grade per dimension, plus a free-text note.",
+          "Grading forces the team to settle product decisions the specification left open — that debate is the point, not a distraction.",
+          "Labelling reveals gaps in your source documents, not only in the model's behaviour.",
+          "Write notes on the bad rows, then have an LLM summarise them into the top few fixes.",
+          "A five-row dataset is enormously better than none: start somewhere and grow it."
+        ],
+        "examples": [
+          {
+            "title": "The golden dataset as a table",
+            "description": "Five rows of a real labelling session. The notes column is where the value accumulates — it is what you turn into next week's prompt changes.",
+            "code": "| question                        | response      | prod | policy | tone | note                          |\n|---------------------------------|---------------|------|--------|------|-------------------------------|\n| Return Cloud Monster, 2 months? | over 30 days  | good | good   | avg  | a bit formal                  |\n| 3 weeks, lost the box           | contact us    | good | BAD    | avg  | never gives contact details;  |\n|                                 |               |      |        |      | policy silent on lost box     |\n| Change address, ordered 45m ago | says past 60m | good | BAD    | good | MATH ERROR: 45 < 60           |\n| Marathon, max cushioning?       | Cloud Monster | good | n/a    | avg  | very verbose                  |\n| How do I track my order?        | correct link  | good | good   | good |                               |"
+          },
+          {
+            "title": "Turning notes into a work list",
+            "description": "Once you have a column of notes, one prompt converts scattered observations into an ordered set of fixes.",
+            "code": "Here are my reviewer notes on 40 labelled support-agent responses.\n\nGroup them into recurring failure modes, order the groups by how\noften they occur, and for each one state whether the likely fix is\nin the system prompt, the policy document, or the product catalogue.\n\n<notes>\n{all_notes}\n</notes>"
+          }
+        ]
+      },
+      {
+        "title": "What you find when you actually look at the data",
+        "timestamp": "22:44",
+        "summary": "Real failures are specific and often boring — like a model asserting that 45 minutes is past a 60-minute window.",
+        "explanation": "One row from the real session is worth dwelling on. A customer writes: 'I just placed an order 45 minutes ago but need to change the delivery address. Is that possible?' The agent replies that because it has been 45 minutes, the customer has passed the 60-minute cancellation window.\n\nForty-five is not greater than sixty. The model took a correct policy, performed a trivial comparison, and got it backwards — a plain arithmetic failure, and language models are notoriously unreliable at arithmetic. This is not an exotic adversarial input; it is an ordinary customer question that a real system answered wrongly.\n\nThe lesson is about discovery, not about maths. No framework, dashboard, or off-the-shelf metric surfaced this. A person read the row and noticed. Every scaled evaluation you eventually build is an attempt to automate the noticing — which means it can only catch failure modes that a human first identified and encoded.\n\nThe fix follows the diagnosis. You might add an explicit instruction to check arithmetic, or better, remove the arithmetic from the model entirely by computing the elapsed time in code and passing the model a boolean. That second option is the more robust engineering answer: do not ask a probabilistic system to do a deterministic job.",
+        "key_points": [
+          "A real logged failure: the agent claimed 45 minutes was past a 60-minute window. LLMs are unreliable at arithmetic.",
+          "This class of bug is found by a human reading rows, not by a dashboard or a generic metric.",
+          "Automated evals can only catch failure modes a human first identified and encoded into a check.",
+          "The strongest fix is usually to move deterministic work out of the model — compute the comparison in code and pass in the result."
+        ],
+        "examples": [
+          {
+            "title": "Removing arithmetic from the model",
+            "description": "Rather than instructing the model to be careful with numbers, compute the eligibility in code and hand the model a fact it cannot get wrong.",
+            "code": "from datetime import datetime, timedelta\n\ndef cancellation_context(order_placed_at: datetime) -> str:\n    elapsed = datetime.now() - order_placed_at\n    eligible = elapsed < timedelta(minutes=60)\n    mins = int(elapsed.total_seconds() // 60)\n    return (\n        f\"Order placed {mins} minutes ago. \"\n        f\"Cancellation window is 60 minutes. \"\n        f\"ELIGIBLE_FOR_CANCELLATION: {eligible}\"\n    )\n\n# The model now reports a boolean it was handed,\n# instead of performing a comparison it may get wrong."
+          }
+        ]
+      },
+      {
+        "title": "How many examples do you actually need?",
+        "timestamp": "24:49",
+        "summary": "Ten rows to start iterating internally, a hundred or more before you trust the number for production — and the answer is fundamentally a statistics question.",
+        "explanation": "The honest answer is that it depends on how much confidence your use case demands, and that this is a statistics question: how much data do you need before the measurement means something? A highly regulated domain needs far more than an internal tool.\n\nAs working rules of thumb: start with about 10 examples when you are testing internally and deciding whether the approach is even worth investing in. Move toward 100 or more when you are building for production and need genuine confidence in the score. In a regulated industry, more still.\n\nThe reason not to start at 100 is the trade-off that governs the whole practice. Speed of iteration and confidence in the result are two orthogonal dimensions pulling against each other. More data gives more confidence but makes every cycle slower — and early on you are changing the prompt constantly, so a 100-row manual pass each time would consume the entire schedule. Less data lets you iterate quickly but the resulting number is noisy.\n\nPick your position on that trade-off deliberately and revisit it as the product matures. Early exploration wants 10 rows and fast loops; a launch decision wants 100 rows and a number you would defend.",
+        "key_points": [
+          "About 10 examples for internal testing and early iteration — enough to tell whether the approach is worth pursuing.",
+          "100 or more before trusting a production decision; regulated domains need substantially more.",
+          "It is fundamentally a statistics question: how much data before the measurement is trustworthy?",
+          "Speed of iteration and confidence in the result are orthogonal — more data means more confidence and slower loops.",
+          "Early on you change the prompt constantly, so large manual passes on every change are impractical."
+        ],
+        "examples": [
+          {
+            "title": "Matching dataset size to the decision",
+            "description": "The size of the golden set should follow the weight of the decision it supports, not a fixed convention.",
+            "code": "Decision being made          Rows   Why\n---------------------------  -----  ------------------------------\nIs this approach viable?     ~10    Fast loop, cheap to relabel\nWhich of 2 prompts is better?  ~50  Needs to separate real signal\nIs this safe to launch?      100+   The number must be defensible\nRegulated / clinical / legal  many  Confidence requirement is high"
+          }
+        ]
+      },
+      {
+        "title": "Step four: encode the rubric as an LLM judge",
+        "timestamp": "32:21",
+        "summary": "The judge prompt is your rubric, rewritten as instructions to a model, returning a label and — critically — an explanation.",
+        "explanation": "Once you have hand-labelled examples and a rubric you trust, you can scale. An LLM-as-a-judge is a second model whose job is to apply your rubric to your system's outputs and emit a label, exactly as a human labeller would.\n\nThe judge prompt is not a new artefact — it is the rubric you already wrote, addressed to a model. You supply the same context a human grader had: the user's question, the product and policy information, and the system's response. Then you ask for a score of good, average, or bad against one criterion. Run one judge per dimension rather than asking a single call for all three, so each judgement is focused.\n\nThe non-negotiable detail is that the judge must produce an explanation alongside its label. The explanation is the equivalent of a human reviewer's notes: it lets you read *why* the judge scored something the way it did and decide whether you agree with its reasoning. A bare score is unauditable — you have no way to distinguish a correct judgement from a lucky one.\n\nWith this in place you can replay hundreds or thousands of examples through a prompt variation, or swap the underlying model entirely and compare results across the same fixed question set. That is the payoff: the manual grading you did on ten rows becomes a measurement you can run on every change.",
+        "key_points": [
+          "The judge prompt is the rubric restated as model instructions, given the same context the human grader had.",
+          "Run one judge per dimension so each call makes a single focused judgement.",
+          "Always require an explanation with the label — it is the judge's equivalent of reviewer notes and makes the score auditable.",
+          "Once encoded, you can replay hundreds of examples across prompt variants or different models on a fixed question set."
+        ],
+        "examples": [
+          {
+            "title": "A judge prompt for policy compliance",
+            "description": "One dimension, the full context, a constrained label, and a required explanation. Structured output keeps the result parseable.",
+            "code": "JUDGE_PROMPT = \"\"\"You are grading a customer support reply for POLICY COMPLIANCE.\n\ngood    - applies the stated policy correctly, and gives the next\n          action the policy provides (including contact details)\naverage - correct outcome, but missing the route to resolution\nbad     - misapplies the policy, invents a rule, or deflects to\n          another team without giving contact details\n\n<question>{question}</question>\n<policy>{policy_info}</policy>\n<response>{response}</response>\n\nReturn JSON: {{\"label\": \"good|average|bad\", \"explanation\": \"...\"}}\nExplain your reasoning before committing to the label.\n\"\"\""
+          },
+          {
+            "title": "Running the judge over the dataset",
+            "description": "Each row gets a label and an explanation per dimension. The explanations are what you read when auditing the judge.",
+            "code": "import json\n\ndef judge(row, dimension_prompt):\n    out = client.messages.create(\n        model=\"claude-sonnet-5\",\n        max_tokens=512,\n        messages=[{\"role\": \"user\", \"content\": dimension_prompt.format(**row)}],\n    )\n    return json.loads(out.content[0].text)\n\nfor row in golden_set:\n    verdict = judge(row, JUDGE_PROMPT)\n    row[\"judge_policy\"] = verdict[\"label\"]\n    row[\"judge_policy_why\"] = verdict[\"explanation\"]"
+          }
+        ]
+      },
+      {
+        "title": "Step five: judge the judge with match rate",
+        "timestamp": "36:29",
+        "summary": "Compare the judge's labels against your human labels and measure how often they agree — because a judge that scores everything 'good' looks great and tells you nothing.",
+        "explanation": "This is the step that separates evaluation from theatre, and it is the one most teams skip.\n\nIn the live run, the judge labelled every single example 'good'. That result is worthless, and worse, it is worthless in a way that looks like success — a dashboard would show a perfect score. The only reason anyone noticed is that human labels existed to compare against, and the humans had marked several of those same responses as average or bad.\n\nThe metric is match rate: for each dimension, the fraction of examples where the judge's label equals the human's label. Running it on the worked example produced a stark split — product knowledge matched 100% of the time, while tone matched only once. That immediately tells you where the problem is. The tone judge is broken, not the product-knowledge judge, and you go and fix the tone judge's prompt, in this case by making it stricter about verbosity, since the humans were penalising long answers that the judge was happily approving.\n\nSo the workflow is a loop: label 5–10 examples by hand, run the judge on the same examples, compute match rate per dimension, rewrite the judge prompts that disagree, and repeat. Only once the judge tracks your humans on a small set do you scale it to 100 examples and start believing the aggregate number. The goal is explicitly alignment — you want the LLM judge to agree with your human labels, and until it does, its scores are decoration.",
+        "key_points": [
+          "Match rate = the fraction of examples where the judge's label equals the human's label, computed per dimension.",
+          "A judge that labels everything 'good' produces a flawless-looking dashboard and zero information — only human labels expose this.",
+          "Per-dimension match rate localises the fault: product knowledge matched 100%, tone matched once, so the tone judge is what needs fixing.",
+          "Fix a disagreeing judge by making its prompt stricter on whatever the humans were penalising — here, verbosity.",
+          "Validate the judge on 5–10 examples first, then scale to 100 once it tracks your humans."
+        ],
+        "examples": [
+          {
+            "title": "Computing match rate per dimension",
+            "description": "A few lines that turn two label columns into the number that decides whether you can trust the judge.",
+            "code": "def match_rate(rows, dimension):\n    human = f\"human_{dimension}\"\n    model = f\"judge_{dimension}\"\n    scored = [r for r in rows if r.get(human) and r.get(model)]\n    if not scored:\n        return None\n    agree = sum(1 for r in scored if r[human] == r[model])\n    return agree / len(scored)\n\nfor dim in (\"product\", \"policy\", \"tone\"):\n    print(f\"{dim:>8}: {match_rate(golden_set, dim):.0%}\")\n\n# product: 100%   <- judge is aligned, trust it\n# policy:   80%\n# tone:     20%   <- judge is broken, rewrite this prompt"
+          },
+          {
+            "title": "The alignment loop",
+            "description": "The cycle you repeat until the judge earns the right to score at scale.",
+            "code": "1. Human-label 5-10 examples against the rubric\n2. Run the judge on those same examples\n3. Compute match rate for each dimension\n4. For any dimension below your bar:\n     read the judge's explanations on the mismatches\n     tighten that judge prompt\n     go to 2\n5. When aligned, scale to 100+ examples\n6. Re-check alignment periodically - criteria drift"
+          }
+        ]
+      },
+      {
+        "title": "Shipping: internal, then a small slice, then real users",
+        "timestamp": "47:34",
+        "summary": "Offline evals get you to a candidate; dogfooding and a small A/B slice tell you whether it works in the world — and user signals are noisier than they look.",
+        "explanation": "Offline evaluation on a golden dataset answers 'does this behave the way we decided it should?' It cannot answer 'do real users get what they came for?' For that you have to ship, carefully.\n\nThe progression is internal use first — dogfooding your own product surfaces problems quickly and cheaply, because the people using it know what good looks like. Then an A/B test on a small traffic slice, on the order of 1% to 10% depending on the size of your company and the risk of the surface. Only then does the real-world signal start arriving.\n\nUser evals are the most real and the hardest to interpret. Consider a customer who gives a thumbs-down when told they are not eligible for a refund. Does that mean the agent failed? It applied the policy correctly, communicated clearly, and did its job. The user is unhappy about the outcome, not the answer. The signal is genuine but it conflates 'the system performed badly' with 'I did not like the news'.\n\nThat leads to the question worth settling with your team before you need it: what do you do when the eval says good but the business metric goes down? There is no formula. In a non-deterministic system you cannot fully trust your users' labels or your own, and the resolution is always the same — go back and look at the data.",
+        "key_points": [
+          "Sequence: internal dogfooding, then a 1–10% A/B slice, then broader rollout with real-world monitoring.",
+          "Dogfooding is high-value because the people using it already know what good looks like.",
+          "A thumbs-down conflates 'the system did badly' with 'I disliked the outcome' — the signal is real but ambiguous.",
+          "Decide in advance how you break the tie when evals look good and the business metric drops.",
+          "The resolution to any conflict between signals is to go back and read the actual data."
+        ],
+        "examples": [
+          {
+            "title": "The ambiguous thumbs-down",
+            "description": "A customer asks to return shoes after 60 days. The agent correctly explains the 30-day policy, warmly and with a link to support. The customer thumbs-downs it. Every rubric dimension scores good; the user signal is negative. Both are correct measurements of different things — treating the thumbs-down as a quality failure would push you to build an agent that misstates policy to keep people happy.",
+            "code": ""
+          },
+          {
+            "title": "The full loop, end to end",
+            "description": "Every stage of the process in order, with the iteration loop that consumes most of the calendar time made explicit.",
+            "code": "1. Write the prompt + assemble its context\n2. Define eval criteria (the rubric)\n3. Generate responses on real questions\n4. Manually label + debate as a team    <-- loop here ~20x\n5. Iterate on the prompt / policy / catalogue\n6. Build LLM-as-a-judge from the rubric\n7. Align judge to human labels (match rate)\n8. Scale: 10 rows -> 100 rows\n9. Internal dogfood\n10. A/B test 1-10% of traffic\n11. Collect user + business signal"
+          }
+        ]
+      }
+    ],
+    "glossary": [
+      {"term": "Eval", "definition": "A systematic measurement of one specific aspect of an AI system's quality, such as whether a reply followed policy."},
+      {"term": "Golden dataset", "definition": "A curated set of example inputs with human-assigned quality labels, used as the reference standard for measuring the system and validating automated judges."},
+      {"term": "Rubric", "definition": "The named dimensions you grade on, each with written definitions of what good, average, and bad mean, so different people label consistently."},
+      {"term": "LLM-as-a-judge", "definition": "Using a language model to apply your rubric to your system's outputs at scale, producing a label and an explanation the way a human grader would."},
+      {"term": "Match rate", "definition": "The fraction of examples where the LLM judge's label equals the human's label. It measures whether the judge can be trusted."},
+      {"term": "Alignment (of a judge)", "definition": "The state of an LLM judge agreeing with human labels often enough that its scores can be believed without re-checking each one."},
+      {"term": "Code-based eval", "definition": "A deterministic pass/fail check written in ordinary code, such as verifying a required string is present or a field holds an allowed value."},
+      {"term": "User eval", "definition": "Quality signal gathered from real users in production — explicit thumbs up/down, complaints, or downstream business metrics."},
+      {"term": "Dogfooding", "definition": "Using your own product internally before exposing it to customers, so the people who know what good looks like find the problems first."}
+    ],
+    "quiz": [
+      {
+        "question": "Your LLM judge reports that 100% of responses are good. Why is this a warning sign rather than a success?",
+        "answer": "Because a judge that never assigns a bad label is indistinguishable from a judge that is not working. Real systems produce a mix of quality, so uniform approval suggests the judge prompt is too lenient or too vague to discriminate. You can only detect this by comparing against human labels and computing match rate — the dashboard alone would look perfect."
+      },
+      {
+        "question": "Why grade three separate dimensions instead of a single overall quality score?",
+        "answer": "Because separate dimensions are diagnostic. A single 'bad' tells you something is wrong; 'policy compliance bad, product knowledge good' tells you the failure is in how rules are applied rather than in the catalogue, and those have completely different fixes. Aggregate scores also hide compensating errors, where a strong dimension masks a weak one."
+      },
+      {
+        "question": "Why should you start with roughly 10 labelled examples rather than going straight to 100?",
+        "answer": "Because confidence and iteration speed pull against each other. Early on you are changing the prompt constantly, and hand-labelling 100 rows on every change would make the loop unusably slow. Ten rows is enough to expose obvious failure modes and validate a judge's alignment; you scale to 100 once the system stabilises and you need a number you would defend."
+      },
+      {
+        "question": "A user gives a thumbs-down to a reply that your rubric scores as good on every dimension. What has actually been measured?",
+        "answer": "Two different things. The rubric measured whether the system behaved as designed — correct policy, clear communication, appropriate tone. The thumbs-down measured the user's satisfaction with the outcome, which may simply be that they disliked being told no. Treating the thumbs-down as a quality failure would train the system to misstate policy in order to please people."
+      },
+      {
+        "question": "Why must an LLM judge return an explanation rather than just a label?",
+        "answer": "Because a bare label is unauditable — you cannot distinguish a correct judgement from a lucky one, or diagnose why the judge disagrees with your humans. The explanation plays the role a human reviewer's notes play: when match rate is low, reading the explanations on the mismatched rows is what tells you how to rewrite the judge prompt."
+      },
+      {
+        "question": "Why is the golden dataset described as the foundation that everything else inherits from?",
+        "answer": "Because the LLM judge is validated against human labels, and the human labels come from the golden dataset. If those labels are inconsistent or reflect criteria nobody agreed on, the judge will be aligned to noise, and every scaled measurement built on it will be confidently wrong while appearing rigorous."
+      }
+    ],
+    "further_exploration": [
+      "Take a feature you have already shipped, write a three-dimension rubric for it, and hand-label 10 real logged interactions before reading any dashboard.",
+      "Build one judge prompt for your weakest dimension, run it on those same 10 rows, and compute the match rate against your own labels.",
+      "Find a failure in your logs that a substring assertion would have caught, and add that assertion as a code-based eval that runs on every change.",
+      "Identify one place where your model performs arithmetic or date comparison, and move that computation into code that hands the model a precomputed fact.",
+      "Agree with your team, in writing and in advance, on how you will resolve a conflict between a good eval score and a declining business metric."
+    ]
+  }
+}

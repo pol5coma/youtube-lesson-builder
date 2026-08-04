@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What is Prompt Caching? Optimize LLM Latency with AI Transformers</title>
+<meta name="description" content="Understand how caching the input to an LLM — not its output — cuts cost and latency on long, repeated prompts.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#prompt-caching-is-not-output-caching-1"><span class="n">1</span>Prompt Caching Is Not Output Caching</a></li>
+<li><a href="#inside-the-transformer-kv-pairs-and-the-prefill-phase-2"><span class="n">2</span>Inside the Transformer: KV Pairs and the Prefill Phase</a></li>
+<li><a href="#why-caching-pays-off-with-long-reused-context-3"><span class="n">3</span>Why Caching Pays Off with Long, Reused Context</a></li>
+<li><a href="#what-gets-cached-in-practice-4"><span class="n">4</span>What Gets Cached in Practice</a></li>
+<li><a href="#prefix-matching-how-caching-decides-what-to-reuse-5"><span class="n">5</span>Prefix Matching: How Caching Decides What to Reuse</a></li>
+<li><a href="#practical-limits-minimum-size-expiration-and-explicit-caching-6"><span class="n">6</span>Practical Limits: Minimum Size, Expiration, and Explicit Caching</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">LLM inference optimization</span><span class="muted">IBM Technology</span></div>
+  <h1>What is Prompt Caching? Optimize LLM Latency with AI Transformers</h1>
+  <p class="lede">Understand how caching the input to an LLM — not its output — cuts cost and latency on long, repeated prompts.</p>
+  <p class="muted small">For developers building LLM applications who want to cut API latency and cost on prompts with large, repeated context · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=u57EnkQaUTY" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Basic familiarity with how you send a prompt to an LLM through an API (input in, generated text out)</li><li>A rough idea of what a transformer model and &#x27;tokens&#x27; are</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Prompt caching is one of the simplest ways to make large language model applications faster and cheaper, but its name is misleading. It does not cache the model&#x27;s answer. It caches the internal computation the model does while reading your input, so that the next time the same input (or the same beginning of it) shows up, the model can skip straight to generating a response instead of re-reading everything from scratch.</p>
+<p>To understand why that works, you need a rough picture of what an LLM does before it writes its first output token: it converts your prompt into a set of internal representations called key-value (KV) pairs, one set per transformer layer, and that conversion is where most of the pre-generation cost lives. Prompt caching stores those KV pairs so repeated or shared prefixes never have to be recomputed.</p>
+<p>This lesson walks through the distinction between prompt caching and output caching, what actually gets cached and why, how prompt structure determines whether caching kicks in at all, and the practical limits — minimum size, expiration, automatic versus explicit caching — that decide whether it is worth using for a given application.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Prompt caching stores the model&#x27;s internal representation of the input (KV pairs), not the output — every cached request still generates a fresh response.</li><li>This is different from output caching, which stores the final answer and skips the model call entirely for identical repeated queries.</li><li>Before generating any output, a transformer computes key-value pairs for every token at every layer; this is called the prefill phase, and it is the part prompt caching speeds up.</li><li>Caching only pays off once a prompt is large — short prompts finish the prefill phase so fast that managing a cache costs more than it saves.</li><li>Common things to cache are large reference documents, system prompts, few-shot examples, tool/function definitions, and conversation history — anything static that gets reused across requests.</li><li>Automatic caching relies on prefix matching: it compares the new prompt to the cached one token by token from the start and stops at the first difference, so static content must come before dynamic content (like the user&#x27;s question) or the cache never gets used.</li><li>Most systems require a prompt to be around 1024 tokens or more before caching activates, and cached entries typically expire after 5 to 10 minutes (some last up to 24 hours) to keep data fresh.</li><li>Some providers cache automatically based on prefix matching; others require you to explicitly mark which segments of a prompt should be cached in the API call.</li></ul>
+  </div>
+</section>
+<section id="prompt-caching-is-not-output-caching-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Prompt Caching Is Not Output Caching</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">Prompt caching stores what the model computed from your input, not the answer it produced — every request still gets a freshly generated response.</p>
+  <p>The word &#x27;caching&#x27; usually means storing a result so you can skip the work next time. Database query caching works exactly like that: run a SQL query once, store the result, and the next identical query returns the stored answer without touching the database again. It is tempting to assume LLM prompt caching works the same way — cache the model&#x27;s answer, and repeat questions get an instant, pre-written reply.</p>
+<p>That version does exist, and it is called output caching: store the full response for a given prompt, and when the same prompt arrives again, return the stored response and skip the LLM call entirely. It works, but it only helps when the exact same question is asked repeatedly and an identical canned answer is acceptable.</p>
+<p>Prompt caching is a different mechanism. It caches only the input side — the internal work the model does while reading and understanding your prompt — while still running the generation step fresh every time. That distinction matters because it means prompt caching stays useful even when every request asks something different, as long as they share a common prefix.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Output caching stores the final answer and returns it verbatim for repeated identical prompts, skipping the model entirely.</li><li>Prompt caching stores only the model&#x27;s internal processing of the input; it still generates a new response every time.</li><li>Because prompt caching does not require an identical full prompt, it works even when only part of the prompt (e.g., a shared document) repeats and the rest (the question) changes.</li></ul></div>
+  <figure class="example">
+  <figcaption>Database cache vs. prompt cache</figcaption>
+  <p>A SQL query cache stores &#x27;SELECT * FROM orders WHERE id=42&#x27; → its result row, and returns that row instantly on the next identical query. An LLM prompt cache instead stores the model&#x27;s internal representation of a 50-page manual pasted into the prompt; if the next request pastes the same manual but asks a different question, the manual&#x27;s representation is reused but the model still generates a brand-new answer to the new question.</p>
+  
+</figure>
+</section>
+<section id="inside-the-transformer-kv-pairs-and-the-prefill-phase-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Inside the Transformer: KV Pairs and the Prefill Phase</h2>
+      <a class="stamp" href="#" data-t="127">2:07</a>
+    </div>
+  </div>
+  <p class="summary">Before an LLM can write its first output token, it converts every input token into key-value pairs at every transformer layer — that conversion is the expensive step prompt caching skips.</p>
+  <p>When a prompt reaches an LLM, the model does not jump straight to writing a response. First it runs the entire prompt through its transformer layers to compute a set of internal values for every token, commonly called key-value (KV) pairs. You can think of these as the model&#x27;s working notes on your prompt: how each word relates to every other word, which parts of the context are relevant to which other parts, and what to pay attention to when it eventually starts generating text.</p>
+<p>This computation happens at every transformer layer, for every token, and involves a large number of matrix operations. It all takes place before the model produces a single output token, which is why this stage is called the prefill phase — the model is &#x27;filling&#x27; its internal state from the prompt before generation (the &#x27;decode&#x27; phase) begins.</p>
+<p>For a short prompt, the prefill phase is nearly instant, so there is nothing meaningful to save. But prefill cost scales with the number of tokens and layers, so a long prompt — thousands of tokens across dozens of layers — turns prefill into real, measurable latency. Prompt caching works by storing the KV pairs computed during prefill so that, when the same prefix appears again, the model can skip recomputing them and jump straight into generation.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>KV pairs are the model&#x27;s internal representation of how tokens in the prompt relate to each other; they are computed at every transformer layer.</li><li>The stage where KV pairs are computed, before any output is generated, is called the prefill phase.</li><li>Prefill cost grows with prompt length and model depth (number of layers), which is why it matters most for long prompts.</li><li>Prompt caching stores the prefill output (KV pairs) so a repeated prefix does not need to be recomputed.</li></ul></div>
+  <figure class="example">
+  <figcaption>Prefill cost at different prompt sizes</figcaption>
+  <p>A prompt like &#x27;What&#x27;s the capital of France?&#x27; is only a handful of tokens, so prefill finishes in a tiny fraction of a second — caching it saves almost nothing. A prompt containing a 50-page document is thousands of tokens; computing KV pairs for all of them across every transformer layer is millions of operations, so caching that prefill output produces a noticeable latency drop on the next request that reuses the same document.</p>
+  
+</figure>
+</section>
+<section id="why-caching-pays-off-with-long-reused-context-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Why Caching Pays Off with Long, Reused Context</h2>
+      <a class="stamp" href="#" data-t="216">3:36</a>
+    </div>
+  </div>
+  <p class="summary">Caching a large, unchanging block of context — like a document pasted into the prompt — lets later requests skip straight to processing only the new question.</p>
+  <p>The clearest case for prompt caching is a prompt built from two parts: a large, static chunk of context, and a small, changing instruction on top of it. Picture pasting a 50-page document into the context window and asking the model to summarize it. The model has to run the prefill phase over the entire document before it can generate the summary, which is expensive precisely because the document is long.</p>
+<p>Now suppose a later request — in a new conversation, or a separate API call — sends the same 50-page document again, but this time asks a different question instead of requesting a summary. If the system recognizes that the document at the start of the new prompt matches what is already cached, it retrieves the cached KV pairs for the document and only runs prefill on the new question at the end. The document itself never gets reprocessed.</p>
+<p>This is where the savings compound: the more requests that reuse the same static prefix, the more prefill work gets skipped in total, and the benefit scales with how large that shared prefix is relative to the small part that changes each time.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The pattern that benefits most from prompt caching is: large static content + small changing instruction.</li><li>A cache hit means only the new, non-matching part of the prompt needs to go through prefill.</li><li>Savings accumulate across every subsequent request that reuses the same cached prefix, not just the second one.</li></ul></div>
+  <figure class="example">
+  <figcaption>Same document, two different requests</figcaption>
+  <p>Request 1: [50-page manual] + &#x27;Summarize this document.&#x27; Request 2 (sent later): [same 50-page manual] + &#x27;What does section 4 say about liability?&#x27; On request 2, the system matches the manual against the cache, reuses its KV pairs, and only computes prefill for the new question — instead of reprocessing all 50 pages again.</p>
+  
+</figure>
+</section>
+<section id="what-gets-cached-in-practice-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>What Gets Cached in Practice</h2>
+      <a class="stamp" href="#" data-t="305">5:05</a>
+    </div>
+  </div>
+  <p class="summary">Anything static and reused — reference documents, system prompts, few-shot examples, tool definitions, and conversation history — are the usual candidates for caching.</p>
+  <p>Large reference material is one obvious candidate: a product manual, a research paper, a legal contract, or any document you expect to ask multiple questions about over time. But the most commonly cached element in real applications is the system prompt — the block of instructions that tells a chatbot how to behave: its persona, its rules, its tone, what it is and is not allowed to do. Nearly every production chatbot sends the same system prompt on every single request, which makes it an ideal caching target since it never changes between calls.</p>
+<p>Few-shot examples are another common case: when you want a model to format its output a specific way, you show it a handful of example input/output pairs in the prompt. Those examples are identical on every call, so they are pure caching upside. The same logic extends to tool and function definitions — the JSON schemas describing what tools an agent can call — and to conversation history in a multi-turn chat, where earlier turns stay fixed while only the newest message changes.</p>
+<p>The common thread across all of these is that they are static relative to the part of the prompt that actually varies per request. Anything that repeats unchanged across many calls is a candidate; anything that is different every time is not.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>System prompts are the most common thing cached, since they are identical on nearly every request a chatbot handles.</li><li>Long reference documents that get queried repeatedly (manuals, contracts, papers) are strong caching candidates.</li><li>Few-shot examples and tool/function definitions are typically static and therefore cacheable.</li><li>Conversation history in a multi-turn chat can be cached up through the last completed turn, leaving only the newest message to reprocess.</li></ul></div>
+  <figure class="example">
+  <figcaption>A cacheable system prompt</figcaption>
+  <p>A customer-service chatbot&#x27;s instructions rarely change between requests, which is exactly what makes them worth caching — the cost of processing this block is paid once, not on every user message.</p>
+  <pre><code>SYSTEM PROMPT (static, cached):
+&quot;You are a helpful customer service agent for Acme Corp.
+Always be polite and concise. Never discuss competitors.
+If you don&#x27;t know an answer, offer to escalate to a human agent.&quot;
+
+USER MESSAGE (dynamic, not cached):
+&quot;What&#x27;s your return policy on electronics?&quot;</code></pre>
+</figure>
+</section>
+<section id="prefix-matching-how-caching-decides-what-to-reuse-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Prefix Matching: How Caching Decides What to Reuse</h2>
+      <a class="stamp" href="#" data-t="347">5:47</a>
+    </div>
+  </div>
+  <p class="summary">Automatic caching compares a new prompt against the cached one token by token from the very start, and stops reusing the cache the instant a token differs — so prompt order determines whether caching helps at all.</p>
+  <p>Automatic prompt caching relies on a technique called prefix matching. When a new request comes in, the system compares it against what is stored in the cache starting from the first token and moving forward. As long as tokens keep matching, that portion is served from cache. The moment a token differs from what was cached, matching stops there, and everything from that point onward — including everything after it in the prompt — has to be processed normally, even if later parts happen to match something else in the cache.</p>
+<p>This has a direct consequence for how you should write prompts if you want automatic caching to work: put all the static, reusable content first, and put the part that changes on every request last. A prompt ordered as [system instructions] + [document] + [few-shot examples] + [user question] keeps everything static at the front. When the next request comes in with a different question but the same instructions, document, and examples, the prefix match succeeds all the way through the static content, and only the new question at the end needs fresh processing.</p>
+<p>Flip that order — put the user&#x27;s question first, followed by the static content — and prefix matching breaks immediately, because the question is different every time and it is the very first thing compared. The system will never get past token one before it hits a mismatch, so none of the static content behind it gets served from cache, and it all gets reprocessed on every single request regardless of how much of it hasn&#x27;t actually changed.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Prefix matching checks a new prompt against the cache token by token, starting from position zero.</li><li>The first mismatched token ends the cache hit; everything from that point on is processed as new.</li><li>Static, reused content (instructions, documents, examples) belongs at the start of the prompt; the dynamic, per-request content (the user&#x27;s question) belongs at the end.</li><li>Putting dynamic content first defeats caching entirely, even if most of the prompt is otherwise unchanged.</li></ul></div>
+  <figure class="example">
+  <figcaption>Cache-friendly vs. cache-breaking prompt order</figcaption>
+  <p>The first structure keeps the changing question at the end, so the long static prefix (instructions, manual, examples) matches the cache on every call. The second structure puts the question first, so the mismatch happens immediately and nothing after it is ever served from cache.</p>
+  <pre><code># Cache-friendly (question last)
+[system instructions]
+[20-page manual]
+[few-shot examples]
+[user question: &quot;What are the warranty terms?&quot;]
+# -&gt; next call with a different question still
+#    matches everything before the question
+
+# Cache-breaking (question first)
+[user question: &quot;What are the warranty terms?&quot;]
+[system instructions]
+[20-page manual]
+[few-shot examples]
+# -&gt; next call&#x27;s different question mismatches
+#    at token 1, so nothing below it is reused</code></pre>
+</figure>
+</section>
+<section id="practical-limits-minimum-size-expiration-and-explicit-caching-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Practical Limits: Minimum Size, Expiration, and Explicit Caching</h2>
+      <a class="stamp" href="#" data-t="478">7:58</a>
+    </div>
+  </div>
+  <p class="summary">Caching only pays off above a minimum prompt size, cached entries expire after minutes to hours, and some systems require you to mark cacheable sections explicitly rather than relying on automatic prefix matching.</p>
+  <p>Prompt caching is not free to maintain — storing and looking up a cache has its own overhead. Below roughly 1024 tokens, that overhead exceeds whatever prefill time you&#x27;d save, so caching provides no real benefit on short prompts. This is consistent with the earlier point that a prompt like &#x27;What&#x27;s the capital of France?&#x27; gains nothing from caching: it is nowhere near that threshold.</p>
+<p>Cached entries are also not kept forever. They are typically cleared after 5 to 10 minutes so the cache reflects current data rather than serving stale content indefinitely, though some systems allow entries to persist for up to 24 hours for content that legitimately doesn&#x27;t change often. This means caching is most valuable for bursts of related requests within a short window — a support session, a document Q&amp;A workflow, a chain of tool calls — rather than for content queried once a day.</p>
+<p>Finally, not every provider handles caching the same way. Some caching is fully automatic: the system applies prefix matching to every request without you doing anything special, as described above. Other systems require explicit caching: you have to mark, in the API call itself, which segments of the prompt should be treated as cacheable. Explicit caching gives you more control over exactly what gets cached and for how long, at the cost of having to structure your API calls with that in mind rather than relying on the system to figure it out from prompt order alone.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Caching typically needs a prompt of at least ~1024 tokens before it produces a net benefit; below that, overhead outweighs savings.</li><li>Cache entries usually expire after 5 to 10 minutes, though some can persist up to 24 hours.</li><li>Short expiration windows mean caching helps most for clusters of related requests close together in time.</li><li>Automatic caching relies purely on prefix matching; explicit caching requires you to mark cacheable segments yourself in the API request.</li></ul></div>
+  <figure class="example">
+  <figcaption>Explicit vs. automatic caching in an API call</figcaption>
+  <p>In an automatic-caching system, you send the prompt normally and the provider decides what to cache based on prefix matching against recent requests. In an explicit-caching system, you annotate specific blocks of the request — commonly the system prompt or a large document — so the provider knows exactly what to persist, independent of whether the rest of the prompt matches anything.</p>
+  <pre><code># Automatic caching: nothing special to write,
+# the provider matches prefixes on its own.
+response = client.generate(
+    prompt=system_instructions + document + question
+)
+
+# Explicit caching: mark which blocks are cacheable.
+response = client.generate(messages=[
+    {&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: system_instructions, &quot;cache&quot;: True},
+    {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: document, &quot;cache&quot;: True},
+    {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: question}  # not cached, changes every call
+])</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Prompt caching</dt><dd>Storing the model&#x27;s internal processing of an input prompt (or its static prefix) so that repeated or shared portions of future prompts don&#x27;t need to be recomputed. The model still generates a fresh output every time.</dd></div><div class="term"><dt>Output caching</dt><dd>Storing the final generated response to a prompt and returning it directly for identical future requests, skipping the model call entirely.</dd></div><div class="term"><dt>KV pairs (key-value pairs)</dt><dd>Internal values a transformer computes for every token at every layer, representing how each token relates to the others in the input. These are what prompt caching actually stores.</dd></div><div class="term"><dt>Prefill phase</dt><dd>The stage of LLM processing where the model computes KV pairs for the entire input prompt, before it generates its first output token.</dd></div><div class="term"><dt>Transformer layer</dt><dd>One of several stacked processing stages in a transformer model; KV pairs are computed independently at each layer as the input passes through the model.</dd></div><div class="term"><dt>Prefix matching</dt><dd>A technique that compares a new prompt against a cached one token by token from the start, treating everything up to the first differing token as a cache hit.</dd></div><div class="term"><dt>System prompt</dt><dd>Instructions sent with every request to an LLM that define its behavior, persona, and rules, typically identical across many calls and therefore a strong caching candidate.</dd></div><div class="term"><dt>Few-shot examples</dt><dd>Sample input/output pairs included in a prompt to show the model the format or style of response desired.</dd></div><div class="term"><dt>Context window</dt><dd>The maximum amount of text (measured in tokens) an LLM can process as input in a single request.</dd></div><div class="term"><dt>Token</dt><dd>A chunk of text (roughly a word or part of a word) that an LLM processes as a single unit; prompt length and caching thresholds are measured in tokens.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why does caching provide almost no benefit for a short prompt like &#x27;What&#x27;s the capital of France?&#x27;</summary>
+  <div class="answer"><p>The prefill phase for a handful of tokens is already extremely fast, so there is very little computation to save. Below roughly 1024 tokens, the overhead of storing and looking up a cache entry can exceed whatever time it would save, so caching adds cost rather than removing it.</p></div>
+</details><details class="q">
+  <summary>If a prompt caching system claims to speed up repeated requests, what exactly is it reusing — the prompt&#x27;s processing, or the model&#x27;s answer? Why does that distinction matter for a document Q&amp;A tool where every question is different?</summary>
+  <div class="answer"><p>It reuses the prompt&#x27;s processing (the cached KV pairs from the prefill phase), not the answer. That matters for a document Q&amp;A tool because every question about the document is different, so output caching (storing answers) would never get a hit — but prompt caching still helps, because the document itself is an unchanging prefix shared across all those different questions.</p></div>
+</details><details class="q">
+  <summary>A developer puts the user&#x27;s question at the very start of their prompt, followed by a large static system prompt and reference document. Why does this defeat automatic caching even though most of the prompt content doesn&#x27;t change between requests?</summary>
+  <div class="answer"><p>Automatic caching uses prefix matching, which compares tokens from the beginning of the prompt. Since the question changes every request and sits first, the mismatch happens at token one, so the cache lookup fails before it ever reaches the static content behind it — none of that static content gets served from cache, regardless of how much of it is identical to the previous request.</p></div>
+</details><details class="q">
+  <summary>Why do caching systems set an expiration window (typically 5-10 minutes) instead of keeping cached prompt data indefinitely?</summary>
+  <div class="answer"><p>A short expiration keeps cached content from going stale — if underlying documents, instructions, or context could change, an indefinitely cached prefix could serve outdated information. It also bounds how much data the system has to store at once, since most caching value comes from bursts of related requests close together in time rather than requests spread far apart.</p></div>
+</details><details class="q">
+  <summary>What&#x27;s the practical difference between a provider that does automatic caching versus one that requires explicit caching, and what does the developer have to do differently in each case?</summary>
+  <div class="answer"><p>With automatic caching, the provider applies prefix matching to every request on its own; the developer&#x27;s only job is to structure the prompt with static content first so a match is possible. With explicit caching, the developer must actively mark which segments of the prompt (e.g., the system prompt or a document) should be treated as cacheable in the API call itself, giving more control but requiring more deliberate request design.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Look up how a specific LLM provider&#x27;s API documents its prompt caching (minimum token thresholds, cache lifetime, and whether it&#x27;s automatic or explicit) and compare it against the general figures in this lesson.</li><li>Measure the latency difference on a real API call by sending the same large document twice with different trailing questions, once with the question first and once with the question last.</li><li>Read about the companion mechanism, KV caching during multi-turn generation within a single response, to see how it differs from prompt caching across separate requests.</li><li>Design a system prompt + reference document + few-shot example structure for an application you&#x27;re building, ordering it to maximize cache hits.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

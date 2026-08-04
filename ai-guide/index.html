@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How AI Works — An Interactive Concept Map</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div class="brand-text">
+        <h1>How AI Works</h1>
+        <p>An interactive concept map — from the basics down to the engineering</p>
+      </div>
+    </div>
+
+    <div class="tools">
+      <div class="search" role="search">
+        <input id="search" type="text" autocomplete="off" spellcheck="false"
+               placeholder="Search concepts &amp; lessons…" aria-label="Search concepts and lessons">
+        <div id="search-results" class="search-results" hidden></div>
+      </div>
+      <button id="toggle-links" class="btn" aria-pressed="true" title="Show or hide relationship edges">
+        <span class="dot"></span> Relations
+      </button>
+      <button id="expand-core" class="btn" title="Expand the core branches">Expand core</button>
+      <button id="reset-view" class="btn" title="Reset the view">Reset</button>
+      <button id="add-lesson" class="btn" title="Add a YouTube video as a lesson">+ Lesson</button>
+      <button id="toggle-theme" class="btn icon-btn" title="Toggle light / dark" aria-label="Toggle theme">
+        <span class="theme-icon"></span>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <svg id="map" role="img" aria-label="AI concept map">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z"></path>
+        </marker>
+      </defs>
+      <g id="viewport">
+        <g id="edges"></g>
+        <g id="crosslinks"></g>
+        <g id="crosslabels"></g>
+        <g id="nodes"></g>
+      </g>
+    </svg>
+
+    <div class="hint" id="hint">
+      <button class="hint-close" id="hint-close" aria-label="Dismiss hint">&times;</button>
+      <span>Click a <strong>branch</strong> to open it and drill down; each node opens a summary with key points and its lessons — click a lesson to read the full page. Drag to pan, scroll to zoom.</span>
+    </div>
+
+    <aside id="panel" class="panel" hidden aria-live="polite">
+      <div class="panel-resizer" id="panel-resizer" role="separator" aria-orientation="vertical" aria-label="Resize panel" title="Drag to resize"></div>
+      <button class="panel-close" id="panel-close" aria-label="Close panel">&times;</button>
+      <div id="panel-body"></div>
+    </aside>
+  </main>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-inner">
+      <div class="modal-head">
+        <div id="modal-title" class="modal-title"></div>
+        <div class="modal-actions">
+          <button id="modal-video" class="btn" aria-pressed="false" hidden>▶ Watch video</button>
+          <a id="modal-open" class="btn" target="_blank" rel="noopener">Open in new tab ↗</a>
+          <button id="modal-close" class="btn" aria-label="Close lesson">Close</button>
+        </div>
+      </div>
+      <div id="modal-video-wrap" class="modal-video" hidden>
+        <iframe id="modal-video-frame" title="Source video" src="about:blank"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen></iframe>
+      </div>
+      <iframe id="modal-frame" title="Full lesson" src="about:blank"></iframe>
+    </div>
+  </div>
+
+  <div id="add-modal" class="modal" hidden>
+    <div class="modal-inner add-inner">
+      <div class="modal-head">
+        <div class="modal-title">Add a lesson from YouTube</div>
+        <div class="modal-actions">
+          <button id="add-close" class="btn" aria-label="Close">Close</button>
+        </div>
+      </div>
+
+      <div class="add-body">
+        <p class="add-note">
+          Paste a video URL. Its transcript is fetched and parked in the queue with the
+          concept you choose. The lesson itself is written in a Claude Code session —
+          say <code>procesa la cola</code> — then rendered and attached to the map.
+        </p>
+
+        <label class="add-label" for="add-url">YouTube URL</label>
+        <div class="add-row">
+          <input id="add-url" type="url" spellcheck="false" autocomplete="off"
+                 placeholder="https://www.youtube.com/watch?v=…">
+          <button id="add-fetch" class="btn primary">Fetch transcript</button>
+        </div>
+        <div id="add-status" class="add-status" hidden></div>
+
+        <div id="add-step2" hidden>
+          <div class="add-preview" id="add-preview"></div>
+
+          <label class="add-label" for="add-concept">Attach to concept</label>
+          <select id="add-concept"></select>
+          <div class="add-hint" id="add-suggest-note"></div>
+
+          <label class="add-label" for="add-focus">Focus <span class="opt">(optional)</span></label>
+          <input id="add-focus" type="text" autocomplete="off"
+                 placeholder="e.g. keep it practical, emphasise the code">
+
+          <button id="add-queue" class="btn primary wide">Add to queue</button>
+        </div>
+
+        <div class="add-queue-list">
+          <div class="p-section-h">Queue</div>
+          <div id="add-jobs" class="add-jobs"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

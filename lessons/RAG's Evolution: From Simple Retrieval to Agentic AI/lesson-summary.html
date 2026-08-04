@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From Inverted Indices to Agentic RAG: How Retrieval Grew Up — Condensed</title>
+<meta name="description" content="Follow information retrieval from keyword matching to systems that decide for themselves what to look at.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-summary">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#keyword-search-inverted-indices-and-ranking-1"><span class="n">1</span>Keyword search: inverted indices and ranking</a></li>
+<li><a href="#where-lexical-matching-breaks-2"><span class="n">2</span>Where lexical matching breaks</a></li>
+<li><a href="#semantic-search-meaning-as-geometry-3"><span class="n">3</span>Semantic search: meaning as geometry</a></li>
+<li><a href="#hybrid-retrieval-precision-and-recall-together-4"><span class="n">4</span>Hybrid retrieval: precision and recall together</a></li>
+<li><a href="#llms-predict-they-do-not-retrieve-5"><span class="n">5</span>LLMs predict — they do not retrieve</a></li>
+<li><a href="#naive-rag-the-linear-pipeline-6"><span class="n">6</span>Naive RAG: the linear pipeline</a></li>
+<li><a href="#advanced-rag-rerankers-query-rewriting-hybrid-7"><span class="n">7</span>Advanced RAG: rerankers, query rewriting, hybrid</a></li>
+<li><a href="#agentic-rag-retrieval-as-a-tool-inside-reasoning-8"><span class="n">8</span>Agentic RAG: retrieval as a tool inside reasoning</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Advanced</span><span class="pill ghost">Information retrieval</span><span class="pill ghost">Condensed</span><span class="muted">IBM Technology</span></div>
+  <h1>From Inverted Indices to Agentic RAG: How Retrieval Grew Up</h1>
+  <p class="lede">Follow information retrieval from keyword matching to systems that decide for themselves what to look at.</p>
+  <p class="muted small">For engineers building search or RAG systems who want to know which stage of the evolution their system is stuck at · 26 July 2026</p>
+  <p class="muted small">Every section, key point, term and question from the full lesson is here. The extended explanations and the additional examples are not.</p>
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=JB2P5Gk23VI" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson.html">Read the full lesson</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Familiarity with the idea of a search index</li><li>Comfort reading Python</li><li>A basic idea of what an embedding is, though the lesson builds it up</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Search engines did not get smarter overnight. Information retrieval grew up one step at a time, and each step was a response to a specific, nameable failure of the step before it. Keyword indices could not handle synonyms. Semantic search could not handle exact identifiers. Static RAG pipelines could not adapt when one retrieval was not enough.</p>
+<p>That progression is worth knowing in detail, because almost every retrieval system in production today is sitting at one of these stages, and its problems are the documented problems of that stage. A team fighting recall issues with better embeddings is often at the point where hybrid retrieval was invented. A team whose RAG works on simple questions and collapses on multi-hop ones is at the point where agentic retrieval was invented.</p>
+<p>The endpoint so far is retrieval as a tool inside a reasoning loop, rather than a fixed step ahead of one. The agent decides whether to search, where, what to ask, and when it has enough. As the video puts it: the hardest part is not generation, it is deciding what to look at.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>An inverted index maps terms to the documents containing them, which is what makes keyword search fast.</li><li>BM25 ranks by term frequency, inverse document frequency and document length, and remains a strong baseline decades on.</li><li>Lexical search treats words as symbols, so synonyms, ambiguity and intent are invisible to it.</li><li>Embeddings are learned from context, which is why &#x27;espresso&#x27; lands near &#x27;coffee&#x27; and far from &#x27;house&#x27;.</li><li>Hybrid retrieval combines lexical precision with semantic recall because each covers the other&#x27;s failures.</li><li>LLMs predict likely tokens rather than retrieving facts, so their knowledge is frozen and unattributable.</li><li>Naive RAG is linear — embed offline, retrieve once, generate — and is only ever as good as that single retrieval.</li><li>Agentic RAG makes retrieval a tool invoked during reasoning, so the system can iterate, verify and stop when it has enough.</li></ul>
+  </div>
+</section>
+<section id="keyword-search-inverted-indices-and-ranking-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Keyword search: inverted indices and ranking</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">The earliest systems answered one question — where does this word appear — using a mapping from terms to documents, then ranked the hits by statistical importance.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>An inverted index maps each term to the documents containing it, making lookup proportional to matches rather than corpus size.</li><li>TF-IDF weights a term by its frequency in the document against its rarity across the corpus.</li><li>BM25 adds term-frequency saturation so repetition has diminishing returns.</li><li>BM25 also normalises for document length, so short focused documents are not penalised.</li><li>Lexical ranking needs no model or training and is fully interpretable — it remains a serious baseline.</li></ul></div>
+  <figure class="example">
+  <figcaption>An inverted index, in full</figcaption>
+  <p>The whole data structure. Querying &#x27;python error&#x27; intersects two posting lists and returns their overlap. Real implementations add positions for phrase queries and skip lists for faster intersection, but this is the idea in its entirety.</p>
+  <pre><code>from collections import defaultdict
+
+index = defaultdict(set)
+
+def add(doc_id, text):
+    for term in tokenize(text.lower()):
+        index[term].add(doc_id)
+
+add(1, &quot;Python error handling with try and except&quot;)
+add(2, &quot;Ball python care and feeding&quot;)
+add(3, &quot;Error codes in the payment API&quot;)
+
+# index[&quot;python&quot;] = {1, 2}
+# index[&quot;error&quot;]  = {1, 3}
+
+def search(query):
+    sets = [index[t] for t in tokenize(query.lower()) if t in index]
+    return set.intersection(*sets) if sets else set()
+
+search(&quot;python error&quot;)   # {1}</code></pre>
+</figure>
+</section>
+<section id="where-lexical-matching-breaks-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Where lexical matching breaks</h2>
+      <a class="stamp" href="#" data-t="84">1:24</a>
+    </div>
+  </div>
+  <p class="summary">It treats words as symbols, not as meaning. Synonyms, ambiguity and intent are invisible.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Lexical matching compares symbols, so it has no access to meaning.</li><li>Synonymy causes recall failures: the right document exists and cannot be found.</li><li>Ambiguity causes precision failures: identical tokens, different intents.</li><li>The user is forced to guess the author&#x27;s exact vocabulary.</li><li>Neither failure can be fixed by better ranking — the candidates were never retrieved.</li></ul></div>
+  <figure class="example">
+  <figcaption>Two failures, two causes</figcaption>
+  <p>Worth separating, because the fixes differ. Synonym failures are about candidate generation and need semantics. Ambiguity failures are about disambiguation and often need context about the user or the session.</p>
+  <pre><code>SYNONYMY (recall)
+  query : &quot;car insurance&quot;
+  doc   : &quot;Comprehensive vehicle coverage for private owners&quot;
+  match : none. zero shared terms, and the document is the right answer.
+
+AMBIGUITY (precision)
+  query : &quot;help python&quot;
+  doc A : &quot;Debugging Python tracebacks&quot;          ← wanted, if a programmer
+  doc B : &quot;Ball python humidity requirements&quot;    ← wanted, if a snake owner
+  match : both, ranked by term statistics alone.</code></pre>
+</figure>
+</section>
+<section id="semantic-search-meaning-as-geometry-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Semantic search: meaning as geometry</h2>
+      <a class="stamp" href="#" data-t="129">2:09</a>
+    </div>
+  </div>
+  <p class="summary">Represent text as vectors in a high-dimensional space where similar concepts sit close together, and relevance becomes distance.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Embeddings are vectors positioned so that semantic similarity becomes geometric proximity.</li><li>They are learned by neural networks from context across massive corpora.</li><li>Words in similar contexts end up in similar positions, independent of spelling.</li><li>Retrieval becomes a nearest-neighbour problem rather than a matching problem.</li><li>Synonymy is solved structurally: different words for one concept share a region.</li></ul></div>
+  <figure class="example">
+  <figcaption>The map, in three dimensions</figcaption>
+  <p>Real embeddings have hundreds or thousands of dimensions and no individual axis means anything interpretable. But the geometry is genuinely this: similarity is a small angle, and unrelatedness is a large one.</p>
+  <pre><code>coffee    [0.0, 1.0, 0.0]
+espresso  [0.1, 0.9, 0.1]     ← near coffee: same contexts, same region
+latte     [0.1, 0.8, 0.2]
+house     [1.0, 0.0, 0.0]     ← far: nothing in common
+
+cosine(coffee, espresso) ≈ 0.99
+cosine(coffee, house)    ≈ 0.00
+
+# no shared letters between &quot;coffee&quot; and &quot;espresso&quot; — the closeness comes
+# entirely from having been used in similar surroundings during training</code></pre>
+</figure>
+</section>
+<section id="hybrid-retrieval-precision-and-recall-together-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Hybrid retrieval: precision and recall together</h2>
+      <a class="stamp" href="#" data-t="169">2:49</a>
+    </div>
+  </div>
+  <p class="summary">Semantic search did not replace keyword search. Systems combining both emerged because each covers the other&#x27;s failures exactly.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Hybrid retrieval unions lexical and semantic candidates rather than choosing between them.</li><li>Lexical is precise on exact tokens; semantic is robust to paraphrase.</li><li>The two fail in opposite directions, so together they cover far more ground.</li><li>Combining raw scores is fragile because the scales are incomparable.</li><li>Reciprocal Rank Fusion combines ranks instead of scores and needs no tuning.</li></ul></div>
+  <figure class="example">
+  <figcaption>Reciprocal Rank Fusion</figcaption>
+  <p>The whole algorithm. Each document scores the sum of 1/(k + rank) across the lists it appears in, so appearing reasonably high in both beats topping one and missing the other. The constant k, conventionally 60, damps the influence of the very top positions.</p>
+  <pre><code>def rrf(rankings, k=60):
+    scores = defaultdict(float)
+
+    for ranking in rankings:                 # one list per retriever
+        for rank, doc_id in enumerate(ranking, start=1):
+            scores[doc_id] += 1.0 / (k + rank)
+
+    return sorted(scores, key=scores.get, reverse=True)
+
+
+fused = rrf([
+    bm25_search(query, k=50),        # exact terms, identifiers, codes
+    semantic_search(query, k=50),    # paraphrase, intent
+])
+
+# no score normalisation, no weights to tune, no scale assumptions</code></pre>
+</figure>
+</section>
+<section id="llms-predict-they-do-not-retrieve-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>LLMs predict — they do not retrieve</h2>
+      <a class="stamp" href="#" data-t="211">3:31</a>
+    </div>
+  </div>
+  <p class="summary">A language model returns the most likely continuation based on learned patterns. It has no index, no sources and no notion of looking something up.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>LLMs predict likely continuations; they do not look anything up.</li><li>There is no index and no source, so nothing can be genuinely cited.</li><li>Knowledge is frozen at the training cutoff and excludes anything private.</li><li>Fluency is not evidence of grounding — the same mechanism produces both.</li><li>The missing capability is exactly what information retrieval already provided.</li></ul></div>
+  <figure class="example">
+  <figcaption>Why a model invents citations</figcaption>
+  <p>Not a special failure mode. The reference is generated by the same next-token prediction as the surrounding prose, and a plausible-looking citation is a highly probable continuation after the words &#x27;according to&#x27;. Nothing in the process consults anything.</p>
+  <pre><code>prompt : &quot;According to the documentation, the retry limit defaults to&quot;
+
+#   &quot; 3&quot;   0.41   plausible
+#   &quot; 5&quot;   0.28   plausible
+#   &quot; 10&quot;  0.12   plausible
+
+# the model emits one. no configuration file was consulted, and the
+# confidence of the output says nothing about whether it is right.</code></pre>
+</figure>
+</section>
+<section id="naive-rag-the-linear-pipeline-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Naive RAG: the linear pipeline</h2>
+      <a class="stamp" href="#" data-t="260">4:20</a>
+    </div>
+  </div>
+  <p class="summary">Search for relevant documents, augment the prompt with them, generate the answer. Simple, effective, and only as good as one retrieval.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The pipeline is: retrieve from a knowledge base, augment the prompt, generate.</li><li>This gives the model external memory, real citations and domain adaptation without retraining.</li><li>Hallucinations drop substantially because claims are grounded in supplied text.</li><li>The pipeline is linear: retrieval happens exactly once, with no feedback.</li><li>Answer quality is capped by the quality of that single retrieval.</li></ul></div>
+  <figure class="example">
+  <figcaption>Naive RAG in full</figcaption>
+  <p>Genuinely the whole thing. Everything covered from here on is an attempt to fix a limitation of these five lines.</p>
+  <pre><code>def naive_rag(question, store, k=5):
+    hits    = store.search(embed(question), k=k)      # once
+    context = &quot;\n\n&quot;.join(h.text for h in hits)
+
+    return model.generate(
+        f&quot;Answer from the context only.\n\n{context}\n\nQuestion: {question}&quot;
+    )</code></pre>
+</figure>
+</section>
+<section id="advanced-rag-rerankers-query-rewriting-hybrid-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Advanced RAG: rerankers, query rewriting, hybrid</h2>
+      <a class="stamp" href="#" data-t="344">5:44</a>
+    </div>
+  </div>
+  <p class="summary">Within a short period the simple concept accumulated real machinery — but the pipeline stayed fixed.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Rerankers reorder a retrieved shortlist using a more accurate, slower model.</li><li>Bi-encoders embed query and document separately; cross-encoders score them jointly.</li><li>Retrieve wide and cheap, then rerank narrow and expensive.</li><li>Query rewriting and expansion improve recall for short or conversational questions.</li><li>The pipeline was still fixed — identical steps for every query, however simple or complex.</li></ul></div>
+  <figure class="example">
+  <figcaption>Retrieve wide, rerank narrow</figcaption>
+  <p>Usually the single largest accuracy improvement available to a RAG system, and it needs no change to the index. The recall you get from k=50 with the precision you get from a cross-encoder.</p>
+  <pre><code>def retrieve_and_rerank(question, store, wide=50, keep=5):
+    candidates = store.search(embed(question), k=wide)     # cheap, high recall
+
+    scored = cross_encoder.predict([                       # expensive, precise
+        (question, c.text) for c in candidates
+    ])
+
+    ranked = sorted(zip(scored, candidates), reverse=True)
+    return [c for _, c in ranked[:keep]]
+
+# bi-encoder  : embeds separately → index precomputable, less accurate
+# cross-encoder: reads both together → far more accurate, cannot be precomputed</code></pre>
+</figure>
+</section>
+<section id="agentic-rag-retrieval-as-a-tool-inside-reasoning-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Agentic RAG: retrieval as a tool inside reasoning</h2>
+      <a class="stamp" href="#" data-t="389">6:29</a>
+    </div>
+  </div>
+  <p class="summary">Retrieval stops being a fixed step before the answer and becomes something the system invokes, repeats and stops as part of thinking.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Agents combine an LLM with tools and decide autonomously which to invoke.</li><li>The agent decides whether to retrieve, where, what to ask, and when to stop.</li><li>Retrieval becomes a tool inside reasoning rather than a fixed preceding step.</li><li>This enables multi-hop research, cross-document synthesis and self-correction.</li><li>Latency and cost become variable; evaluation shifts from one retrieval to a whole trajectory.</li><li>Retrieval budgets and stopping criteria are required — an agent will otherwise search forever.</li></ul></div>
+  <figure class="example">
+  <figcaption>Agentic retrieval performing a multi-hop lookup</figcaption>
+  <p>The same question naive RAG could not answer. The agent runs the first hop, reads the result, forms a second query that depends on it, and only then answers. No pipeline can do this, because the second query does not exist until the first one returns.</p>
+  <pre><code>question: &quot;Does the vendor of our payment gateway have SOC 2 certification?&quot;
+
+Thought: I need the vendor&#x27;s name first. Search internal docs.
+Action:  search_internal(&quot;payment gateway vendor contract&quot;)
+Obs:     &quot;Payments are processed via Acme Pay under MSA-2024-11.&quot;
+
+Thought: Vendor is Acme Pay. Now check certification — that is external.
+Action:  search_web(&quot;Acme Pay SOC 2 Type II report&quot;)
+Obs:     &quot;Acme Pay SOC 2 Type II, audited through 2025-06-30.&quot;
+
+Thought: Both hops resolved, and the report has an end date worth flagging.
+Answer:  Yes — Acme Pay holds SOC 2 Type II covering through 30 June 2025.</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Inverted index</dt><dd>A mapping from each term to the documents containing it — the reverse of the natural document-to-terms direction, which is what makes lookup fast.</dd></div><div class="term"><dt>TF-IDF</dt><dd>Term frequency times inverse document frequency: a term matters more if it is frequent in this document and rare across the corpus.</dd></div><div class="term"><dt>BM25</dt><dd>The standard lexical ranking function, refining TF-IDF with saturating term frequency and document-length normalisation.</dd></div><div class="term"><dt>Lexical search</dt><dd>Retrieval by literal term matching. Precise on exact strings, blind to synonyms and intent.</dd></div><div class="term"><dt>Semantic search</dt><dd>Retrieval by proximity between embeddings, so documents match on meaning even when they share no words.</dd></div><div class="term"><dt>Embedding</dt><dd>A high-dimensional vector representing text, learned so that items appearing in similar contexts occupy similar positions.</dd></div><div class="term"><dt>Hybrid retrieval</dt><dd>Running lexical and semantic retrieval together and fusing the results, since each covers the other&#x27;s characteristic failures.</dd></div><div class="term"><dt>Reciprocal Rank Fusion (RRF)</dt><dd>Combining several ranked lists by summing 1/(k + rank) per document, avoiding the need to make incompatible scores comparable.</dd></div><div class="term"><dt>Bi-encoder</dt><dd>An embedding model that encodes query and document separately, allowing the corpus to be indexed in advance.</dd></div><div class="term"><dt>Cross-encoder</dt><dd>A model that reads query and document together and scores the pair. More accurate than a bi-encoder and too slow to run over a full corpus.</dd></div><div class="term"><dt>Reranker</dt><dd>A second-stage scorer, usually a cross-encoder, applied to a retrieved shortlist to reorder it more accurately.</dd></div><div class="term"><dt>Query rewriting</dt><dd>Reformulating a short or conversational question into a fuller standalone query before retrieval, to improve recall.</dd></div><div class="term"><dt>Naive RAG</dt><dd>The original linear pipeline: retrieve once, augment the prompt, generate. No feedback and no second attempt.</dd></div><div class="term"><dt>Agentic RAG</dt><dd>Retrieval invoked as a tool during reasoning, so the system decides whether, where and how often to search, and when it has enough.</dd></div><div class="term"><dt>Multi-hop question</dt><dd>A question whose answer requires a second lookup that depends on the result of the first. Beyond the reach of single-shot retrieval.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why does BM25 make the tenth occurrence of a query term count for much less than the second?</summary>
+  <div class="answer"><p>Because relevance saturates: a document mentioning a term fifty times is not fifty times more about it, and without damping, keyword-stuffed documents would dominate the rankings. The k1 parameter controls how quickly that saturation sets in.</p></div>
+</details><details class="q">
+  <summary>Semantic search solves the synonym problem completely. Why do production systems still run BM25 alongside it?</summary>
+  <div class="answer"><p>Because embeddings are weak exactly where lexical search is strong: exact identifiers. An error code, SKU or function name has arbitrary rather than contextual meaning, so it does not embed distinctively and the exact match can rank below topically similar documents. The two fail in opposite directions, which is precisely what makes combining them worthwhile.</p></div>
+</details><details class="q">
+  <summary>Why does Reciprocal Rank Fusion combine ranks rather than scores?</summary>
+  <div class="answer"><p>BM25 scores are unbounded and corpus-dependent while cosine similarities sit in a fixed range, so there is no principled way to put them on a common scale, and any normalisation you invent will be fragile across corpora. Ranks are already comparable, so fusing them needs no tuning and no assumptions about either scoring scheme.</p></div>
+</details><details class="q">
+  <summary>A model produces a confident citation to a document that does not exist. Why is this the expected behaviour of the mechanism rather than a malfunction?</summary>
+  <div class="answer"><p>The citation is generated by the same next-token prediction as the surrounding text — after &#x27;according to&#x27;, a plausible-looking reference is simply a high-probability continuation. Nothing in the process consults a source, because there is no index and no lookup step. Grounding has to come from outside the model.</p></div>
+</details><details class="q">
+  <summary>Why can no amount of reranking or query rewriting let a naive RAG pipeline answer &#x27;does the vendor of our payment gateway have SOC 2 certification?&#x27;</summary>
+  <div class="answer"><p>The second search cannot be formulated until the first one returns the vendor&#x27;s name, and a linear pipeline retrieves exactly once. Reranking improves the ordering of results for a query you already have; it cannot produce a query that depends on an answer you have not obtained yet. Multi-hop needs a loop.</p></div>
+</details><details class="q">
+  <summary>Why does an agentic retrieval system need an explicit rule for concluding that information is absent?</summary>
+  <div class="answer"><p>Because generating another rephrased query is always easier for the model than deciding nothing exists, so without a stopping criterion the agent will keep searching until its budget runs out and then produce something anyway. &#x27;I searched and it is not there&#x27; has to be an explicitly permitted and rewarded outcome, backed by a retrieval cap and a no-new-information check.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Implement BM25 from the formula above over a few thousand of your own documents and compare it head to head against your vector search — the baseline is stronger than most teams assume.</li><li>Add a cross-encoder reranker over the top 50 vector results and measure the change in recall@5; this is usually the largest single accuracy gain available without touching the index.</li><li>Implement RRF over your lexical and semantic retrievers, then find queries where each one rescues the other and use them as regression tests.</li><li>Take ten questions your RAG system answers badly and classify each as a retrieval miss, a multi-hop failure, or a whole-corpus question — the mix tells you which stage of this evolution your system is stuck at.</li><li>Build the conversational query-rewriting step and measure recall on follow-up questions specifically, where naive embedding of pronouns and references fails hardest.</li><li>Instrument an agentic retrieval loop to record how many searches each question triggers, and check the distribution for questions that never terminate cleanly.</li><li>Read the original RAG paper (Lewis et al., 2020) and the ReAct paper (Yao et al., 2022) back to back — the gap between them is exactly the gap between the last two sections of this lesson.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

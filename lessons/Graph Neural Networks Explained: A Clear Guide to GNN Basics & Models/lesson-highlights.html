@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graph Neural Networks: How GNNs Learn From Connected Data — Highlights</title>
+<meta name="description" content="Understand how message passing works and how GCN, GraphSAGE, GAT, GIN, and graph transformers each aggregate neighbor information differently.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:minmax(0,70ch);justify-content:center;gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-highlights">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">Graph Neural Networks</span><span class="pill ghost">Highlights</span><span class="muted">IBM Technology</span></div>
+  <h1>Graph Neural Networks: How GNNs Learn From Connected Data</h1>
+  <p class="lede">Understand how message passing works and how GCN, GraphSAGE, GAT, GIN, and graph transformers each aggregate neighbor information differently.</p>
+  <p class="muted small">For people comfortable with basic neural networks (weights, activations, matrix multiplication) who want to understand how models learn from graph-structured data · 27 July 2026</p>
+  <p class="muted small">The one- or two-page version: what matters, the topics it covers, and every term defined. Read the full lesson for the explanations and worked examples.</p>
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=eGoszzMkGfU" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson.html">Read the full lesson</a> <a class="source" href="lesson-summary.html">Read the condensed version</a></p>
+  
+</header>
+<section class="block">
+  <h2>What matters</h2>
+  <ul class="checks"><li>A graph pairs entities (nodes) with relationships (edges); an adjacency matrix records which nodes connect, and for directed graphs, in which direction.</li><li>GNNs learn through message passing: every node repeatedly gathers, aggregates, and folds in information from its neighbors to update its own embedding.</li><li>Stacking message-passing layers grows a node&#x27;s receptive field — layer 1 reaches immediate neighbors, layer 2 reaches neighbors of neighbors, and so on.</li><li>GNN architectures mainly differ in their aggregation rule: GCN smooths neighbor features, GraphSAGE samples neighbors to stay scalable, GAT learns per-neighbor attention weights, and GIN sums for maximum expressive power.</li><li>Sum aggregation (used by GIN) preserves more structural detail than mean or max, which is why GIN matches the discriminative power of the Weisfeiler-Lehman (WL) graph isomorphism test while GCN-style mean/max pooling does not.</li><li>Graph transformers let every node attend to every other node directly (not just immediate neighbors), and add a structural bias term to the attention score so the graph&#x27;s topology isn&#x27;t lost.</li><li>Choosing an architecture is a tradeoff between expressive power (GIN), scalability to huge graphs (GraphSAGE), interpretable importance weighting (GAT), and long-range reasoning (graph transformers).</li></ul>
+</section>
+<section class="block">
+  <h2>What it covers</h2>
+  <div class="map"><div class="map-row"><span class="n">01</span><div><strong>Graphs as data: nodes, edges, and the adjacency matrix</strong> <span class=chip>0:00</span><p>A graph represents entities as nodes and their relationships as edges; an adjacency matrix is a simple way to record exactly which nodes connect to which.</p></div></div><div class="map-row"><span class="n">02</span><div><strong>Embeddings, and heterogeneous vs. homogeneous graphs</strong> <span class=chip>2:10</span><p>GNNs convert nodes (and edges, and whole graphs) into dense embedding vectors, and graphs are classified by whether they contain one type of node/edge or several.</p></div></div><div class="map-row"><span class="n">03</span><div><strong>Message passing: how nodes share information</strong> <span class=chip>2:51</span><p>Nodes don&#x27;t predict in isolation — in each layer, every node sends, aggregates, and folds in messages from its neighbors, and stacking layers widens how far that information travels.</p></div></div><div class="map-row"><span class="n">04</span><div><strong>Graph Convolutional Networks (GCN): smoothing over neighbors</strong> <span class=chip>5:03</span><p>GCNs generalize the weight-sharing idea behind CNNs to graphs: every node gets a smoothed, aggregated version of its neighbors&#x27; embeddings, passed through a shared weight matrix and a non-linearity.</p></div></div><div class="map-row"><span class="n">05</span><div><strong>GraphSAGE: sampling neighbors to scale to huge graphs</strong> <span class=chip>6:25</span><p>GraphSAGE (“sample and aggregate”) learns to aggregate over a fixed-size sample of each node&#x27;s neighbors instead of the whole neighborhood, keeping cost constant on graphs with millions of nodes.</p></div></div><div class="map-row"><span class="n">06</span><div><strong>Graph Attention Networks (GAT): weighing neighbors unequally</strong> <span class=chip>7:07</span><p>GATs learn an attention coefficient for each neighbor so the model can focus more on the connections that matter, instead of treating every neighbor the same.</p></div></div><div class="map-row"><span class="n">07</span><div><strong>Graph Isomorphism Networks (GIN) and why sum beats mean/max</strong> <span class=chip>8:31</span><p>GIN sums neighbor embeddings and pushes the result through an MLP, and that sum is what lets it tell apart graph structures that mean- or max-based GNNs incorrectly treat as identical.</p></div></div><div class="map-row"><span class="n">08</span><div><strong>Graph Transformers: global attention over the whole graph</strong> <span class=chip>11:31</span><p>Graph transformers let any node attend to any other node directly, using standard query/key/value attention plus a structural bias term so the graph&#x27;s topology still shapes the result.</p></div></div><div class="map-row"><span class="n">09</span><div><strong>Choosing an architecture</strong> <span class=chip>16:03</span><p>Every GNN shares the same message-passing skeleton; the choice of architecture comes down to what you&#x27;re optimizing for — smoothness, scale, interpretability, expressiveness, or long-range reasoning.</p></div></div></div>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Graph</dt><dd>A structure made of nodes (entities) and edges (relationships between pairs of nodes), formally written as G = (V, E).</dd></div><div class="term"><dt>Node / vertex</dt><dd>A single entity in a graph, such as a person, atom, or web page.</dd></div><div class="term"><dt>Edge</dt><dd>A connection between two nodes, representing a relationship; can be directed (one-way) or undirected (two-way).</dd></div><div class="term"><dt>Adjacency matrix</dt><dd>An N×N matrix where entry (i, j) is 1 if node i connects to node j, and 0 otherwise; a complete numeric encoding of a graph&#x27;s structure.</dd></div><div class="term"><dt>Embedding</dt><dd>A dense, low-dimensional vector representation of a node, edge, or graph that captures both its features and its structural context.</dd></div><div class="term"><dt>Homogeneous graph</dt><dd>A graph with exactly one type of node and one type of edge.</dd></div><div class="term"><dt>Heterogeneous graph</dt><dd>A graph with more than one type of node and/or edge, such as a graph with both “student” and “teacher” nodes.</dd></div><div class="term"><dt>Message passing</dt><dd>The core GNN mechanism where each node repeatedly gathers information from its neighbors (create), combines it (aggregate), and folds it into its own representation (update).</dd></div><div class="term"><dt>Aggregation</dt><dd>The operation that combines multiple incoming neighbor messages into a single vector, e.g. sum, mean, max, or attention-weighted combination.</dd></div><div class="term"><dt>Graph Convolutional Network (GCN)</dt><dd>A GNN that aggregates neighbor embeddings (typically via a normalized average) and passes the result through a shared weight matrix and non-linearity, analogous to a CNN&#x27;s shared filters.</dd></div><div class="term"><dt>GraphSAGE</dt><dd>“Sample and aggregate” — a GNN that aggregates over a fixed-size random sample of each node&#x27;s neighbors rather than the full neighborhood, so it scales to very large graphs.</dd></div><div class="term"><dt>Graph Attention Network (GAT)</dt><dd>A GNN that learns a per-neighbor attention coefficient, so some neighbors contribute more to a node&#x27;s updated embedding than others.</dd></div><div class="term"><dt>Attention coefficient</dt><dd>A learned, softmax-normalized weight (denoted alpha) indicating how much one node&#x27;s message should count when updating another node&#x27;s embedding.</dd></div><div class="term"><dt>Graph Isomorphism Network (GIN)</dt><dd>A GNN that sums neighbor embeddings and passes the result through a multilayer perceptron (MLP); designed to match the discriminative power of the Weisfeiler-Lehman test.</dd></div><div class="term"><dt>Multilayer perceptron (MLP)</dt><dd>A small neural network made of one or more fully connected layers with non-linear activations between them.</dd></div><div class="term"><dt>Isomorphic graphs</dt><dd>Two graphs that are structurally identical once you allow relabeling their nodes — same connectivity pattern, just different names for the nodes.</dd></div><div class="term"><dt>Weisfeiler-Lehman (WL) test</dt><dd>A classical, purely combinatorial algorithm for checking whether two graphs are structurally identical (isomorphic), used as a benchmark for how expressive a GNN&#x27;s aggregation can be.</dd></div><div class="term"><dt>Graph transformer</dt><dd>A GNN that applies transformer-style global attention, letting any node attend to any other node, with a structural bias term added to the attention score to preserve graph topology.</dd></div><div class="term"><dt>Query, key, value (Q, K, V)</dt><dd>Three learned projections of a node&#x27;s embedding used in attention: the query is what a node looks for, the key is what it offers for comparison, and the value is what gets passed along once attention weights are computed.</dd></div><div class="term"><dt>Multi-head attention</dt><dd>Running several attention computations (heads) in parallel, each with its own Q/K/V projections, then concatenating and combining their outputs.</dd></div><div class="term"><dt>Residual connection</dt><dd>Adding a layer&#x27;s input back to its output before further processing, which helps stabilize training in deep networks.</dd></div></dl>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

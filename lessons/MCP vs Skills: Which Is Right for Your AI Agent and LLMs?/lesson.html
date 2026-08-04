@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP vs Skills: Two Ways to Extend an LLM&#x27;s Context</title>
+<meta name="description" content="Understand when to wire an LLM to live external data with MCP, and when to teach it a repeatable procedure with a skill.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#from-prompt-engineering-to-context-engineering-1"><span class="n">1</span>From prompt engineering to context engineering</a></li>
+<li><a href="#mcp-a-standard-interface-between-an-llm-and-external-services-2"><span class="n">2</span>MCP: a standard interface between an LLM and external services</a></li>
+<li><a href="#what-mcp-doesn-t-solve-repeatable-non-deterministic-behavior-3"><span class="n">3</span>What MCP doesn&#x27;t solve: repeatable, non-deterministic behavior</a></li>
+<li><a href="#skills-packaging-a-repeatable-procedure-the-model-can-auto-load-4"><span class="n">4</span>Skills: packaging a repeatable procedure the model can auto-load</a></li>
+<li><a href="#choosing-mcp-skills-or-both-5"><span class="n">5</span>Choosing MCP, skills, or both</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">AI agents and LLM context engineering</span><span class="muted">IBM Technology</span></div>
+  <h1>MCP vs Skills: Two Ways to Extend an LLM&#x27;s Context</h1>
+  <p class="lede">Understand when to wire an LLM to live external data with MCP, and when to teach it a repeatable procedure with a skill.</p>
+  <p class="muted small">For developers building AI agents or coding assistants who need to decide how to extend an LLM beyond its training data · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=goU9VIXA8II" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Basic familiarity with what an LLM is and how a context window works</li><li>Basic familiarity with what an API call and an access token are</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>A large language model only knows what it saw during training, plus whatever text you put in its context window at request time. Getting a useful answer out of it is less about the wording of your question and more about what surrounding information you supply — this is context engineering, and it is broader than prompt engineering. Two complementary mechanisms have emerged for supplying that context at scale: the Model Context Protocol (MCP) and skills.</p>
+<p>MCP standardizes how an LLM-based application talks to external systems — CRMs, databases, internal APIs — so the model can fetch or act on live data through a scoped, authenticated interface instead of you hand-rolling API glue for every tool. Skills solve a different problem: they package a reusable, repeatable procedure — a way of doing a task the same way every time — as a small bundle of instructions (and optionally scripts and resources) that the model loads into its context only when the task calls for it.</p>
+<p>This lesson explains both mechanisms, shows the shape of a real MCP tool call and a real skill file, and gives you a rule of thumb for choosing between them or using both together.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>An LLM answers well only when its context window contains the right information, not just a well-phrased question — this is the difference between prompt engineering and context engineering.</li><li>MCP (Model Context Protocol) standardizes how an LLM-based application calls external services: it turns a service&#x27;s API into an LLM-readable set of tools, and it handles scoped, authenticated access to that service.</li><li>Without MCP, giving a model raw API documentation and a token and hoping it calls the API correctly is fragile and unauditable.</li><li>MCP does not make an LLM&#x27;s behavior repeatable — LLMs are non-deterministic, so even with the same data source, output formatting and process can vary run to run.</li><li>A skill is a packaged, reusable set of instructions (typically a markdown file plus metadata, optionally with scripts and resources) that teaches the model to perform a task the same way every time.</li><li>Skills are auto-loaded into the context window only when relevant, so they don&#x27;t bloat every request with instructions the current task doesn&#x27;t need.</li><li>Choose MCP when the agent needs controlled, permissioned access to real-time external data. Choose a skill when you need a lightweight, repeatable way of doing something the model doesn&#x27;t already know how to do consistently.</li><li>MCP and skills are complementary, not competing: an agent can use MCP to fetch live CRM data and a skill to guarantee that data is always formatted and processed the same way.</li></ul>
+  </div>
+</section>
+<section id="from-prompt-engineering-to-context-engineering-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>From prompt engineering to context engineering</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">An LLM is a pattern-matching system trained on huge amounts of text; the quality of its answer depends on what extra information you give it beyond the question itself.</p>
+  <p>A large language model is trained on a broad slice of publicly available text — books, articles, forum threads, documentation — and learns statistical patterns over that text. That lets it answer a very wide range of questions reasonably well, but it has no built-in knowledge of your specific database schema, your team&#x27;s formatting conventions, or data that changed after training ended.</p>
+<p>Asking a question with a role and a task attached — &quot;you are a database assistant, answer this question about our schema&quot; — is prompt engineering. It shapes how the model responds, but it doesn&#x27;t give the model anything it didn&#x27;t already have. Context engineering goes further: it is the discipline of deciding what additional information — reference data, formatting rules, live tool output, prior conversation state — needs to sit inside the context window for the model to produce a correct, useful answer. The model&#x27;s output quality is bounded by the quality and relevance of what&#x27;s in that window, not just by how the question is phrased.</p>
+<p>This distinction matters because it reframes the engineering problem. Instead of asking &quot;how do I word this prompt better,&quot; you ask &quot;what information does the model need to see, and how do I get it there reliably, automatically, and only when relevant.&quot; MCP and skills are two different, complementary answers to that second question.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>An LLM&#x27;s answer quality depends on what&#x27;s in its context window, not only on how the question is phrased.</li><li>Prompt engineering shapes the instruction; context engineering supplies the information the instruction needs to be answered correctly.</li><li>Context can include reference data, formatting conventions, and live tool output — anything the model needs but wasn&#x27;t trained on.</li><li>The core engineering question becomes: what does the model need to see, and how do I deliver it reliably and only when needed?</li></ul></div>
+  <figure class="example">
+  <figcaption>Prompt engineering vs context engineering, side by side</figcaption>
+  <p>The first prompt only tells the model what to do. The second gives it the concrete information required to do it correctly — that second version is context engineering, even though it&#x27;s still &quot;just&quot; a prompt.</p>
+  <pre><code># Prompt engineering only
+prompt_v1 = &quot;What is the contact info for customer Acme Corp?&quot;
+
+# Context engineering: the answer-relevant data is placed in the window
+prompt_v2 = f&quot;&quot;&quot;
+You are a CRM assistant. Use only the record below to answer.
+
+Customer record:
+{{
+  &quot;name&quot;: &quot;Acme Corp&quot;,
+  &quot;contact_email&quot;: &quot;ops@acme.example&quot;,
+  &quot;contact_phone&quot;: &quot;+1-555-0199&quot;,
+  &quot;account_owner&quot;: &quot;J. Rivera&quot;
+}}
+
+Question: What is the contact info for customer Acme Corp?
+&quot;&quot;&quot;</code></pre>
+</figure>
+</section>
+<section id="mcp-a-standard-interface-between-an-llm-and-external-services-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>MCP: a standard interface between an LLM and external services</h2>
+      <a class="stamp" href="#" data-t="175">2:55</a>
+    </div>
+  </div>
+  <p class="summary">The Model Context Protocol standardizes how an AI application calls external data sources and services, so the model doesn&#x27;t need raw API docs and a bare token to get live data.</p>
+  <p>Suppose an agent needs to read or update a record in a CRM. The naive approach is to paste the CRM&#x27;s full API documentation and an access token into the model&#x27;s context and instruct it to make the right calls without mistakes. That&#x27;s fragile: the model has to correctly interpret arbitrary API docs, form valid requests, and handle authentication, all inside free-form text generation, with no guarantee it gets any of that right.</p>
+<p>MCP replaces that with a standard protocol between an AI application (an IDE, an agent runtime) and an MCP server that sits in front of a specific service. The MCP server exposes a small set of well-defined, LLM-readable tools — for example &quot;get_customer&quot; or &quot;update_contact&quot; — each with a typed schema for its inputs and outputs. The model doesn&#x27;t write raw HTTP; it emits a structured request for a named tool with specific arguments. The MCP server is the thing that translates that structured request into the underlying service&#x27;s actual POST or GET calls, and it&#x27;s also the place authentication lives: a uniquely scoped token with exactly the read or write access the agent needs, rather than a broad credential passed straight to the model.</p>
+<p>Because this interface is standardized, it&#x27;s supported broadly across AI tools — an MCP server written once for a CRM can be plugged into any MCP-compatible client. MCP solves the problem of connecting a model to external, live data sources in a controlled way. It does not, by itself, make the model behave the same way every time it uses that data — that&#x27;s a separate problem, covered next.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>MCP standardizes how an AI application talks to external data sources and services, instead of relying on the model to interpret raw API docs.</li><li>An MCP server exposes typed, LLM-readable tools; the model requests a tool by name and arguments rather than writing raw HTTP calls.</li><li>The MCP server translates the model&#x27;s structured tool request into the service&#x27;s actual GET/POST requests.</li><li>Authentication and access scope live in the MCP server, so the agent gets a uniquely scoped, read/write-limited token instead of a raw credential.</li><li>Because MCP is a standard, one server can be reused across different MCP-compatible AI applications.</li></ul></div>
+  <figure class="example">
+  <figcaption>A minimal MCP-style tool call over JSON-RPC</figcaption>
+  <p>MCP uses JSON-RPC 2.0 messages. The client (the AI application) first discovers what tools a server offers, then calls one with structured arguments instead of the model writing a raw HTTP request itself.</p>
+  <pre><code>// 1. Client asks the MCP server what tools it exposes
+{
+  &quot;jsonrpc&quot;: &quot;2.0&quot;,
+  &quot;id&quot;: 1,
+  &quot;method&quot;: &quot;tools/list&quot;
+}
+
+// 2. Server responds with a typed tool definition
+{
+  &quot;jsonrpc&quot;: &quot;2.0&quot;,
+  &quot;id&quot;: 1,
+  &quot;result&quot;: {
+    &quot;tools&quot;: [
+      {
+        &quot;name&quot;: &quot;get_customer&quot;,
+        &quot;description&quot;: &quot;Fetch a customer record by name from the CRM&quot;,
+        &quot;inputSchema&quot;: {
+          &quot;type&quot;: &quot;object&quot;,
+          &quot;properties&quot;: { &quot;customer_name&quot;: { &quot;type&quot;: &quot;string&quot; } },
+          &quot;required&quot;: [&quot;customer_name&quot;]
+        }
+      }
+    ]
+  }
+}
+
+// 3. Client (on the model&#x27;s behalf) calls the tool with arguments
+{
+  &quot;jsonrpc&quot;: &quot;2.0&quot;,
+  &quot;id&quot;: 2,
+  &quot;method&quot;: &quot;tools/call&quot;,
+  &quot;params&quot;: {
+    &quot;name&quot;: &quot;get_customer&quot;,
+    &quot;arguments&quot;: { &quot;customer_name&quot;: &quot;Acme Corp&quot; }
+  }
+}
+
+// 4. Server translates this into a real CRM API GET request behind the
+// scenes, using its own scoped token, and returns structured content
+// back into the model&#x27;s context window.</code></pre>
+</figure>
+</section>
+<section id="what-mcp-doesn-t-solve-repeatable-non-deterministic-behavior-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>What MCP doesn&#x27;t solve: repeatable, non-deterministic behavior</h2>
+      <a class="stamp" href="#" data-t="219">3:39</a>
+    </div>
+  </div>
+  <p class="summary">LLMs are non-deterministic, so even with reliable access to live data via MCP, the model can format or process that data differently each time unless it&#x27;s told a fixed procedure to follow.</p>
+  <p>MCP guarantees that the model can reach the right data source with the right permissions. It says nothing about what the model then does with that data. LLMs generate text probabilistically, so two runs of &quot;fetch this customer and summarize it&quot; can come back formatted differently, in a different order, or with different fields emphasized — even against the exact same underlying record.</p>
+<p>That&#x27;s a problem the moment a task needs to be done the same way every time. A sales team pulling CRM data might need the output to always include the customer&#x27;s name, contact information, and a specific extra field their process depends on, in a fixed structure, every single time, regardless of who on the team is asking or how they phrased the request. Passing the model better prompts each time is not a durable fix, because prompting is not a mechanism for enforcing repeatability — it&#x27;s advisory, and the model is free to interpret it differently across runs.</p>
+<p>What&#x27;s actually needed is a way to give the model domain knowledge — &quot;here is exactly how we do this task&quot; — that gets applied consistently and is loaded automatically whenever that specific task comes up, without the user having to re-explain it or paste it in by hand each time. That&#x27;s the gap skills are built to fill.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>MCP solves data access, not output consistency — the model can still produce different results across runs from the same data.</li><li>LLM non-determinism means repeated instructions in a prompt are advisory, not a guarantee of consistent behavior.</li><li>A repeatable business process (fixed fields, fixed structure, every time) needs a mechanism stronger than &quot;ask nicely&quot; in each prompt.</li><li>The missing piece is a way to encode domain-specific, repeatable procedure and have it applied automatically when relevant.</li></ul></div>
+  <figure class="example">
+  <figcaption>Same data, two different outputs</figcaption>
+  <p>Given the identical CRM record, an LLM asked twice with only a loose instruction can legitimately produce two structurally different summaries, because nothing pins the output format.</p>
+  <pre><code>Run 1 output:
+&quot;Acme Corp — reach them at ops@acme.example or +1-555-0199. Account owner: J. Rivera.&quot;
+
+Run 2 output (same record, same loose prompt):
+&quot;Customer: Acme Corp\nOwner: J. Rivera\nPhone: +1-555-0199\nEmail: ops@acme.example&quot;
+
+# Both are &#x27;correct&#x27; but neither is guaranteed, and a downstream
+# system parsing this output would need to handle both shapes.</code></pre>
+</figure>
+</section>
+<section id="skills-packaging-a-repeatable-procedure-the-model-can-auto-load-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Skills: packaging a repeatable procedure the model can auto-load</h2>
+      <a class="stamp" href="#" data-t="308">5:08</a>
+    </div>
+  </div>
+  <p class="summary">A skill is a reusable bundle — a markdown file with metadata, optionally packaged with scripts and resources in a folder — that teaches the model to do a specific task the same way every time, loaded into context only when needed.</p>
+  <p>A skill packages a task the way you&#x27;d document a standard operating procedure: a title naming the skill, a description of when it should be used, and the actual instructions (the procedure or prompt) the model should follow when that situation comes up. This is typically stored as a markdown file with a small amount of metadata at the top, inside a folder that can also hold supporting scripts and reference resources the task needs.</p>
+<p>The key behavioral property is that a skill is auto-loaded: the AI application inspects the description of each available skill against the current task and pulls the matching skill&#x27;s full instructions into the context window only when it&#x27;s relevant, rather than keeping every possible instruction set loaded all the time. A &quot;debug this code&quot; skill only enters the context when the user is actually asking about a code error; it costs nothing on unrelated requests. This keeps the context window focused, and it means you can maintain a whole library of task-specific procedures without every one of them competing for space in every request.</p>
+<p>Because the instructions are fixed text pulled in verbatim, the model follows the same documented steps every time the skill is triggered, which is exactly the repeatability MCP alone can&#x27;t provide. Skills work across major AI tools and models because the mechanism is simple — it&#x27;s just structured text plus optional files, not a network protocol — which also makes them cheap to write, version, and share.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A skill has a name, a description of when to use it, and the instructions/prompt to run when triggered.</li><li>Skills are commonly stored as a markdown file with metadata, inside a folder that can also hold scripts and reference resources.</li><li>Skills are auto-loaded: the AI application matches the current task against each skill&#x27;s description and only pulls in the matching one.</li><li>Because the instructions are literal, saved text, the model follows the same procedure every time the skill fires — this is how skills deliver repeatability.</li><li>Skills are lightweight compared to MCP: no server, no protocol, no authentication layer — just structured text and optional files.</li></ul></div>
+  <figure class="example">
+  <figcaption>A minimal skill file</figcaption>
+  <p>A skill for formatting CRM customer summaries consistently. The frontmatter names the skill and tells the AI application when to load it; the body is the fixed procedure the model follows every time it&#x27;s triggered.</p>
+  <pre><code>---
+name: crm-customer-summary
+description: Use whenever the user asks for a customer summary from CRM data. Ensures a consistent, repeatable output format.
+---
+
+# CRM Customer Summary
+
+When given a customer record, always produce the summary in exactly
+this structure, in this order:
+
+1. Customer name
+2. Primary contact email
+3. Primary contact phone
+4. Account owner
+5. Any notes field, verbatim, or &quot;None&quot; if absent
+
+Do not reorder or omit fields. Do not add commentary. Output as a
+plain bullet list, one field per line.</code></pre>
+</figure>
+</section>
+<section id="choosing-mcp-skills-or-both-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Choosing MCP, skills, or both</h2>
+      <a class="stamp" href="#" data-t="353">5:53</a>
+    </div>
+  </div>
+  <p class="summary">Reach for MCP when the agent needs controlled, permissioned access to real-time external data; reach for a skill when you need a lightweight, repeatable way to perform a task the model doesn&#x27;t already do consistently.</p>
+  <p>MCP is the right tool when the agent&#x27;s job depends on real, current state from an external system, and that access needs to be tightly permissioned. Questions like &quot;what VMs am I currently running,&quot; &quot;what&#x27;s our cluster state,&quot; or &quot;pull this customer&#x27;s current record&quot; all require live data and controlled, scoped access — exactly what an MCP server is built to provide. Think of MCP as an integration layer: the agent can call the tools and resources the server exposes, nothing more, which is also what keeps it safe to grant.</p>
+<p>Setting up and maintaining an MCP server — running the server process, defining its tool schemas, managing authentication — is real infrastructure work. If all you need is a reusable, custom capability that doesn&#x27;t require touching a live external system, standing up an MCP server for it is overkill. That&#x27;s the situation skills are built for: they&#x27;re lightweight, they teach the model how to do something (fetch investment data and analyze it a certain way, run a specific compliance checklist, always format a report the same way), and they can bundle their own scripts and examples without needing a running service behind them.</p>
+<p>The two are not mutually exclusive. A well-built agent commonly uses both: MCP to reach into a CRM or database for live, permissioned data, and a skill to guarantee that whatever comes back gets processed and formatted the exact same way every time. Both mechanisms exist to enhance what&#x27;s in the model&#x27;s context window at the moment it needs to answer, and both are open, widely adopted across AI tools, and usable locally without waiting on a vendor.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Use MCP when the task needs live, current data from an external system under tight, scoped permissions.</li><li>MCP access is call-only: the agent can invoke the tools and resources the server exposes, and nothing beyond that.</li><li>Use a skill when you need a lightweight, reusable, repeatable capability and don&#x27;t need to reach a live external system.</li><li>Standing up an MCP server is real infrastructure (process, schemas, auth) — overkill for a task that&#x27;s really just &quot;do this the same way every time.&quot;</li><li>MCP and skills are commonly combined: MCP fetches the live data, a skill enforces how it&#x27;s processed and formatted.</li></ul></div>
+  <figure class="example">
+  <figcaption>One agent, both mechanisms</figcaption>
+  <p>An agent that answers &quot;summarize our top customer&#x27;s account&quot; can use an MCP tool call to fetch the live record, then apply a skill so the summary it produces is always shaped the same way.</p>
+  <pre><code># Step 1 — MCP: fetch live, permissioned data
+tool_call = {
+    &quot;name&quot;: &quot;get_customer&quot;,
+    &quot;arguments&quot;: {&quot;customer_name&quot;: &quot;Acme Corp&quot;}
+}
+# -&gt; MCP server authenticates with its own scoped token, calls the
+#    CRM&#x27;s real API, returns the current record into the context window.
+
+# Step 2 — Skill: enforce a repeatable output procedure
+# The &#x27;crm-customer-summary&#x27; skill&#x27;s instructions are auto-loaded
+# because the request matches its description, and the model formats
+# the fetched record using that fixed 5-field structure every time.</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Context window</dt><dd>The span of text an LLM can see at once when generating a response, including the prompt, any supplied data, and prior conversation.</dd></div><div class="term"><dt>Prompt engineering</dt><dd>Crafting the wording, role, and task of a request to an LLM to shape its response.</dd></div><div class="term"><dt>Context engineering</dt><dd>Deciding what information — data, formatting rules, tool output — needs to be present in the model&#x27;s context window for it to answer correctly, beyond just the wording of the prompt.</dd></div><div class="term"><dt>MCP (Model Context Protocol)</dt><dd>A standardized protocol that lets an AI application call external services and data sources through a common, LLM-readable interface, handling both request translation and authentication.</dd></div><div class="term"><dt>MCP server</dt><dd>A server that implements MCP for a specific service, exposing a set of typed tools to the AI application and translating tool calls into that service&#x27;s real API requests.</dd></div><div class="term"><dt>Scoped token</dt><dd>An access credential limited to exactly the permissions (e.g. read-only, or write access to one resource type) that a given task needs, rather than a broad, all-access credential.</dd></div><div class="term"><dt>Skill</dt><dd>A reusable, packaged set of instructions — typically a markdown file with metadata, optionally bundled with scripts and resources — that teaches an LLM to perform a specific task the same way every time, loaded into context only when relevant.</dd></div><div class="term"><dt>Non-deterministic</dt><dd>Producing different outputs on different runs even given the same input, which is a property of how LLMs generate text and why unenforced instructions don&#x27;t guarantee repeatable results.</dd></div><div class="term"><dt>Auto-loading (of a skill)</dt><dd>The behavior where an AI application matches the current task against each available skill&#x27;s description and pulls only the matching skill&#x27;s instructions into the context window.</dd></div><div class="term"><dt>JSON-RPC</dt><dd>A lightweight remote-procedure-call protocol encoded in JSON, used by MCP to structure requests like tools/list and tools/call between client and server.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why is context engineering a bigger idea than prompt engineering?</summary>
+  <div class="answer"><p>Prompt engineering only shapes how a question is worded and framed; it doesn&#x27;t give the model any information it lacks. Context engineering is about deciding what data, rules, or tool output need to be placed in the context window so the model has what it actually needs to answer correctly — the prompt is just one part of that.</p></div>
+</details><details class="q">
+  <summary>Why is pasting an API&#x27;s raw documentation and a bare access token into an LLM&#x27;s context a worse approach than using an MCP server for that same API?</summary>
+  <div class="answer"><p>The model would have to correctly interpret arbitrary documentation and generate valid raw HTTP requests purely through free-form text generation, with a broad credential and no structural guardrails. An MCP server instead exposes a small set of typed, well-defined tools and holds a uniquely scoped token itself, so the model only has to emit a structured request for a named tool — far less room for malformed calls or over-broad access.</p></div>
+</details><details class="q">
+  <summary>A team has MCP wired up to their CRM and complains that summaries of the same customer record still come out differently formatted each time. What&#x27;s actually missing, and why doesn&#x27;t a better-worded prompt fix it permanently?</summary>
+  <div class="answer"><p>MCP only solves reliable access to the data; it says nothing about how the model processes or formats that data afterward. LLMs are non-deterministic, so instructions repeated in a prompt are advisory and can still be interpreted differently across runs. What&#x27;s missing is a skill: a fixed, auto-loaded procedure that pins the output structure every time the task recurs, rather than relying on the wording of each individual prompt.</p></div>
+</details><details class="q">
+  <summary>Why would setting up an MCP server be overkill for something like &#x27;always format Excel cleanup output the same way,&#x27; when a skill would not be?</summary>
+  <div class="answer"><p>That task doesn&#x27;t require reaching a live external system or enforcing scoped, permissioned access to one — it just needs a fixed, repeatable procedure. An MCP server means standing up a running process, defining tool schemas, and managing authentication, which is infrastructure this task doesn&#x27;t need. A skill is just structured instructions (plus optional scripts) that load when relevant, with none of that overhead.</p></div>
+</details><details class="q">
+  <summary>Why does it make sense for a single agent to use both MCP and a skill on the same task, rather than treating them as alternatives?</summary>
+  <div class="answer"><p>They solve different problems: MCP provides controlled, permissioned access to live external data, while a skill provides a repeatable procedure for how that data (or any task) gets processed once it&#x27;s in context. An agent that needs both live data and a guaranteed-consistent output format needs MCP to fetch the data and a skill to enforce how it&#x27;s handled — neither one alone covers both requirements.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Read the Model Context Protocol specification and inspect the tools/list and tools/call JSON-RPC message shapes for a real MCP server.</li><li>Write a minimal skill file (name, description, instructions) for a repetitive task you do often with an LLM, and observe whether it gets auto-loaded only when relevant.</li><li>Build a small MCP server that exposes one tool against a mock API, and trace how a scoped token limits what the agent can do compared to a raw API key.</li><li>Compare a task done with a loosely worded prompt across five runs against the same task done with a skill, and note how much the output format varies in each case.</li><li>Look into using CLIs as an integration layer for building agents, an approach the video flags as a separate topic worth its own treatment.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

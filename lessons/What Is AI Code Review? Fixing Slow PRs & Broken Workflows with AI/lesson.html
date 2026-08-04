@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How AI Code Review Works</title>
+<meta name="description" content="Understand the technologies behind automated code review and where they still need a human in the loop.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-pull-request-bottleneck-ai-code-review-is-meant-to-fix-1"><span class="n">1</span>The pull-request bottleneck AI code review is meant to fix</a></li>
+<li><a href="#what-ai-code-review-actually-is-2"><span class="n">2</span>What AI code review actually is</a></li>
+<li><a href="#why-teams-adopt-it-consistency-learning-and-less-technical-debt-3"><span class="n">3</span>Why teams adopt it: consistency, learning, and less technical debt</a></li>
+<li><a href="#static-code-analysis-catching-problems-before-code-runs-4"><span class="n">4</span>Static code analysis: catching problems before code runs</a></li>
+<li><a href="#dynamic-code-analysis-and-dast-testing-the-running-app-5"><span class="n">5</span>Dynamic code analysis and DAST: testing the running app</a></li>
+<li><a href="#rule-based-systems-linters-and-where-llms-add-reasoning-6"><span class="n">6</span>Rule-based systems, linters, and where LLMs add reasoning</a></li>
+<li><a href="#reaching-beyond-the-codebase-tools-docs-and-context-engineering-7"><span class="n">7</span>Reaching beyond the codebase: tools, docs, and context engineering</a></li>
+<li><a href="#where-ai-code-review-breaks-down-8"><span class="n">8</span>Where AI code review breaks down</a></li>
+<li><a href="#adopting-ai-code-review-without-losing-human-judgment-9"><span class="n">9</span>Adopting AI code review without losing human judgment</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">AI code review</span></div>
+  <h1>How AI Code Review Works</h1>
+  <p class="lede">Understand the technologies behind automated code review and where they still need a human in the loop.</p>
+  <p class="muted small">For developers and team leads who want to understand what AI code review tools actually check and where they fall short · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=0-YCleDw-Po" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Basic familiarity with git and the pull-request workflow</li><li>General awareness of what a linter or static analyzer does</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>A pull request sits waiting for a human reviewer, the branch drifts, and by the time feedback arrives it takes almost as long to resolve the merge conflicts as it did to write the code. AI code review exists to close that gap: instead of relying only on people to read every diff, software analyzes the code itself, flags problems, and in many cases proposes a fix.</p>
+<p>Under the hood, &quot;AI code review&quot; is not one technique. It is a stack of older, well-understood tools (static analysis, dynamic analysis, rule-based linting) combined with large language models that add contextual reasoning fixed rules cannot. Each layer catches a different class of problem, and none of them replaces judgment about whether a change is actually the right one to make.</p>
+<p>This lesson works through what each layer checks, why teams adopt the combination, where it breaks (false positives, false negatives, over-reliance on the model), and how to roll it out without losing the human review step that catches what the tooling misses.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>AI code review layers several techniques: static analysis (before running code), dynamic analysis (while it runs), rule-based linting, and LLMs that add contextual understanding on top.</li><li>Static analysis parses source text for syntax errors, style violations, and known-bad patterns without ever executing the code.</li><li>Dynamic analysis, including DAST (Dynamic Application Security Testing), tests the running application by sending real inputs and observing behavior, catching runtime issues static analysis cannot see.</li><li>Rule-based linters enforce fixed, deterministic style and safety rules; LLMs go further by recognizing patterns and intent that no fixed rule set was written to cover.</li><li>Consistency is a structural benefit: an AI reviewer applies the same standard to every PR, where two human reviewers can reasonably disagree on what to prioritize.</li><li>AI review is not free of error: it produces false positives (flagging non-issues) and false negatives (missing real vulnerabilities), so it augments human review rather than replacing it.</li><li>Context engineering, structuring what information the model receives about your codebase and standards, directly determines how relevant its suggestions are.</li><li>Successful adoption requires encoding team standards somewhere the AI can read them, integrating the tool into the existing PR workflow, and tracking whether it actually improves defect rates and review turnaround, not just adding noise.</li></ul>
+  </div>
+</section>
+<section id="the-pull-request-bottleneck-ai-code-review-is-meant-to-fix-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The pull-request bottleneck AI code review is meant to fix</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">Slow, inconsistent human review creates a compounding cost: the longer a PR waits, the more it drifts from main, and the friction spreads across the whole pipeline from PR to production.</p>
+  <p>The core problem is latency compounding with drift. A pull request opened against a fast-moving main branch does not wait quietly, it decays. Every commit merged elsewhere while the PR sits in review queue is a potential conflict later. A one-day wait might mean a five-minute rebase, a one-week wait can mean fifty conflicting hunks across files the original author no longer remembers touching.</p>
+<p>This is not only a review-speed problem. It is a workflow problem that touches the pipeline from PR to CI to deployment: a PR that finally gets &quot;looks good to me&quot; after a long wait still has to pass CI against a codebase that changed underneath it, which frequently triggers a second round of fixes and a second wait. The friction is cumulative, not local to the review step.</p>
+<p>AI code review is one answer to this: automate the parts of review that do not require human judgment, so the queue moves faster and the human reviewer&#x27;s attention goes to the small set of changes that actually need it.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Review latency and code drift compound each other: a slow review is more likely to also require conflict resolution.</li><li>The friction shows up across the whole pipeline (PR -&gt; CI -&gt; deploy), not just in the review step itself.</li><li>AI code review targets the mechanical parts of review (style, known bug patterns, security checks) so humans can focus on design and intent.</li><li>The goal is a faster loop overall, not eliminating the human reviewer.</li></ul></div>
+  <figure class="example">
+  <figcaption>How a delay compounds into rework</figcaption>
+  <p>A PR touching a shared utility function is opened on Monday. Review does not start until the following Monday. In that week, three other PRs modified the same file. The original author now has to resolve conflicts across all three changes, re-run tests, and in some cases redesign their approach because the utility function&#x27;s signature changed underneath them, turning a same-day review into multiple days of rework.</p>
+  
+</figure>
+</section>
+<section id="what-ai-code-review-actually-is-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>What AI code review actually is</h2>
+      <a class="stamp" href="#" data-t="44">0:44</a>
+    </div>
+  </div>
+  <p class="summary">AI code review is software that uses machine learning and large language models to scan code changes, detect problems such as security flaws or style violations, and often propose a fix, working alongside (not instead of) human reviewers.</p>
+  <p>At its core, AI code review is pattern recognition applied to source code. A model trained on large amounts of code and documentation learns what typical, safe, well-structured code looks like, and by extension what deviates from that: a SQL string built by concatenating unescaped user input, a resource opened but never closed, a function whose complexity has crept past what a team&#x27;s own conventions would allow.</p>
+<p>The output is not just a flag. Modern tools frequently generate an explanation of why something is a problem and a suggested correction, which is what separates this from older, purely deterministic linting: a linter tells you a rule was violated, an LLM-backed reviewer can explain the underlying reasoning and adapt the suggestion to the surrounding code.</p>
+<p>This matters because manual review does not scale linearly with codebase size. A team can review a hundred-line diff carefully. A team reviewing dozens of PRs a day against a codebase with years of history cannot give every line that same scrutiny without either slowing down or introducing human error from fatigue and inconsistency.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>AI code review = ML/LLM-based analysis of code changes to detect issues and recommend fixes.</li><li>It goes beyond fixed rules by recognizing patterns in code the way it recognizes patterns in natural language.</li><li>It typically produces both a flagged issue and an explanation, not just a pass/fail signal.</li><li>It exists because manual review time scales worse than codebase size and PR volume.</li></ul></div>
+  <figure class="example">
+  <figcaption>A flagged SQL injection with a suggested fix</figcaption>
+  <p>An AI reviewer scanning a diff sees a query built by string concatenation of a request parameter. It recognizes the pattern as a SQL injection risk (untrusted input reaching a query string unescaped) and proposes replacing the concatenation with a parameterized query.</p>
+  <pre><code># Flagged by AI review: untrusted input concatenated into SQL
+def get_user(username):
+    query = &quot;SELECT * FROM users WHERE username = &#x27;&quot; + username + &quot;&#x27;&quot;
+    return db.execute(query)
+
+# Suggested fix: parameterized query, input never touches the SQL string
+def get_user(username):
+    query = &quot;SELECT * FROM users WHERE username = %s&quot;
+    return db.execute(query, (username,))</code></pre>
+</figure>
+</section>
+<section id="why-teams-adopt-it-consistency-learning-and-less-technical-debt-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Why teams adopt it: consistency, learning, and less technical debt</h2>
+      <a class="stamp" href="#" data-t="133">2:13</a>
+    </div>
+  </div>
+  <p class="summary">Beyond speed, AI review applies the same standard on every PR, turns feedback into a learning moment for the author, and catches problems while they are still cheap to fix.</p>
+  <p>Human reviewers are inconsistent by nature, not by fault. Two competent engineers can reasonably weigh readability against performance differently, and which one happens to be assigned a given PR shapes what gets flagged. An automated reviewer applies the same rule set and the same trained patterns to every diff, so the standard a team enforces does not depend on who was on review rotation that week.</p>
+<p>The learning effect is a second, less obvious benefit. When feedback comes back in seconds instead of days, and comes with an explanation of why something is a problem, it reaches the author while the code is still fresh in their mind. That turns review from a gate at the end of the process into something closer to an ongoing tutor, which compounds especially for developers early in their career who would otherwise wait on a senior engineer&#x27;s availability.</p>
+<p>The technical-debt argument follows from timing: the cost of fixing an issue grows the further it travels through the pipeline. A style inconsistency caught in review costs a one-line diff. The same issue found in production after it has been built on top of for six months can require a coordinated migration. Catching problems earlier is not just faster, it is structurally cheaper.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Consistency: the same standard applies to every PR regardless of which human happens to review it.</li><li>Learning: fast, explained feedback reaches the author while context is fresh, especially valuable for junior developers.</li><li>Technical debt: issues caught earlier in the lifecycle are cheaper to fix than the same issues found in production.</li><li>None of these benefits require removing the human reviewer, they change what the human spends their time on.</li></ul></div>
+  <figure class="example">
+  <figcaption>Same PR, two human reviewers, two different focuses</figcaption>
+  <p>Reviewer A approves a PR after confirming it reads clearly and matches team naming conventions, but does not notice an N+1 query pattern. Reviewer B, reviewing a similar PR from the same author a week later, focuses heavily on performance and query counts but lets a naming inconsistency through. An AI reviewer configured with both concerns checks for both on every PR, independent of who is assigned.</p>
+  
+</figure>
+</section>
+<section id="static-code-analysis-catching-problems-before-code-runs-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Static code analysis: catching problems before code runs</h2>
+      <a class="stamp" href="#" data-t="220">3:40</a>
+    </div>
+  </div>
+  <p class="summary">Static analysis inspects source code without executing it, looking for syntax errors, security risks, and violations of coding standards before the code ever ships.</p>
+  <p>Static analysis works purely on the text and structure of the code: it parses the source into a syntax tree and checks that tree against a set of known-bad patterns, without running a single line. This is what makes it fast and safe to run on every commit, there is no environment to spin up and no risk of side effects from executing untrusted code.</p>
+<p>What it catches: syntax errors, obvious security risks like hardcoded credentials or unsafe deserialization calls, and violations of a team&#x27;s declared coding standards (naming, complexity limits, disallowed functions). Because it works from the source alone, it can run in milliseconds as part of a pre-commit hook or CI step, long before a human reviewer ever opens the diff.</p>
+<p>Its output feeds into the AI layer: the video describes AI tools taking static analysis findings, among other inputs, and using them to recommend improvements or an entirely different implementation approach, rather than just surfacing the raw finding.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Static analysis never executes the code, it only parses and inspects the source.</li><li>It catches syntax errors, security risks, and coding-standard violations before deployment.</li><li>It is cheap enough to run on every commit or PR, unlike full test suites.</li><li>AI tools use static analysis output as one input among several when recommending fixes.</li></ul></div>
+  <figure class="example">
+  <figcaption>A static analyzer flagging a hardcoded secret</figcaption>
+  <p>A static analysis tool (for example, a Python security linter such as bandit) scans a file and flags an API key committed directly in source, without ever running the program.</p>
+  <pre><code># Flagged: hardcoded secret detected by static analysis
+API_KEY = &quot;sk_live_51Hxyz...&quot;  # B105: hardcoded credential
+
+# Fix: load from environment, never commit the value
+import os
+API_KEY = os.environ[&quot;STRIPE_API_KEY&quot;]</code></pre>
+</figure>
+</section>
+<section id="dynamic-code-analysis-and-dast-testing-the-running-app-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Dynamic code analysis and DAST: testing the running app</h2>
+      <a class="stamp" href="#" data-t="269">4:29</a>
+    </div>
+  </div>
+  <p class="summary">Dynamic analysis tests software while it executes, uncovering runtime vulnerabilities and performance bottlenecks that static analysis cannot see because they only appear when the code actually runs.</p>
+  <p>Static analysis reads code, dynamic analysis runs it. Some bugs only exist at runtime: a race condition between two threads, a memory leak that only shows up under sustained load, an input validation gap that only fails when a specific malformed payload actually reaches the endpoint. None of these are visible by reading the source in isolation, they require executing the program and observing what happens.</p>
+<p>DAST, Dynamic Application Security Testing, is the security-focused form of this. A DAST tool treats the running application as a black box: it sends inputs designed to simulate real attacks (malformed data, injection payloads, unexpected sequences of requests) at a live endpoint and watches how the application responds. Any unusual or insecure behavior, like an error message leaking a stack trace or a request that succeeds when it should have been rejected, gets logged for review.</p>
+<p>The distinction matters practically: static analysis is fast and runs on every commit, dynamic analysis needs a running instance of the application and takes longer, so it typically runs less frequently (a nightly build, a staging deploy) rather than on every single commit.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Dynamic analysis requires the application to actually be running, unlike static analysis.</li><li>It catches runtime-only issues: race conditions, performance bottlenecks, behavior that depends on execution.</li><li>DAST specifically simulates real-world attacks against a running application and logs unusual responses.</li><li>Because it is slower and needs a live environment, it typically runs less often than static checks (e.g. nightly or per-deploy rather than per-commit).</li></ul></div>
+  <figure class="example">
+  <figcaption>A DAST-style probe against a login endpoint</figcaption>
+  <p>A DAST tool sends a classic SQL injection payload as the username field on a live login endpoint. If the application returns a 200 with a valid session instead of rejecting the malformed input, that behavior gets logged as a finding, something a static read of the code might have missed if the vulnerable query was built dynamically.</p>
+  <pre><code>curl -X POST https://staging.example.com/api/login \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#x27;{&quot;username&quot;: &quot;admin&#x27; OR &#x27;1&#x27;=&#x27;1&quot;, &quot;password&quot;: &quot;anything&quot;}&#x27;
+
+# Expected: 401 Unauthorized
+# Finding logged if the response is: 200 OK with a valid session token</code></pre>
+</figure>
+</section>
+<section id="rule-based-systems-linters-and-where-llms-add-reasoning-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Rule-based systems, linters, and where LLMs add reasoning</h2>
+      <a class="stamp" href="#" data-t="316">5:16</a>
+    </div>
+  </div>
+  <p class="summary">Linters and other rule-based systems enforce fixed coding guidelines deterministically; large language models go further because they are trained on enough code, documentation, and discussion to recognize context and meaning, not just pattern matches against a fixed rule list.</p>
+  <p>Rule-based systems, including traditional linters, work from an explicit, fixed list of rules: this pattern is disallowed, this indentation is required, this function name must match this convention. They are deterministic and fast, and they are excellent at maintaining consistency across a team because the rules are written down and never drift. Their limitation is exactly that fixedness: a linter only catches what someone thought to write a rule for.</p>
+<p>Traditional tools, spanning both static analysis and rule-based linting, share this ceiling: they can catch formatting issues and known patterns, but they do not understand what the code is trying to do. A linter cannot tell you that a function is technically well-formatted but solving the wrong problem, or that two functions with different names are doing the same thing and should be merged.</p>
+<p>Large language models close part of that gap. Trained on enormous datasets that include programming languages, documentation, APIs, and developer discussion, they recognize patterns in a way that carries more context: not just &quot;this violates rule 12&quot; but &quot;this looks like the same off-by-one mistake that caused an incident in a similar function elsewhere in the codebase.&quot; In practice, teams combine both: rule-based systems for the deterministic, non-negotiable standards, and LLMs layered on top for judgment calls that a fixed rule set cannot express.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Rule-based systems (including linters) enforce fixed, explicit rules deterministically.</li><li>Their limitation: they only catch what a rule was explicitly written for, nothing outside that list.</li><li>LLMs are trained on code, documentation, APIs, and discussion, so they recognize contextual and semantic patterns, not just syntactic ones.</li><li>The two are complementary in practice: fixed rules for non-negotiable standards, LLMs for judgment calls.</li></ul></div>
+  <figure class="example">
+  <figcaption>A rule a linter can express vs. one it cannot</figcaption>
+  <p>An ESLint rule can deterministically forbid the use of == in favor of ===, because that is a fixed syntactic pattern. It cannot express &quot;this retry loop has no backoff and will hammer the downstream service under failure,&quot; because recognizing that requires understanding what the code is trying to accomplish, which is the kind of judgment an LLM-based reviewer can approximate and a fixed rule cannot.</p>
+  <pre><code>// .eslintrc rule: deterministic, syntactic
+{
+  &quot;rules&quot;: {
+    &quot;eqeqeq&quot;: [&quot;error&quot;, &quot;always&quot;]
+  }
+}
+
+// Semantic issue no lint rule catches: missing backoff
+function fetchWithRetry(url) {
+  for (let i = 0; i &lt; 5; i++) {
+    try {
+      return fetchSync(url);
+    } catch (e) { /* retries immediately, no delay */ }
+  }
+}</code></pre>
+</figure>
+</section>
+<section id="reaching-beyond-the-codebase-tools-docs-and-context-engineering-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Reaching beyond the codebase: tools, docs, and context engineering</h2>
+      <a class="stamp" href="#" data-t="404">6:44</a>
+    </div>
+  </div>
+  <p class="summary">Modern AI review systems connect to developer environments, testing frameworks, documentation, and even the live web, rather than relying only on what the model learned during training, making the analysis more current and more aware of a project&#x27;s actual context.</p>
+  <p>A model&#x27;s training data has a cutoff and was never specific to your codebase. Modern AI code review systems address this by connecting to external tools at review time: your test suite, your internal documentation, your API contracts, sometimes live web sources. This means a review can check a change against how your system actually behaves today, not just against general patterns learned during training.</p>
+<p>This is why context engineering matters: the phrase describes deliberately structuring what information you feed the model, your team&#x27;s standards, relevant docs, related code, so its output is grounded in your specifics rather than generic best practice. A model given no context can only reason from what it learned in training; a model given your team&#x27;s actual conventions and the surrounding code can give a suggestion that fits.</p>
+<p>The practical upshot is that the quality of AI review output is not fixed by the model alone, it is heavily shaped by what context the surrounding tooling supplies. Two teams using the identical model can get very different quality of feedback depending on how well they&#x27;ve wired it into their actual environment.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>AI review tools increasingly connect to external systems (test frameworks, docs, live environments), not just the model&#x27;s training data.</li><li>Context engineering means deliberately structuring the information given to the model so its output is relevant and accurate.</li><li>Output quality depends heavily on the context supplied, not on the model alone.</li><li>Two teams with the same underlying model can get very different review quality based on integration depth.</li></ul></div>
+  <figure class="example">
+  <figcaption>Context changes the verdict on the same diff</figcaption>
+  <p>A PR changes a function&#x27;s return type from a list to a generator. Without context, an AI reviewer sees a plausible refactor and approves it. With the internal API documentation supplied as context, it sees that three downstream services call this function expecting a list they can index into, and flags the change as a breaking API contract violation instead.</p>
+  
+</figure>
+</section>
+<section id="where-ai-code-review-breaks-down-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Where AI code review breaks down</h2>
+      <a class="stamp" href="#" data-t="444">7:24</a>
+    </div>
+  </div>
+  <p class="summary">Three real limitations: developers can over-rely on automated feedback and stop thinking about architecture, the model may lack project-specific context, and it will produce both false positives and false negatives.</p>
+  <p>Over-reliance is the first failure mode, and it is behavioral rather than technical. If a team treats an AI reviewer&#x27;s approval as sufficient, developers stop exercising the judgment that catches architectural problems the tool was never designed to evaluate, like whether a feature should exist at all, or whether a design will hold up under a requirement that hasn&#x27;t been written yet.</p>
+<p>The second is a direct consequence of the context point above: without enough project-specific information, an AI tool reasons from general patterns, which can be wrong for your specific system. This is not a flaw to be patched once, it requires ongoing context engineering as the codebase and standards evolve.</p>
+<p>The third is statistical rather than conceptual: any detection system trades off false positives (flagging code that isn&#x27;t actually a problem, which wastes developer time and breeds alert fatigue) against false negatives (missing a real vulnerability entirely, which is the more dangerous failure because it creates false confidence). No tuning eliminates both simultaneously, which is precisely the argument for keeping a human as the final check rather than treating an AI pass as sufficient sign-off.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Over-reliance: developers can stop exercising architectural judgment if they treat AI approval as sufficient.</li><li>Missing context: without project-specific information, the model reasons from generic patterns that may not fit.</li><li>False positives waste time and cause alert fatigue; false negatives create false confidence by missing real issues.</li><li>These are structural limitations, not bugs to be fixed once, which is why human oversight remains necessary.</li></ul></div>
+  <figure class="example">
+  <figcaption>A false negative from missing context</figcaption>
+  <p>An AI reviewer approves a change that adds a new admin-only endpoint, because the code itself, read in isolation, is syntactically correct and follows style conventions. It has no way to know the endpoint was never added to the authorization middleware&#x27;s route list, so it misses a real access-control vulnerability that a human familiar with the auth system would have caught by checking the middleware config alongside the diff.</p>
+  
+</figure>
+</section>
+<section id="adopting-ai-code-review-without-losing-human-judgment-9" class="block section">
+  <div class="section-head">
+    <span class="num">09</span>
+    <div>
+      <h2>Adopting AI code review without losing human judgment</h2>
+      <a class="stamp" href="#" data-t="489">8:09</a>
+    </div>
+  </div>
+  <p class="summary">Rolling it out well means choosing a tool that fits your stack, encoding your standards somewhere the AI can read them, integrating into the existing PR workflow, tracking whether it actually improves quality signals, and keeping a human as the final reviewer throughout.</p>
+  <p>Adoption starts with fit: pick a tool that integrates with the stack and workflow you already have, rather than one that requires restructuring how the team works around the tool. From there, the standards have to be made explicit and legible to the AI, not left as tribal knowledge. Teams increasingly maintain this as dedicated instruction files, a single place both developers and AI tools reference, so the AI&#x27;s feedback reflects how this specific team actually writes and reviews code instead of generic advice.</p>
+<p>Integration comes next: connecting the tool directly into the IDE or the PR flow so feedback arrives where developers already are, rather than requiring a separate step. Once it is running, the team should track quality signals, defect rates, review turnaround time, vulnerability detection rate, because these are what distinguish a tool that is genuinely improving the process from one that is just adding noise to review threads.</p>
+<p>Throughout all of it, the throughline is keeping a human in the loop. AI accelerates the mechanical parts of review; the human still owns the judgment calls, the trade-offs, and the final decision to merge. The two are complementary: human judgment, creativity, and understanding of nuance, combined with AI&#x27;s speed and pattern recognition, produce a better result than either alone.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Choose a tool that fits your existing stack and workflow rather than forcing a workflow change to fit the tool.</li><li>Encode team coding standards in a dedicated, evergreen instruction file both developers and AI tools reference.</li><li>Integrate directly into the IDE or PR flow so feedback arrives where developers already work.</li><li>Track quality signals (defect rate, review turnaround time, vulnerability detection) to confirm the tool is actually helping.</li><li>Keep a human as the final reviewer; AI provides speed and pattern recognition, humans provide judgment and context.</li></ul></div>
+  <figure class="example">
+  <figcaption>A minimal team standards file an AI reviewer can reference</figcaption>
+  <p>A short, version-controlled instructions file that encodes standards explicitly, so the AI reviewer&#x27;s feedback matches how the team actually wants code written instead of generic defaults.</p>
+  <pre><code># review-standards.md
+
+## Security
+- Never build SQL with string concatenation; use parameterized queries.
+- Secrets must come from environment variables, never hardcoded.
+
+## Style
+- Functions longer than 40 lines should be flagged for a split.
+- Prefer explicit return types on public functions.
+
+## Architecture
+- New endpoints must be registered in auth/routes.yaml before merge.
+- Flag any change to a function referenced in api-contracts.md as breaking.</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>AI code review</dt><dd>The use of machine learning and large language models to automatically scan code changes, detect problems, and often suggest fixes, alongside human reviewers.</dd></div><div class="term"><dt>Static code analysis</dt><dd>Inspecting source code for syntax errors, security risks, and style violations without executing it.</dd></div><div class="term"><dt>Dynamic code analysis</dt><dd>Testing software while it is actually running, to uncover runtime issues like performance bottlenecks and race conditions that static analysis cannot see.</dd></div><div class="term"><dt>DAST (Dynamic Application Security Testing)</dt><dd>A form of dynamic analysis that simulates real-world attacks against a running application by sending crafted inputs and logging unusual or insecure responses.</dd></div><div class="term"><dt>Rule-based system</dt><dd>A tool, such as a linter, that enforces a fixed, explicit set of coding rules deterministically, catching only what a rule was written to detect.</dd></div><div class="term"><dt>Large language model (LLM)</dt><dd>A model trained on large amounts of text, including code, documentation, and discussion, that can recognize contextual and semantic patterns beyond fixed rules.</dd></div><div class="term"><dt>Context engineering</dt><dd>Deliberately structuring the information (standards, docs, related code) given to a model so its output is relevant and accurate to a specific project.</dd></div><div class="term"><dt>False positive</dt><dd>A case where a review tool flags code as a problem when it is not actually one, wasting reviewer time.</dd></div><div class="term"><dt>False negative</dt><dd>A case where a review tool fails to flag a real issue, creating false confidence that the code is safe.</dd></div><div class="term"><dt>Technical debt</dt><dd>The accumulated cost of shortcuts and unresolved issues in a codebase, which grows more expensive to fix the longer it goes unaddressed.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why does a slow PR review process create more work than just the delay itself?</summary>
+  <div class="answer"><p>Because the codebase keeps changing while the PR waits, so a long delay means the branch drifts further from main, producing merge conflicts and rework in addition to the lost time, not just a longer wait.</p></div>
+</details><details class="q">
+  <summary>Why can&#x27;t static analysis catch a race condition, and what technique can?</summary>
+  <div class="answer"><p>Static analysis only parses source text without executing it, so it cannot observe timing-dependent behavior between threads. Dynamic analysis, which runs the program and observes its actual behavior, can surface issues that only appear at runtime.</p></div>
+</details><details class="q">
+  <summary>Why do large language models catch issues that rule-based linters miss?</summary>
+  <div class="answer"><p>Linters check code against a fixed, explicit list of rules and only catch what someone thought to write a rule for. LLMs are trained on enough code and discussion to recognize contextual and semantic patterns, so they can flag issues (like a poor architectural choice) that no one wrote an explicit rule for.</p></div>
+</details><details class="q">
+  <summary>A team rolls out an AI reviewer without documenting their coding standards anywhere. What&#x27;s the likely result, and why?</summary>
+  <div class="answer"><p>The reviewer&#x27;s feedback will be generic rather than tailored to the team&#x27;s actual conventions, because without an explicit reference (like an instruction file) the model has no project-specific context to reason from and falls back on general patterns from training.</p></div>
+</details><details class="q">
+  <summary>Why can&#x27;t a review system be tuned to eliminate both false positives and false negatives at once?</summary>
+  <div class="answer"><p>The two trade off against each other: making a detector stricter (to catch more real issues, reducing false negatives) also makes it more likely to flag non-issues (increasing false positives), and loosening it does the reverse. This trade-off is why human review remains necessary as a final check.</p></div>
+</details><details class="q">
+  <summary>Why does the video argue that tracking metrics like defect rate and review turnaround time matters after adopting an AI review tool?</summary>
+  <div class="answer"><p>Because without measuring outcomes, a team can&#x27;t tell whether the tool is actually improving the development process or just adding noise to review threads; the metrics are what distinguish genuine improvement from busywork.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Run a static analyzer (e.g. bandit for Python, ESLint for JavaScript) against an existing project and compare its findings to what a human reviewer catches on the same diff.</li><li>Try writing a short DAST-style test against a local app (a scripted request with a malformed or malicious payload) and see what the application actually does with it.</li><li>Draft a one-page coding-standards instruction file for a real project and check whether it changes the feedback an AI review tool gives on the same PR before and after.</li><li>Look into how your team currently measures review quality (turnaround time, escaped defects) and whether that data exists to evaluate an AI review tool honestly.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

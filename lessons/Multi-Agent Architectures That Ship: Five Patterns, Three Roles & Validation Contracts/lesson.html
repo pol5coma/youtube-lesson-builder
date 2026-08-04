@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-Agent Architectures That Ship: Five Patterns, Three Roles &amp; Validation Contracts</title>
+<meta name="description" content="Assemble agent teams that run for days — by separating who builds from who verifies, defining &#x27;done&#x27; before any code exists, and putting the right model in each seat.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-bottleneck-is-attention-not-intelligence-1"><span class="n">1</span>The bottleneck is attention, not intelligence</a></li>
+<li><a href="#the-five-multi-agent-communication-patterns-2"><span class="n">2</span>The five multi-agent communication patterns</a></li>
+<li><a href="#missions-four-patterns-in-one-workflow-three-roles-3"><span class="n">3</span>Missions: four patterns in one workflow, three roles</a></li>
+<li><a href="#validation-contracts-define-done-before-writing-code-4"><span class="n">4</span>Validation contracts: define &#x27;done&#x27; before writing code</a></li>
+<li><a href="#two-validators-adversarial-by-design-5"><span class="n">5</span>Two validators, adversarial by design</a></li>
+<li><a href="#structured-handoffs-and-self-healing-6"><span class="n">6</span>Structured handoffs and self-healing</a></li>
+<li><a href="#serial-execution-beats-parallelism-7"><span class="n">7</span>Serial execution beats parallelism</a></li>
+<li><a href="#the-right-model-in-each-seat-8"><span class="n">8</span>The right model in each seat</a></li>
+<li><a href="#beating-the-bitter-lesson-prompts-not-state-machines-9"><span class="n">9</span>Beating the bitter lesson: prompts, not state machines</a></li>
+<li><a href="#production-reality-and-what-it-unlocks-10"><span class="n">10</span>Production reality, and what it unlocks</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Advanced</span><span class="pill ghost">Multi-agent systems</span><span class="muted">Luke Alvoeiro · Factory</span></div>
+  <h1>Multi-Agent Architectures That Ship: Five Patterns, Three Roles &amp; Validation Contracts</h1>
+  <p class="lede">Assemble agent teams that run for days — by separating who builds from who verifies, defining &#x27;done&#x27; before any code exists, and putting the right model in each seat.</p>
+  <p class="muted small">For engineers who have built single-agent workflows and now want agent teams that stay coherent over hours or days · 30 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=ow1we5PzK-o" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>You have built an agent that calls tools in a loop</li><li>Familiarity with sub-agents and why context windows fill up</li><li>Comfort with git-based workflows and CI concepts (tests, linting, type checking)</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>The bottleneck in software engineering is no longer intelligence — it is human attention. A team may have fifty features in the backlog and models capable of implementing all of them, but only enough bandwidth to supervise a few per day, because every task needs attention and every commit needs review. The interesting question becomes: what if a human decides what to build, and a system figures out how?</p>
+<p>Multi-agent research is a mess of competing frameworks and terminology, so this lesson starts with a taxonomy that cuts through it — five communication patterns from which every multi-agent system is assembled. It then walks through one production architecture built from four of them, called missions, whose longest run lasted sixteen days.</p>
+<p>The surprises are where the value is. Parallelism, the obvious way to go faster, made things worse and was abandoned for serial execution with narrow internal parallelism. Tests written by the agent that wrote the code turn out to confirm decisions rather than catch bugs, which forced validation to be redesigned around a contract written before implementation. And the whole orchestration lives in roughly 700 lines of prompt text rather than a state machine, specifically so the system improves when models improve instead of being obsoleted by them.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Five patterns compose every multi-agent system: delegation, creator-verifier, direct communication, negotiation, and broadcast.</li><li>Direct communication (agents DMing each other with no coordinator) is the one to avoid — state fragments and there is no single source of truth.</li><li>Separate the agent that builds from the agent that verifies: the author has a cost bias toward its own code working, exactly why humans do code review.</li><li>A validation contract, written during planning before any code, defines correctness independently of implementation — often hundreds of assertions, each feature owning one or more.</li><li>Tests written after implementation are shaped by the code rather than the intent, so they confirm decisions instead of catching bugs.</li><li>Validate behaviour, not just code: a QA-style validator drives the running application through computer use, and that real-world execution — not token generation — consumes most of a mission&#x27;s wall-clock time.</li><li>Structured handoffs (what was done, what was left, commands run with exit codes, issues found) are what let the system self-heal at milestone boundaries.</li><li>Serial execution with targeted read-only parallelism beat parallel workers: coordination overhead ate the speed gains while the error rate rose.</li><li>Planning, implementation, and validation reward different model strengths, and no single provider is best at all three — being model-agnostic means you are not capped by one family&#x27;s weakest capability.</li><li>Keep orchestration in prompts and skills rather than a hard-coded state machine, so every model improvement makes the system better instead of obsolete.</li></ul>
+  </div>
+</section>
+<section id="the-bottleneck-is-attention-not-intelligence-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The bottleneck is attention, not intelligence</h2>
+      <a class="stamp" href="#" data-t="47">0:47</a>
+    </div>
+  </div>
+  <p class="summary">Models can already handle the whole backlog; what runs out is the human bandwidth to supervise them.</p>
+  <p>The framing that motivates everything else: today&#x27;s models are smart enough to work through fifty backlog features, but every task requires someone&#x27;s attention and every commit requires someone&#x27;s review. Even excellent engineers drive only a couple of tasks forward at once, so throughput is capped by supervision rather than capability.</p>
+<p>That reframes the goal. Instead of making an agent smarter, you make a system that can be trusted to run unattended — a human decides *what* to build, and the system works out *how*, for hours or days, while the human does something else.</p>
+<p>The constraint this imposes is severe and it shapes every later design decision. A system that needs a human to notice when it goes wrong has not removed the bottleneck at all; it has just moved it. So the architecture has to detect its own failures, correct them, and preserve enough context across many hours that it does not drift. Every mechanism in this lesson exists to satisfy that requirement.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A team can have fifty implementable features and still ship a few per day, because supervision is the scarce resource.</li><li>Every task needs attention and every commit needs review — that is what caps throughput, not model capability.</li><li>The goal shifts from a smarter agent to a system trustworthy enough to run unattended.</li><li>A system that requires a human to spot its mistakes has moved the bottleneck rather than removed it.</li></ul></div>
+  <figure class="example">
+  <figcaption>Where the ceiling actually sits</figcaption>
+  <p>Fifty features, each of which a model could implement in an hour. With one engineer reviewing, throughput is bounded by how many changes that engineer can meaningfully read in a day — perhaps three or four. Adding a second agent doubles the work produced and doubles the review load, so nothing improves until verification itself is delegated.</p>
+  
+</figure>
+</section>
+<section id="the-five-multi-agent-communication-patterns-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>The five multi-agent communication patterns</h2>
+      <a class="stamp" href="#" data-t="88">1:28</a>
+    </div>
+  </div>
+  <p class="summary">Delegation, creator-verifier, direct communication, negotiation, and broadcast — the primitives every framework is built from.</p>
+  <p>The multi-agent field is fragmented: everyone has their own framework, terminology, and opinions about what works. A simple taxonomy cuts through it, because every system is assembled from five communication patterns.</p>
+<p>**Delegation** is one agent spawning another and receiving a result — a parent saying &#x27;go figure out the database schema&#x27; and getting an answer back. It is the simplest form of multi-agent communication and what almost everyone implements first; sub-agents in coding tools are the common example.</p>
+<p>**Creator-verifier** has one agent build something and a second check it. The point is separation of concerns: the agent that wrote the code carries a cost bias, because it wants that code to work. A fresh agent with fresh context is far more likely to find real issues — the same reason humans review each other&#x27;s code rather than their own.</p>
+<p>**Direct communication** is agents talking without a central coordinator, effectively DMing each other. It is hard to get right, because state fragments across those conversations and there is no single source of truth.</p>
+<p>**Negotiation** is agents communicating over a shared resource — the same API, the same region of the codebase. It need not be adversarial; the best case is net positive-sum trading, where interacting agents find a genuine win-win.</p>
+<p>**Broadcast** is one agent informing many: status updates, new context that applies to everyone, shared constraints. It is the least flashy pattern and it is critical for keeping a long-running task coherent.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Delegation: an agent spawns another and gets a result back. Simplest pattern, usually implemented first, e.g. sub-agents.</li><li>Creator-verifier: builder and checker are separate, because the author is cost-biased toward its own work succeeding.</li><li>Direct communication: no coordinator, agents message each other. Hard to get right — state fragments, no single source of truth.</li><li>Negotiation: coordination over a shared resource, ideally positive-sum rather than adversarial.</li><li>Broadcast: one-to-many information sharing. Unglamorous but essential to coherence over long runs.</li></ul></div>
+  <figure class="example">
+  <figcaption>The same task under each pattern</figcaption>
+  <p>One feature — &#x27;add rate limiting to the public API&#x27; — routed through each primitive. Notice that four of them compose cleanly while direct communication is the one that loses track of state.</p>
+  <pre><code>delegation      orchestrator -&gt; worker: &quot;implement rate limiting&quot;
+                worker -&gt; researcher: &quot;what limiter does this repo use?&quot;
+
+creator-verifier  worker writes it; a fresh validator checks it
+                  (the validator has never seen the code before)
+
+broadcast       orchestrator -&gt; all: &quot;redis is now a hard dependency&quot;
+
+negotiation     two features both touch middleware/auth.py
+                -&gt; resolved at a milestone boundary, not by a race
+
+direct comms    worker A &lt;-&gt; worker B agree an interface privately
+                -&gt; nobody else knows; the shared state is now wrong</code></pre>
+</figure>
+</section>
+<section id="missions-four-patterns-in-one-workflow-three-roles-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Missions: four patterns in one workflow, three roles</h2>
+      <a class="stamp" href="#" data-t="252">4:12</a>
+    </div>
+  </div>
+  <p class="summary">Orchestrator plans, workers implement, validators verify — an ecosystem communicating through structured handoffs and shared state, not one long agent session.</p>
+  <p>Missions composes four of the five patterns — delegation, creator-verifier, broadcast, and negotiation — into a single workflow. Notably it omits direct communication, for the reason given above. You describe a goal, scope it through conversation, approve a plan, and the system executes for hours or days.</p>
+<p>The crucial distinction is that a mission is not a single agent session. It is an ecosystem of agents communicating through structured handoffs and shared state, organised into three roles.</p>
+<p>The **orchestrator** handles planning. When you describe what you want it acts as a sounding board, asks strategic questions, and probes unclear requirements. It produces a plan containing features, milestones, and a validation contract.</p>
+<p>**Workers** handle implementation. A worker assigned a feature starts with clean context — no accumulated baggage, no degraded attention. It reads its spec, implements the feature, and commits via git, so the next worker inherits both a clean slate and a working codebase. That per-feature reset is what stops quality decaying as a run gets longer.</p>
+<p>**Validators** handle verification. Most systems validate by running lint, type checks, and tests, perhaps with code review. Missions does all of that and also validates behaviour — not &#x27;does the code look right?&#x27; but &#x27;does this work end to end?&#x27; That is the difference that lets a run continue for days without drifting.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Missions composes delegation, creator-verifier, broadcast and negotiation — deliberately excluding direct communication.</li><li>You describe a goal, scope it conversationally, approve a plan; the system then executes for hours or days.</li><li>A mission is an ecosystem communicating via structured handoffs and shared state, not one long session.</li><li>Orchestrator: plans, interrogates requirements, and emits features, milestones and a validation contract.</li><li>Workers: one feature each with clean context, then commit via git so the next worker inherits a working codebase.</li><li>Validators: lint/types/tests and code review, plus end-to-end behavioural verification.</li></ul></div>
+  <figure class="example">
+  <figcaption>The shape of a mission plan</figcaption>
+  <p>The orchestrator&#x27;s output. Features map onto milestones, and every feature carries the assertions it is responsible for satisfying.</p>
+  <pre><code>mission: &quot;build a Slack-style team chat&quot;
+
+milestone 1  auth + workspaces
+  F1  email/password signup      -&gt; asserts A1, A2
+  F2  workspace creation         -&gt; asserts A3
+  F3  invite by email            -&gt; asserts A4, A5
+
+milestone 2  channels + messaging
+  F4  create/join channels       -&gt; asserts A6, A7
+  F5  post + render messages     -&gt; asserts A8, A9, A10
+  ...
+
+validation_contract: A1..A147   (written BEFORE any code)
+invariant: every assertion is covered by &gt;= 1 feature</code></pre>
+</figure><figure class="example">
+  <figcaption>Why a worker gets fresh context</figcaption>
+  <p>A single agent session that implements twenty features carries the residue of all twenty — earlier dead ends, abandoned approaches, stale file contents — and its attention degrades as the window fills. Giving each feature a new worker whose only inputs are the spec and the committed codebase means feature twenty is implemented as carefully as feature one.</p>
+  
+</figure>
+</section>
+<section id="validation-contracts-define-done-before-writing-code-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Validation contracts: define &#x27;done&#x27; before writing code</h2>
+      <a class="stamp" href="#" data-t="375">6:15</a>
+    </div>
+  </div>
+  <p class="summary">Tests written after implementation are shaped by the code rather than the intent, so they confirm decisions instead of catching bugs.</p>
+  <p>This is the sharpest insight in the talk. You have probably seen the pattern: an agent builds a feature, writes tests, the tests pass, coverage is high — and the feature is still wrong. The reason is that the tests were shaped by the code, not by what the code was supposed to do. Stated plainly: **tests written after implementation don&#x27;t catch bugs, they confirm decisions.** Build a system that validates itself that way and it will eventually drift, with a green suite the whole time.</p>
+<p>The validation contract breaks that circularity by ordering. It is written during planning, before any code exists, and it defines correctness independently of implementation. For a complex project it can run to hundreds of assertions. Each feature is then assigned one or more assertions it must satisfy, with the invariant that the sum of all features covers every assertion.</p>
+<p>Because the contract predates the code, no implementation choice can quietly redefine what counts as correct. An agent cannot weaken an assertion to make its work pass, the way it can weaken a test it also wrote. And because assertions are allocated to features up front, a feature that satisfies its own assertions but breaks another&#x27;s is caught rather than absorbed.</p>
+<p>Write assertions about observable behaviour, not internal structure. &#x27;Posting a message makes it appear for every member of that channel without a reload&#x27; survives refactors; &#x27;MessageService.post() calls broadcast()&#x27; does not.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Tests written after implementation are shaped by the code, so they confirm decisions rather than catching bugs.</li><li>The validation contract is written during planning, before any code, and defines correctness independently of implementation.</li><li>A complex project may have hundreds of assertions; each feature is assigned one or more.</li><li>The invariant: the sum of all features must cover every assertion in the contract.</li><li>Because the contract predates the code, an agent cannot weaken the definition of correct to make its own work pass.</li><li>Assert on observable behaviour rather than internal structure, so assertions survive refactoring.</li></ul></div>
+  <figure class="example">
+  <figcaption>Contract assertions versus after-the-fact tests</figcaption>
+  <p>The same feature, specified two ways. The upper form is written before implementation and constrains it; the lower form is written afterwards and merely describes whatever was built.</p>
+  <pre><code># validation contract, written during planning
+A8  A message posted to a channel appears for every current member
+    of that channel without a page reload.
+A9  A message posted to a channel is NOT visible to a user who is
+    not a member of it, including via direct API access.
+A10 Message history survives a server restart.
+
+# test written after the code, by the agent that wrote the code
+def test_post_message():
+    svc = MessageService(mock_broadcaster)
+    svc.post(channel_id=1, body=&quot;hi&quot;)
+    assert svc.repo.saved                 # an implementation detail
+    assert mock_broadcaster.called        # proves a call, not an outcome
+# passes forever, even if nobody ever receives the message</code></pre>
+</figure><figure class="example">
+  <figcaption>Assertion coverage as a build gate</figcaption>
+  <p>Because assertions are assigned to features, you can check the contract is fully allocated before a single line is written — a planning-time error rather than a discovery three days in.</p>
+  <pre><code>contract   = set(range(1, 148))                 # A1..A147
+covered    = set().union(*(f.asserts for f in features))
+
+assert covered == contract, (
+    f&quot;unallocated assertions: {sorted(contract - covered)}&quot;
+)</code></pre>
+</figure>
+</section>
+<section id="two-validators-adversarial-by-design-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Two validators, adversarial by design</h2>
+      <a class="stamp" href="#" data-t="417">6:57</a>
+    </div>
+  </div>
+  <p class="summary">A scrutiny validator runs the suite and spawns per-feature code review; a user-testing validator drives the live application like a QA engineer.</p>
+  <p>After each milestone of features, two kinds of validator run.</p>
+<p>The **scrutiny validator** is the more traditional one. It runs the test suite, type checking, and lints, and — critically — spawns dedicated code review agents for each completed feature in that milestone. One reviewer per feature, rather than one reviewer squinting at an enormous diff.</p>
+<p>The **user-testing validator** is the more interesting one, and it behaves like a QA engineer. It spawns the application and interacts with it through computer use or something similar: filling out forms, checking that pages render correctly, clicking buttons, and confirming that functional flows work holistically. This is what &#x27;validate behaviour, not code&#x27; means concretely.</p>
+<p>That step takes significantly longer than scrutiny, because the system is driving a live application rather than reading text. The consequence is counter-intuitive and worth internalising for capacity planning: **most of a mission&#x27;s wall-clock time is spent waiting for real-world execution, not generating tokens.** Your throughput is bounded by how fast the application under test responds, so time and token spend decouple.</p>
+<p>The property that makes both validators trustworthy is that neither has seen the code before. They are not invested in the implementation and have no stake in its succeeding — validation is adversarial by design. This is creator-verifier applied rigorously: fresh context is not an optimisation here, it is the entire source of the validator&#x27;s credibility.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Scrutiny validator: test suite, type checking, lints, plus a dedicated code review agent per completed feature.</li><li>User-testing validator: spawns the app and drives it via computer use — forms, rendering, clicks, whole flows.</li><li>Behavioural validation takes far longer than static checks because it waits on a live application.</li><li>Most of a mission&#x27;s wall-clock time goes to real-world execution rather than token generation, so time and cost decouple.</li><li>Neither validator has seen the code before, so validation is adversarial by design — fresh context is the source of its credibility.</li></ul></div>
+  <figure class="example">
+  <figcaption>What each validator catches that the other cannot</figcaption>
+  <p>The two are complementary, and the second one is the reason a multi-day run does not drift.</p>
+  <pre><code>scrutiny validator            user-testing validator
+----------------------------  ------------------------------
+type errors                   a button that renders but
+lint violations               does nothing when clicked
+failing unit tests            a form that accepts input and
+dead code, bad patterns       silently drops it
+per-feature review comments   a flow that works step by step
+                              but breaks end to end
+
+fast, cheap, reads text       slow, expensive, drives the app</code></pre>
+</figure>
+</section>
+<section id="structured-handoffs-and-self-healing-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Structured handoffs and self-healing</h2>
+      <a class="stamp" href="#" data-t="499">8:19</a>
+    </div>
+  </div>
+  <p class="summary">A worker does not just report &#x27;done&#x27; — it writes down what happened, and the system corrects course at milestone boundaries.</p>
+  <p>For a system running many days, catching bugs is not enough; context must survive between agents. When a worker finishes a feature it fills out a structured handoff rather than declaring itself done.</p>
+<p>The handoff records what was completed, what was left undone, which commands were run during that agent loop and what their exit codes were, what issues were discovered, and whether the worker abided by the procedures the orchestrator defined for it. That is a deliberately specific list, and each field earns its place: &#x27;left undone&#x27; prevents silent partial work, exit codes give the next agent ground truth instead of a summary, and the procedures check surfaces an agent that quietly went its own way.</p>
+<p>This is how the system self-heals. Errors get caught at milestone boundaries, corrective work is scoped into follow-up features, and the mission pulls itself back on track — as the talk puts it, not by hoping that agents remember what happened, but by forcing them to write it down and then actually address the issues. Progress is blocked while handoff issues remain unaddressed, so problems cannot be skipped past.</p>
+<p>The longest mission run so far lasted sixteen days, longer than a full sprint, and thirty is thought feasible. That is only possible because of this structure: durable written state is what makes a run&#x27;s length independent of any single agent&#x27;s memory.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A handoff records: completed work, work left undone, commands run with their exit codes, issues discovered, and procedure compliance.</li><li>Exit codes give the next agent ground truth rather than a prose summary that may be wrong.</li><li>Errors surface at milestone boundaries, where corrective work is scoped into follow-up features.</li><li>Progress is blocked while handoff issues are unaddressed, so nothing gets skipped.</li><li>The longest run was 16 days, with 30 believed feasible — durable written state is what makes that possible.</li></ul></div>
+  <figure class="example">
+  <figcaption>A structured handoff</figcaption>
+  <p>Every field is actionable by the next agent or by the orchestrator deciding whether to rescope. Contrast it with &#x27;Implemented the invite flow. All tests pass.&#x27;</p>
+  <pre><code>feature: F3  invite by email
+status:  partial
+
+completed:
+  - POST /invites creates a pending invite row
+  - invite email renders and sends via the mailer
+left_undone:
+  - expiry of stale invites (A5) - needs a scheduled job,
+    no scheduler exists in this repo yet
+commands_run:
+  - pytest tests/test_invites.py        exit 0
+  - npm run typecheck                   exit 0
+  - npm run e2e -- invites              exit 1  (flaky selector)
+issues_discovered:
+  - mailer has no retry; a bounce loses the invite silently
+  - A5 cannot be satisfied without infrastructure work
+procedures_followed: yes, except &quot;no new deps&quot; - added croniter
+asserts_claimed: A4
+asserts_not_met:  A5</code></pre>
+</figure><figure class="example">
+  <figcaption>How that becomes corrective work</figcaption>
+  <p>At the milestone boundary the orchestrator reads the handoff and negotiates the plan back into shape — this is the negotiation pattern in practice.</p>
+  <pre><code>orchestrator at milestone 1 boundary:
+
+  A5 unmet          -&gt; new feature F3b &quot;invite expiry + scheduler&quot;
+  mailer retry gap  -&gt; new feature F3c &quot;mailer retry + bounce log&quot;
+  croniter dep      -&gt; procedure violation, flag for human review
+  flaky e2e         -&gt; not a product bug; fix the selector in F3b
+
+  milestone 1 stays OPEN until F3b and F3c pass validation</code></pre>
+</figure>
+</section>
+<section id="serial-execution-beats-parallelism-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Serial execution beats parallelism</h2>
+      <a class="stamp" href="#" data-t="540">9:00</a>
+    </div>
+  </div>
+  <p class="summary">Ten agents did not give ten times the throughput — they conflicted, duplicated work, and made inconsistent decisions until coordination overhead ate the gains.</p>
+  <p>The obvious way to go faster is parallelism: ten agents at once should mean ten times the throughput. They tried it, and for software development it does not work.</p>
+<p>The failures are specific. Agents step on each other&#x27;s changes. They duplicate work neither knows the other is doing. And most damagingly they make inconsistent architectural decisions, because each is choosing in ignorance of the others. The coordination overhead required to prevent all this ends up consuming the speed gains, and you burn tokens throughout.</p>
+<p>So missions runs features **serially** — only one worker or validator active at any moment. Parallelism is retained where it is safe: within a feature, read-only operations such as searching the codebase or researching APIs run in parallel, and within validators, read-only work such as code review is parallelised across features. The shape is serial execution with targeted internal parallelisation.</p>
+<p>On paper this is slower. In practice the error rate drops dramatically, and for tasks running over many days that correctness compounds — every avoided inconsistency is one that does not have to be discovered and unpicked later. The general principle worth extracting: parallelise reads freely, serialise writes. Conflicts come from concurrent mutation, so the operations that only observe are exactly the ones that are safe to fan out.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Parallel workers conflict: they overwrite each other, duplicate work, and make inconsistent architectural decisions.</li><li>Coordination overhead consumes the speed gains while tokens are still being burned.</li><li>Missions runs features serially — one worker or validator at a time.</li><li>Read-only operations are parallelised inside a feature (codebase search, API research) and inside validators (code review).</li><li>Slower on paper, but the error rate falls sharply and correctness compounds across a multi-day run.</li><li>The transferable rule: parallelise reads, serialise writes.</li></ul></div>
+  <figure class="example">
+  <figcaption>Where parallelism is safe and where it is not</figcaption>
+  <p>The dividing line is mutation. Anything that only reads can fan out; anything that writes to the shared codebase takes its turn.</p>
+  <pre><code>SERIAL (one at a time, mutates shared state)
+  worker implementing F4
+  worker implementing F5
+  validator applying fixes
+
+PARALLEL (read-only, safe to fan out)
+  grep/search across the codebase
+  reading API docs for three candidate libraries
+  code review of F1, F2, F3 simultaneously
+  type check + lint + test suite</code></pre>
+</figure><figure class="example">
+  <figcaption>The inconsistency that costs the most</figcaption>
+  <p>Two workers in parallel both need caching. One reaches for Redis, the other for an in-process LRU. Both features pass their own assertions. You now have two caching strategies, a dependency nobody agreed on, and a cache-coherence bug that will surface days later in a flow neither worker touched — a class of failure serial execution simply prevents.</p>
+  
+</figure>
+</section>
+<section id="the-right-model-in-each-seat-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>The right model in each seat</h2>
+      <a class="stamp" href="#" data-t="663">11:03</a>
+    </div>
+  </div>
+  <p class="summary">Planning wants slow careful reasoning, implementation wants fast code fluency, validation wants precise instruction following — and no one provider is best at all three.</p>
+  <p>Everything above assumes you are using the right model in each role, because the three roles reward genuinely different strengths. Planning benefits from slow, careful reasoning. Implementation benefits from fast code fluency and creativity. Validation benefits from precise instruction following. No single model — and no single provider — is best at all three.</p>
+<p>Operating a system like this therefore demands a new skill, which the team calls &#x27;droid whispering&#x27;: mentally modelling how different models behave, where each fails, how those failures compound over a multi-day run, and then deliberately choosing which model sits in which seat. Their engineer Theo produced the defaults from building the prototype, but teams are encouraged to customise them to their project.</p>
+<p>One configuration choice deserves highlighting: validation may use a **different provider entirely**, so the verifier is not biased by the same training data as the implementer. That is creator-verifier taken to its logical end — you want the checker&#x27;s blind spots to be different from the builder&#x27;s, not merely its context.</p>
+<p>This is the structural argument for a model-agnostic architecture: you are only as strong as your weakest link, and if you are locked into one provider you are constrained by that family&#x27;s weakest capability. As models specialise, putting the right model in the right seat compounds. The relationship also runs the other way — validation contracts and milestone checkpoints supply enough structure that missions run successfully even on open-weight models that are not at frontier performance. Structure substitutes for raw capability.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Planning rewards slow careful reasoning; implementation rewards fast code fluency and creativity; validation rewards precise instruction following.</li><li>No single model or provider is best at all three, so the seats should be filled independently.</li><li>Use a different provider for validation so the verifier is not biased by the implementer&#x27;s training data.</li><li>Locked into one provider, you inherit that family&#x27;s weakest capability as your ceiling.</li><li>Structure substitutes for capability: contracts and checkpoints let missions succeed even with open-weight models.</li></ul></div>
+  <figure class="example">
+  <figcaption>A model-per-seat configuration</figcaption>
+  <p>Each seat is chosen for the property that role depends on, with the validator deliberately drawn from a different provider than the worker.</p>
+  <pre><code>roles:
+  orchestrator:
+    model: &lt;strongest reasoning model available&gt;
+    why:   plans, decomposes, writes the validation contract
+    notes: slow and expensive is fine - it runs once per mission
+
+  worker:
+    model: &lt;fast, fluent coding model&gt;
+    why:   writes most of the tokens and most of the code
+    notes: cost matters here; this seat dominates spend
+
+  validator:
+    model: &lt;precise instruction-follower, DIFFERENT provider&gt;
+    why:   must apply the contract literally, not creatively
+    notes: different provider =&gt; different blind spots
+           than the worker that wrote the code</code></pre>
+</figure><figure class="example">
+  <figcaption>Failures compounding over a long run</figcaption>
+  <p>A model that is slightly too agreeable is harmless in a single session and corrosive in the validator seat over sixteen days: each lenient pass admits a small defect, later features build on those defects, and the drift is only discovered when a behavioural assertion finally fails in a flow far from the original cause. Choosing seats means predicting which failure mode compounds.</p>
+  
+</figure>
+</section>
+<section id="beating-the-bitter-lesson-prompts-not-state-machines-9" class="block section">
+  <div class="section-head">
+    <span class="num">09</span>
+    <div>
+      <h2>Beating the bitter lesson: prompts, not state machines</h2>
+      <a class="stamp" href="#" data-t="867">14:27</a>
+    </div>
+  </div>
+  <p class="summary">Keep orchestration logic in text so the next model release improves the system instead of obsoleting it.</p>
+  <p>Everyone building multi-agent systems fears that the next model release will make their architecture obsolete overnight — the bitter lesson, which holds that general methods leveraging more compute beat hand-engineered structure. The design response was to require that the system get *better* with every model improvement.</p>
+<p>Concretely, almost all orchestration logic lives in prompts and skills rather than a hard-coded state machine. How the system decomposes features and handles failures is expressed in roughly 700 lines of text, and four sentences of it can alter the execution strategy dramatically. Worker behaviour is driven by skills that the orchestrator defines per mission, so behaviour is customised per project rather than compiled in.</p>
+<p>The only deterministic logic is deliberately thin, and it is focused on bookkeeping: running validation, and blocking progress when handoff issues have not been addressed. The division is clean — **missions ensure the discipline, models provide the intelligence** — and it is built on primitives models already understand, like AGENTS.md and skills.</p>
+<p>Why this survives a model upgrade: a state machine encodes what today&#x27;s models cannot do, so improvements make its branches dead weight. Prompt-expressed intent encodes what you want, so a more capable model simply executes it better. The deterministic layer, being pure bookkeeping, is orthogonal to capability and does not need revisiting either.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The fear: a new model release obsoletes your architecture. The requirement: the system must improve with every model improvement.</li><li>Almost all orchestration lives in prompts and skills — roughly 700 lines of text — not a hard-coded state machine.</li><li>Four sentences of that text can substantially change the execution strategy.</li><li>Worker behaviour comes from skills the orchestrator defines per mission, so it is customised per project.</li><li>The thin deterministic layer only does bookkeeping: run validation, block progress on unaddressed handoffs.</li><li>Missions supply the discipline; models supply the intelligence — built on primitives like AGENTS.md and skills.</li></ul></div>
+  <figure class="example">
+  <figcaption>State machine versus prompt-expressed policy</figcaption>
+  <p>The same failure-handling policy, encoded two ways. The lower form gets better when the model gets better; the upper form has to be rewritten.</p>
+  <pre><code># hard-coded: enumerates cases a weaker model could not judge
+if result.exit_code != 0:
+    if &quot;timeout&quot; in result.stderr:      retry(max=3)
+    elif &quot;conflict&quot; in result.stderr:   rebase_and_retry()
+    elif result.attempts &gt; 2:           escalate_to_human()
+    else:                               spawn_fix_worker()
+
+# prompt-expressed: states intent, improves with the model
+&quot;&quot;&quot;
+When a worker&#x27;s handoff reports unmet assertions or non-zero exit
+codes, decide whether the cause is environmental (retry), a scoping
+error (create a follow-up feature), or a plan error (rescope the
+milestone). Prefer creating a follow-up feature over retrying more
+than once. Never close a milestone with unmet assertions.
+&quot;&quot;&quot;</code></pre>
+</figure>
+</section>
+<section id="production-reality-and-what-it-unlocks-10" class="block section">
+  <div class="section-head">
+    <span class="num">10</span>
+    <div>
+      <h2>Production reality, and what it unlocks</h2>
+      <a class="stamp" href="#" data-t="786">13:06</a>
+    </div>
+  </div>
+  <p class="summary">A Slack clone built end to end: 60% of time and tokens on implementation, validation never passing first time, and half the final codebase being tests.</p>
+  <p>The numbers from building a Slack clone make the architecture concrete. Implementation consumed about 60% of both time and tokens. Validation **never succeeded on the first attempt** — follow-up features were almost always required, which is the clearest evidence that the QA loop is doing real work rather than rubber-stamping. The finished codebase was around 50% test code by line count, with roughly 90% coverage. Prompt caching was used heavily to offset the cost of such long runs.</p>
+<p>Because a multi-day run cannot be supervised through a chat transcript, there is a dedicated view — mission control — showing how much of the project is complete, how much of the budget has been burned, what the active worker is doing right now, and the handoff summaries describing what validators discovered and how the plan is changing. That lets you either act as a project manager overseeing implementation, or step away entirely.</p>
+<p>In production the enterprise uses cluster around prototyping features overnight, building internal tools quickly, running large refactors and migrations, ML research, and modernising codebases specifically so that agents are more productive in them.</p>
+<p>The economics are what the whole talk builds toward. A team of five engineers that previously ran about ten work streams can run perhaps thirty, with the humans focused on architecture and product decisions rather than execution. And the codebase ends up *cleaner* than it started: the end-to-end tests, unit tests, skills, and structure that missions produce leave both agents and humans more productive afterwards — which is the opposite of the usual outcome when you optimise for speed.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Slack clone: ~60% of both wall-clock time and tokens went to implementation.</li><li>Validation never passed on the first attempt; follow-up features were nearly always needed.</li><li>The final codebase was ~50% tests by line count with ~90% coverage.</li><li>Prompt caching is used heavily to offset the cost of multi-day runs.</li><li>Mission control shows progress, budget burned, the active worker, and handoff summaries — a chat log cannot serve this.</li><li>Enterprise uses: overnight prototypes, internal tools, large refactors and migrations, ML research, codebase modernisation.</li><li>Five engineers go from ~10 work streams to ~30, and the codebase ends up cleaner than it started.</li></ul></div>
+  <figure class="example">
+  <figcaption>Reading the production numbers</figcaption>
+  <p>Each figure implies a design consequence, which is the useful way to read them.</p>
+  <pre><code>60% time + 60% tokens on implementation
+   -&gt; the worker seat dominates spend; optimise its model choice
+
+validation never passes first time
+   -&gt; budget for follow-up features; a plan is a hypothesis
+
+50% of final lines are tests, ~90% coverage
+   -&gt; the contract forces real tests, not coverage theatre
+
+most wall-clock time waiting on the live app
+   -&gt; throughput is bound by the app, not the model;
+      time and token cost decouple
+
+heavy prompt caching
+   -&gt; long runs re-send large stable prefixes; cache them</code></pre>
+</figure><figure class="example">
+  <figcaption>Mapping the five patterns back onto the system</figcaption>
+  <p>Where each primitive from the taxonomy actually shows up once the architecture is assembled.</p>
+  <pre><code>delegation        orchestrator spawns workers; workers spawn
+                  research sub-agents
+creator-verifier  implementation and validation are always
+                  separate agents with separate context
+broadcast         shared mission state that every agent reads
+negotiation       milestone boundaries: is this handoff correct,
+                  do we add follow-up features, do we rescope?
+direct comms      deliberately absent - it fragments state</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Mission</dt><dd>A long-running multi-agent workflow: you approve a plan, then an ecosystem of agents executes it for hours or days via structured handoffs and shared state.</dd></div><div class="term"><dt>Delegation</dt><dd>One agent spawning another to do a scoped piece of work and return a result — the simplest multi-agent pattern.</dd></div><div class="term"><dt>Creator-verifier</dt><dd>Separating the agent that builds something from the agent that checks it, because the author is biased toward its own work succeeding.</dd></div><div class="term"><dt>Direct communication</dt><dd>Agents messaging each other with no central coordinator. Avoided here because state fragments and no single source of truth exists.</dd></div><div class="term"><dt>Negotiation</dt><dd>Agents coordinating over a shared resource such as an API or a region of the codebase, ideally finding a positive-sum outcome.</dd></div><div class="term"><dt>Broadcast</dt><dd>One agent distributing information to many — status, new context, shared constraints — to keep a long run coherent.</dd></div><div class="term"><dt>Orchestrator</dt><dd>The planning role: interrogates requirements and produces features, milestones, and the validation contract.</dd></div><div class="term"><dt>Worker</dt><dd>The implementation role: takes one feature with clean context, implements it, and commits so the next worker inherits a working codebase.</dd></div><div class="term"><dt>Validator</dt><dd>The verification role: an agent that has never seen the code, checking it against the contract — adversarial by design.</dd></div><div class="term"><dt>Validation contract</dt><dd>A set of assertions defining correctness, written during planning before any code, with each feature assigned the assertions it must satisfy.</dd></div><div class="term"><dt>Scrutiny validator</dt><dd>The static validator: test suite, type checking, lints, plus a dedicated code review agent per completed feature.</dd></div><div class="term"><dt>User testing validator</dt><dd>The behavioural validator: spawns the running application and drives it via computer use, checking whole functional flows.</dd></div><div class="term"><dt>Structured handoff</dt><dd>A worker&#x27;s written record of what it completed, what it left undone, the commands and exit codes, issues found, and whether it followed procedure.</dd></div><div class="term"><dt>Milestone boundary</dt><dd>The checkpoint after a group of features where validators run, handoffs are reviewed, and corrective work is scoped.</dd></div><div class="term"><dt>Droid whispering</dt><dd>The skill of modelling how different models behave and fail, and deliberately assigning each to the role it suits.</dd></div><div class="term"><dt>Bitter lesson</dt><dd>The observation that general methods leveraging more compute tend to beat hand-engineered structure — hence keeping orchestration in prompts rather than code.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why does an agent&#x27;s own test suite passing with high coverage fail to establish that its feature is correct?</summary>
+  <div class="answer"><p>Because tests written after the implementation are shaped by the code rather than by the intent — they assert what the code happens to do, so they confirm decisions instead of catching bugs. A validation contract written before any code breaks the circularity, since the definition of correct cannot be adjusted to fit whatever was built.</p></div>
+</details><details class="q">
+  <summary>Ten parallel workers should give roughly ten times the throughput. Why did serial execution win instead?</summary>
+  <div class="answer"><p>Because parallel workers mutate shared state: they overwrite each other&#x27;s changes, duplicate work, and make architectural decisions in ignorance of one another. The coordination overhead needed to prevent that ate the speed gains while tokens were still being spent, and the inconsistencies had to be unpicked later. Serialising writes while parallelising read-only work keeps the speed that is safe to have.</p></div>
+</details><details class="q">
+  <summary>Why is it significant that neither validator has seen the code before, and why might the validator use a different model provider than the worker?</summary>
+  <div class="answer"><p>Fresh context is what makes the validator credible: an agent that wrote the code has a stake in it working and will rationalise its own choices. Using a different provider extends that independence from context to capability — a model trained differently has different blind spots, so it is less likely to accept the same mistakes the implementer was prone to making.</p></div>
+</details><details class="q">
+  <summary>A worker reports &#x27;done, all tests pass&#x27;. What does a structured handoff add, and how does the system use it?</summary>
+  <div class="answer"><p>It adds what was left undone, the actual commands with exit codes, issues discovered, and whether the worker followed the defined procedures — ground truth rather than a summary that may be optimistic. At the milestone boundary the orchestrator reads it and scopes corrective work into follow-up features, and progress stays blocked while issues are unaddressed, which is how the system self-heals instead of drifting.</p></div>
+</details><details class="q">
+  <summary>Why does keeping orchestration logic in about 700 lines of prompt text, rather than a state machine, make the system resistant to the bitter lesson?</summary>
+  <div class="answer"><p>Because a state machine encodes the cases today&#x27;s models cannot handle, so each model improvement turns more of its branches into dead weight that must be rewritten. Prompt-expressed policy states the intended outcome, so a more capable model simply carries it out better. The thin deterministic layer that remains is pure bookkeeping, which is orthogonal to model capability.</p></div>
+</details><details class="q">
+  <summary>Most of a mission&#x27;s wall-clock time is spent waiting on real-world execution rather than generating tokens. What follows from that for planning a run?</summary>
+  <div class="answer"><p>That elapsed time and token cost decouple, so you cannot estimate one from the other. Throughput becomes bounded by how fast the application under test responds, which means speeding up the model buys less than expected, while making the app faster to exercise — or parallelising read-only validation — buys more.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Write a validation contract for a feature you have already built: state correctness as observable assertions, then check whether your existing tests actually verify them.</li><li>Add a verifier step to an agent workflow you own, with strictly fresh context, and measure how many issues it finds that the implementing agent&#x27;s own tests missed.</li><li>Replace a &#x27;done&#x27; message in your pipeline with a structured handoff including commands and exit codes, and see what it surfaces that prose summaries hid.</li><li>Take a parallel agent setup and classify every operation as read or write; serialise the writes and fan out the reads, then compare error rates.</li><li>Try a different provider in the validator seat than in the worker seat and look for defects the same-family validator was consistently waving through.</li><li>Find the hard-coded branches in your own orchestration that exist only because models used to be weaker, and try expressing that policy as prompt text instead.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

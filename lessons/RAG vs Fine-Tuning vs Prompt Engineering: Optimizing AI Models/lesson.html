@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG, Fine-Tuning and Prompt Engineering: Choosing How to Improve an LLM</title>
+<meta name="description" content="Know which of the three levers to pull, what each one actually costs, and how to layer them.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#why-the-same-question-gets-different-answers-from-different-models-1"><span class="n">1</span>Why the same question gets different answers from different models</a></li>
+<li><a href="#rag-retrieval-augmentation-generation-2"><span class="n">2</span>RAG: retrieval, augmentation, generation</a></li>
+<li><a href="#embeddings-finding-documents-that-share-no-words-with-the-query-3"><span class="n">3</span>Embeddings: finding documents that share no words with the query</a></li>
+<li><a href="#what-rag-costs-latency-per-query-infrastructure-forever-4"><span class="n">4</span>What RAG costs: latency per query, infrastructure forever</a></li>
+<li><a href="#fine-tuning-continuing-training-on-a-narrow-dataset-5"><span class="n">5</span>Fine-tuning: continuing training on a narrow dataset</a></li>
+<li><a href="#how-the-weights-actually-move-6"><span class="n">6</span>How the weights actually move</a></li>
+<li><a href="#the-bill-for-fine-tuning-data-gpus-maintenance-and-forgetting-7"><span class="n">7</span>The bill for fine-tuning: data, GPUs, maintenance and forgetting</a></li>
+<li><a href="#prompt-engineering-aiming-attention-at-capability-that-is-already-there-8"><span class="n">8</span>Prompt engineering: aiming attention at capability that is already there</a></li>
+<li><a href="#where-prompt-engineering-stops-9"><span class="n">9</span>Where prompt engineering stops</a></li>
+<li><a href="#combining-all-three-10"><span class="n">10</span>Combining all three</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Advanced</span><span class="pill ghost">Applied LLM engineering</span><span class="muted">IBM Technology</span></div>
+  <h1>RAG, Fine-Tuning and Prompt Engineering: Choosing How to Improve an LLM</h1>
+  <p class="lede">Know which of the three levers to pull, what each one actually costs, and how to layer them.</p>
+  <p class="muted small">For engineers building on top of language models who have to decide where the effort goes · 26 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=zYGDpG-pTho" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>What a large language model does at the input/output level: tokens in, tokens out</li><li>Comfort reading Python</li><li>A working idea of what a vector is — a fixed-length list of numbers</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>A language model&#x27;s knowledge is frozen at the moment training stopped, and it lives inside the weights rather than in any file you can open. Ask about something newer than the cutoff, or something private to your organisation, and the model has nothing to work from — so it guesses, fluently.</p>
+<p>Three techniques address this, and the useful way to tell them apart is by where in the stack they intervene. RAG changes what reaches the model at query time. Fine-tuning changes the weights. Prompt engineering changes the request. That is the whole taxonomy: retrieval supplies facts, fine-tuning installs behaviour, prompting redirects capability that is already present.</p>
+<p>They are not competitors, and picking between them is mostly a matter of naming what is actually missing. Missing facts point at retrieval. Wrong behaviour, tone or format points at fine-tuning. A capable model answering a badly specified question points at the prompt. Production systems normally use all three, layered.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Parametric knowledge is fixed at the training cutoff — anything newer or private has to arrive through the prompt.</li><li>RAG is retrieve, augment, generate: the weights are untouched, only the model&#x27;s input changes.</li><li>Retrieval matches meaning rather than words, because both the query and the corpus are converted to vectors and compared geometrically.</li><li>RAG&#x27;s price is latency on every single query plus an embedding-and-indexing pipeline you have to keep in sync forever.</li><li>Fine-tuning updates weights from input–output pairs, so behaviour is baked in, inference stays fast, and no vector database is needed.</li><li>Fine-tuning&#x27;s price is thousands of curated examples, GPU time, a full retraining round for every update, and the risk of catastrophic forgetting.</li><li>Prompt engineering steers attention toward patterns already in the weights: instant and free, and structurally incapable of adding knowledge.</li><li>Sequence the work cheapest-first — prompt, then retrieval, then fine-tuning — because each stage produces the evaluation the next one needs.</li></ul>
+  </div>
+</section>
+<section id="why-the-same-question-gets-different-answers-from-different-models-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Why the same question gets different answers from different models</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">Everything a model knows sits in its weights, frozen when training stopped. Every improvement technique is a way of working around that one fact.</p>
+  <p>Ask two models the same factual question about a person, a library version or a company, and you will get two different answers. That is not a defect. Each model was trained on a different corpus and stopped at a different date, so what any given model holds about any given subject genuinely differs.</p>
+<p>This stored information is parametric knowledge: facts encoded implicitly across billions of weights, not looked up from anywhere. There is no index to query, no row to update, no way to ask the model what it knows about a topic other than by asking it and seeing what comes out. Two consequences follow immediately. It goes stale the moment training ends, and it never contained anything private to you in the first place.</p>
+<p>That leaves exactly three places to intervene. You can change what reaches the model at query time, which is RAG. You can change the weights, which is fine-tuning. Or you can change the request itself, which is prompt engineering. Everything else is a variation on one of the three.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Two models differ on the same question because their training corpora and cutoff dates differ.</li><li>Parametric knowledge is distributed across weights — there is no record to edit, delete or audit.</li><li>No model has seen your internal documents, regardless of how large it is.</li><li>Three intervention points exist: the input, the weights, and the request.</li></ul></div>
+  <figure class="example">
+  <figcaption>The disambiguation problem</figcaption>
+  <p>Ask &#x27;who is Martin Keen?&#x27; and the model has to choose between an IBM engineer and the founder of a footwear company. Nothing in the question tells it which, so it picks one or blends both. Adding &#x27;the Martin Keen who works at IBM&#x27; fixes it — and that is prompt engineering at its most basic. Note that this only works because the model already holds information about both people. If it knew about neither, no phrasing would help.</p>
+  
+</figure><figure class="example">
+  <figcaption>Three different paths to an answer</figcaption>
+  <p>The same question, routed three ways. Only the middle one consults anything outside the model, and only the last one has different weights from the model you started with.</p>
+  <pre><code>prompt only        →  [ weights ]                            → answer
+
+RAG                →  [ search corpus ] ─┐
+                      [ user prompt   ] ─┴→ [ weights ]        → answer
+
+fine-tuned model   →  [ weights + Δ from extra training ]      → answer</code></pre>
+</figure>
+</section>
+<section id="rag-retrieval-augmentation-generation-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>RAG: retrieval, augmentation, generation</h2>
+      <a class="stamp" href="#" data-t="89">1:29</a>
+    </div>
+  </div>
+  <p class="summary">The acronym is the architecture. Find relevant text, paste it into the prompt, then answer from it — with the model itself never modified.</p>
+  <p>Retrieval comes first. The query does not go to the model; it goes to a search over a corpus — your PDFs, internal wikis, spreadsheets, ticket history — which returns a handful of passages judged relevant to it.</p>
+<p>Augmentation is the second step and the one people skip when explaining RAG. Those retrieved passages are inserted into the prompt alongside the original question, almost always with an instruction to answer only from them and to admit ignorance otherwise. The model&#x27;s input is now considerably longer, and it is grounded: the facts it needs are sitting in the context window rather than having to be recalled from the weights.</p>
+<p>Generation is then ordinary generation. Nothing about the model changed — same weights, same file on disk, same API endpoint. RAG is a prompt-construction technique with a search engine bolted to the front. That framing explains its best property directly: add a document to the corpus and the system knows about it on the very next query, with no retraining and no deployment.</p>
+<p>It also explains the failure mode. If retrieval returns the wrong passages, the model will answer confidently from the wrong passages. Most bad RAG output is a retrieval bug wearing a generation costume.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Retrieval → augmentation → generation; the acronym literally spells out the pipeline.</li><li>The weights are never modified — RAG is entirely input-side.</li><li>Grounding passages normally ship with an instruction to answer only from the supplied context.</li><li>New knowledge goes live as soon as a document is indexed; there is no retraining step.</li><li>If retrieval surfaces the wrong passages, generation is confidently wrong — debug retrieval first.</li></ul></div>
+  <figure class="example">
+  <figcaption>What actually reaches the model</figcaption>
+  <p>The user typed one sentence. This is the prompt the model receives after augmentation. The explicit &#x27;if it is not here, say so&#x27; clause is what converts a confident guess into an honest refusal.</p>
+  <pre><code>Answer the question using only the context below.
+If the context does not contain the answer, say that you do not know.
+Cite the passage numbers you used.
+
+&lt;context&gt;
+[1] Q4 performance exceeded plan, with sales up across all regions...
+[2] Quarterly sales rose 8% against the prior period, driven by renewals...
+[3] The revenue recognition policy is described in appendix B...
+&lt;/context&gt;
+
+Question: what was our company&#x27;s revenue growth last quarter?</code></pre>
+</figure><figure class="example">
+  <figcaption>The whole loop in twelve lines</figcaption>
+  <p>A minimal RAG implementation. The three named stages map to three statements. Everything else in a production system — reranking, filtering, citation handling — is refinement on top of this shape.</p>
+  <pre><code>def answer(question, index, model, k=4):
+    # 1. retrieval
+    passages = index.search(embed(question), k=k)
+
+    # 2. augmentation
+    context = &quot;\n&quot;.join(f&quot;[{i+1}] {p.text}&quot; for i, p in enumerate(passages))
+    prompt = (
+        &quot;Answer using only the context below. &quot;
+        &quot;If it does not contain the answer, say you do not know.\n\n&quot;
+        f&quot;&lt;context&gt;\n{context}\n&lt;/context&gt;\n\n&quot;
+        f&quot;Question: {question}&quot;
+    )
+
+    # 3. generation
+    return model.generate(prompt)</code></pre>
+</figure>
+</section>
+<section id="embeddings-finding-documents-that-share-no-words-with-the-query-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Embeddings: finding documents that share no words with the query</h2>
+      <a class="stamp" href="#" data-t="173">2:53</a>
+    </div>
+  </div>
+  <p class="summary">Both the question and every document become vectors, so relevance is measured as closeness in space rather than overlap in vocabulary.</p>
+  <p>Keyword search fails at exactly the case that matters. Ask about &#x27;revenue growth last quarter&#x27; and a document reading &#x27;Q4 performance exceeded plan&#x27; shares not one meaningful term with the query. A lexical index scores it zero. It is also the correct answer.</p>
+<p>RAG sidesteps this by not comparing words at all. An embedding model maps a span of text to a fixed-length vector — typically a few hundred to a few thousand floats. The model is trained so that texts with similar meaning land near each other in that space, which turns &#x27;is this relevant?&#x27; into a geometry question. The standard measure is cosine similarity: the cosine of the angle between two vectors, 1.0 for identical direction, around 0 for unrelated. Cosine is used rather than raw distance because it ignores magnitude, so a long document and a short phrase expressing the same idea still score as close.</p>
+<p>The timing matters for cost. Documents are embedded once, ahead of time, when they are indexed. Only the query is embedded at request time, which is a single small forward pass. That is why retrieval is fast even over millions of chunks.</p>
+<p>What you embed matters as much as which model you use. Embedding a whole document produces a vector that averages every topic in it into something that is close to nothing in particular. The useful unit is a chunk — a section, or a few hundred tokens — small enough to be about one thing, large enough to stand alone when a reader sees it with no surrounding text. Chunk boundaries that split a table from its header, or an answer from its question, are among the most common reasons a RAG system cannot find information that is unquestionably in the corpus.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>An embedding is a fixed-length vector whose geometry encodes meaning rather than spelling.</li><li>Cosine similarity ranks by angle, so semantically similar text scores high with zero shared words.</li><li>Documents are embedded once at index time; only the query is embedded per request.</li><li>Chunk size is a real design parameter — too large blurs the vector, too small strips the context.</li><li>Query and corpus must be embedded by the same model; vectors from different models are not comparable.</li></ul></div>
+  <figure class="example">
+  <figcaption>Scoring by meaning, not by words</figcaption>
+  <p>The top match shares no content word with the query. The last candidate shares the word &#x27;revenue&#x27; and still ranks bottom, which is precisely the behaviour a keyword index cannot produce.</p>
+  <pre><code>import numpy as np
+
+def cosine(a, b):
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+# embed() maps text -&gt; a fixed-length float vector (e.g. 768 or 1536 dims)
+query = embed(&quot;what was our company&#x27;s revenue growth last quarter?&quot;)
+
+docs = [
+    &quot;Q4 performance exceeded plan, with sales up across all regions.&quot;,
+    &quot;Quarterly sales rose against the prior period.&quot;,
+    &quot;Office relocation is scheduled for March.&quot;,
+    &quot;The revenue recognition policy is described in appendix B.&quot;,
+]
+
+for score, doc in sorted(((cosine(query, embed(d)), d) for d in docs), reverse=True):
+    print(f&quot;{score:.3f}  {doc}&quot;)</code></pre>
+</figure><figure class="example">
+  <figcaption>How chunking quietly breaks retrieval</figcaption>
+  <p>Split on a fixed character count and you will eventually cut a sentence in half. Neither fragment now answers the question, and neither embeds to anything close to it. Chunk on structural boundaries — headings, paragraphs, table rows — and overlap adjacent chunks slightly so a split idea still appears intact somewhere.</p>
+  <pre><code># one chunk, one idea — retrievable
+&quot;Q4 revenue was up on Q3, driven by renewals in EMEA. Renewal rate: 94%.&quot;
+
+# split mid-thought — neither half answers &quot;what was the renewal rate?&quot;
+chunk A: &quot;...Q4 revenue was up on Q3, driven by renewals in EMEA. Renewal&quot;
+chunk B: &quot;rate: 94%. Headcount was flat across the period.&quot;</code></pre>
+</figure>
+</section>
+<section id="what-rag-costs-latency-per-query-infrastructure-forever-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>What RAG costs: latency per query, infrastructure forever</h2>
+      <a class="stamp" href="#" data-t="255">4:15</a>
+    </div>
+  </div>
+  <p class="summary">Retrieval is not free. It adds a round trip to every single request and a pipeline you have to operate indefinitely.</p>
+  <p>Start with latency. A plain prompt is one call to the model. RAG is: embed the query, search the index, assemble the augmented prompt, then generate — and generation now has a much longer input to read before it produces its first token. Every one of those steps sits on the critical path of every query. None of them can be done ahead of time, because none of them exist until the user asks something.</p>
+<p>Then infrastructure. Documents have to be embedded, which is compute that scales with corpus size. The resulting vectors have to be stored somewhere that supports fast nearest-neighbour search, which means a vector database is now a production system you own, monitor and pay for. And the index has to be kept in sync: when a document changes, its chunks must be re-embedded and the old ones deleted, or retrieval will keep surfacing text that is no longer true and the model will keep answering from it without hesitation.</p>
+<p>These costs buy something specific and worth naming. RAG gives you freshness and coverage of private data without touching the model. If the problem is &#x27;it doesn&#x27;t know our facts&#x27; or &#x27;the facts change weekly&#x27;, that is the right trade every time. If the problem is that the tone is wrong or the output format keeps drifting, you are paying retrieval overhead to fix something retrieval does not address.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>RAG adds query embedding, vector search, and a longer input to every request&#x27;s latency budget.</li><li>You now run a vector database and an indexing pipeline as production infrastructure.</li><li>A stale index yields confidently wrong answers; synchronisation is an ongoing obligation, not a setup task.</li><li>Longer prompts also mean more input tokens billed on every call.</li><li>RAG buys freshness and private-data coverage. It does not change behaviour, tone or format.</li></ul></div>
+  <figure class="example">
+  <figcaption>Where the time goes</figcaption>
+  <p>The bracketed span is added to every query and cannot be cached away in the general case, because it depends on what the user just asked.</p>
+  <pre><code>plain prompt :                                        generate
+
+RAG          : embed query → vector search → build prompt → generate
+               └────────── added to every query ─────────┘   (longer input)</code></pre>
+</figure><figure class="example">
+  <figcaption>The obligation you take on at index time</figcaption>
+  <p>Every document that can change needs this handler, and it must delete before it inserts. Skip the delete and both the old and new chunks stay retrievable, so the model sees contradictory context and picks one.</p>
+  <pre><code>def on_document_changed(doc, index):
+    index.delete(where={&quot;doc_id&quot;: doc.id})          # drop every stale chunk
+
+    chunks = chunk(doc.text)                        # re-split
+    index.upsert([
+        {&quot;doc_id&quot;: doc.id, &quot;text&quot;: c, &quot;vector&quot;: embed(c)}
+        for c in chunks                             # re-embed: costs compute
+    ])</code></pre>
+</figure>
+</section>
+<section id="fine-tuning-continuing-training-on-a-narrow-dataset-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Fine-tuning: continuing training on a narrow dataset</h2>
+      <a class="stamp" href="#" data-t="301">5:01</a>
+    </div>
+  </div>
+  <p class="summary">Take a model that already has broad competence and keep training it on examples of the behaviour you want.</p>
+  <p>Fine-tuning does not start from scratch, and the distinction is the whole point. You begin with a pre-trained model that already has grammar, reasoning and broad world knowledge in place, then run additional training on a focused dataset. The general competence is the foundation you are building on; you are specialising it, not creating it.</p>
+<p>The data takes the form of input–output pairs: a realistic request paired with the response you actually wanted. For a technical support model that means thousands of customer messages paired with correct replies. Those pairs are your specification, and this is where fine-tuning projects usually go wrong. The model does not learn the rule you had in mind. It learns whatever regularity is genuinely present in the examples, including the ones that are inconsistent, and including patterns you did not intend — if every long answer in your dataset happens to be about billing, the model will learn that too.</p>
+<p>What changes is the weights themselves. After training, the behaviour lives in the model file. There is no retrieval step, no external database, nothing to look up at inference time. That is exactly why a fine-tuned model answers faster than the same task routed through RAG: the knowledge is baked in rather than fetched, so a query is a single forward pass again.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Fine-tuning adjusts a pre-trained model; it is not training from zero.</li><li>The dataset is supervised — input–output pairs demonstrating the behaviour you want.</li><li>Your examples are the specification, so inconsistencies in them become learned behaviour.</li><li>Inference requires no retrieval, so latency returns to plain-prompt levels.</li><li>Knowledge lives in the weights, so there is nothing to keep synchronised at runtime.</li></ul></div>
+  <figure class="example">
+  <figcaption>The training file</figcaption>
+  <p>Supervised fine-tuning data, one JSON record per line. Shown formatted here for readability — in the real file each record is a single line. Note that the target response carries structure as well as content: the model is learning the shape of a good answer, not only its facts.</p>
+  <pre><code>{&quot;messages&quot;: [
+  {&quot;role&quot;: &quot;user&quot;,
+   &quot;content&quot;: &quot;Scanner shows E-14 after the firmware update and tray 2 jams.&quot;},
+  {&quot;role&quot;: &quot;assistant&quot;,
+   &quot;content&quot;:
+     &quot;E-14 is a feed-sensor fault, and the firmware update resets\n
+      the sensor calibration.\n\n
+      Steps:\n
+      1. Power-cycle with tray 2 removed.\n
+      2. Re-run calibration from Service &gt; Sensors.\n
+      3. Check the roller for debris.\n\n
+      If E-14 persists after calibration, escalate to hardware\n
+      with the sensor log attached.&quot;}
+]}</code></pre>
+</figure><figure class="example">
+  <figcaption>Choose the pairs the way you would write a spec</figcaption>
+  <p>A useful discipline before collecting data: write down the rule you intend the model to learn, then check that a stranger could infer that exact rule from your examples alone. If they could infer three different rules, so can the model — and it will pick whichever is statistically easiest, not whichever you meant.</p>
+  
+</figure>
+</section>
+<section id="how-the-weights-actually-move-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>How the weights actually move</h2>
+      <a class="stamp" href="#" data-t="386">6:26</a>
+    </div>
+  </div>
+  <p class="summary">Supervised fine-tuning is a loss on predicted tokens, backpropagated into the weights, repeated across the dataset.</p>
+  <p>For each training pair, the model predicts the target response token by token. A loss function measures the gap between what it predicted and what the target actually was — cross-entropy over the vocabulary at each position, which is high when the model put low probability on the correct next token.</p>
+<p>Backpropagation then computes how much each weight contributed to that error, and the optimiser nudges every weight a small step in the direction that reduces it. Small is doing real work in that sentence. Fine-tuning learning rates are typically orders of magnitude lower than pre-training rates, precisely because the goal is to adjust a competent model rather than overwrite it. Too high a rate and you do not get a specialised model, you get a damaged one.</p>
+<p>One implementation detail explains a lot about behaviour. The loss is normally computed only over the response tokens; the prompt tokens are masked out, conventionally with a label of -100. The model is being trained to produce good responses given prompts, not to predict the prompts themselves.</p>
+<p>This is also why fine-tuning changes more than facts. You are reshaping how information is routed internally, so the model starts recognising domain-specific patterns — the shape of a support ticket, the conventions of a legal citation, the structure of your log format — rather than memorising strings.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Loss is cross-entropy between the predicted token distribution and the target response.</li><li>Backpropagation attributes the error to each weight; the optimiser steps them toward lower loss.</li><li>Fine-tuning learning rates are deliberately tiny to avoid destroying pre-trained capability.</li><li>Prompt tokens are masked out of the loss; only response tokens are scored.</li><li>The result is changed processing, not just added facts — the model learns domain patterns.</li></ul></div>
+  <figure class="example">
+  <figcaption>The training loop, stripped down</figcaption>
+  <p>Every fine-tuning framework wraps this, but this is what it wraps. The shift by one position is next-token prediction; the -100 labels are the masked prompt tokens that the loss ignores.</p>
+  <pre><code>for batch in loader:
+    out = model(input_ids=batch.input_ids, attention_mask=batch.mask)
+
+    loss = cross_entropy(
+        out.logits[:, :-1].flatten(0, 1),   # predictions, shifted
+        batch.labels[:, 1:].flatten(),      # targets; -100 on prompt tokens
+        ignore_index=-100,
+    )
+
+    loss.backward()        # attribute the error back to every weight
+    optimizer.step()       # nudge them
+    optimizer.zero_grad()</code></pre>
+</figure><figure class="example">
+  <figcaption>What a masked label array looks like</figcaption>
+  <p>Same sequence, two views. The model reads all of it; it is only graded on the part after the prompt ends.</p>
+  <pre><code>input_ids : [ prompt tokens ............ ][ response tokens ......... ]
+labels    : [ -100 -100 -100 ... -100    ][ 8213  409  73  1122  ... ]
+                      ignored                     scored</code></pre>
+</figure>
+</section>
+<section id="the-bill-for-fine-tuning-data-gpus-maintenance-and-forgetting-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>The bill for fine-tuning: data, GPUs, maintenance and forgetting</h2>
+      <a class="stamp" href="#" data-t="474">7:54</a>
+    </div>
+  </div>
+  <p class="summary">Four costs — and the fourth, losing general ability while gaining specialised ability, is the one that catches teams out.</p>
+  <p>Data comes first and is usually the largest line item. You need thousands of high-quality pairs, and quality dominates quantity: a few hundred clean, consistent examples routinely beat ten thousand noisy ones. Collecting, cleaning and de-duplicating them is human work, and it is where most of a fine-tuning project&#x27;s calendar time actually goes.</p>
+<p>Compute is next. Full fine-tuning holds the weights, the gradients and the optimiser state in GPU memory simultaneously, which comes to several times the size of the model itself — the reason a model that runs comfortably for inference on one card can be untrainable on that same card.</p>
+<p>Then maintenance, and this is the sharpest contrast with RAG. Adding a fact to a RAG system means indexing a document. Adding a fact to a fine-tuned model means another training run, another evaluation, another deployment. There is no incremental update.</p>
+<p>Finally, catastrophic forgetting. Training hard on a narrow distribution pulls the weights away from the configuration that supported general ability. The model gets better at your tickets and quietly worse at everything else, and because your evaluation set is made of tickets, nothing in your dashboard will tell you. The guard is straightforward: hold out a general-capability evaluation the model was not trained on and run it alongside your domain evaluation at every checkpoint. If the general score falls, you are trading away more than you are buying.</p>
+<p>The standard mitigation is to stop moving most of the weights at all. Parameter-efficient methods, of which LoRA is the most widely used, freeze the base model and train small low-rank adapter matrices injected into selected layers. Far less memory, far less to store per specialised variant, and the original model still sits underneath unchanged — which also means you can turn the adapter off.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Data collection usually dominates the cost, and it is human labour rather than compute.</li><li>Full fine-tuning needs memory for weights, gradients and optimiser state at the same time.</li><li>Every update is another training run; there is no way to incrementally add one fact.</li><li>Catastrophic forgetting means specialisation degrades general capability.</li><li>Always evaluate on a general benchmark you did not train on, not only on your domain set.</li><li>LoRA and other PEFT methods freeze the base weights and train small adapters instead.</li></ul></div>
+  <figure class="example">
+  <figcaption>Catching forgetting before it ships</figcaption>
+  <p>Illustrative numbers, not measurements — the shape is what matters. The domain score keeps climbing while the general score collapses, and a team watching only the first column would ship epoch 3 believing it was the best model they had.</p>
+  <pre><code>                       domain eval    general eval
+base model                 41%            68%
+fine-tuned, epoch 1        72%            66%     ← ship this
+fine-tuned, epoch 2        76%            61%
+fine-tuned, epoch 3        78%            51%     ← forgetting</code></pre>
+</figure><figure class="example">
+  <figcaption>LoRA instead of full fine-tuning</figcaption>
+  <p>The base weights are frozen; only the injected low-rank matrices train. `r` is the rank — the width of the bottleneck, and the main capacity dial. Because the adapter is small and separable, you can keep several of them for different tasks against one copy of the base model.</p>
+  <pre><code>from peft import LoraConfig, get_peft_model
+
+config = LoraConfig(
+    r=16,                                    # rank of the adapter matrices
+    lora_alpha=32,                           # scaling applied to the update
+    target_modules=[&quot;q_proj&quot;, &quot;v_proj&quot;],     # which projections to adapt
+    lora_dropout=0.05,
+    task_type=&quot;CAUSAL_LM&quot;,
+)
+
+model = get_peft_model(base_model, config)
+model.print_trainable_parameters()
+# a small fraction of the base model&#x27;s parameters are trainable</code></pre>
+</figure>
+</section>
+<section id="prompt-engineering-aiming-attention-at-capability-that-is-already-there-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Prompt engineering: aiming attention at capability that is already there</h2>
+      <a class="stamp" href="#" data-t="517">8:37</a>
+    </div>
+  </div>
+  <p class="summary">A prompt is not a request so much as a set of conditions. Change it and you change which learned patterns dominate the output.</p>
+  <p>A prompt passes through the model&#x27;s layers, and each layer&#x27;s attention mechanism weighs the parts of the input against one another. Which tokens are present, and how they are arranged, determines what gets attended to — and therefore which of the patterns learned during training dominate what comes out. Nothing is being added; something is being selected.</p>
+<p>That mechanism explains instructions that otherwise look like superstition. Asking a model to work through something step by step shifts it toward the region of its training distribution where methodical reasoning preceded correct results, because those tokens co-occur with that kind of text. Supplying two worked examples of the output you want does the same thing far more precisely than any adjective could, because format is easier to demonstrate than to describe.</p>
+<p>The practical levers are few and each one removes a degree of freedom the model would otherwise resolve arbitrarily. State the task explicitly. Supply context that cannot be inferred. Show examples of the desired output. Name the format. Bound the scope, including what to ignore. Say what to do when the answer is not available.</p>
+<p>And the whole time, the model is unchanged. You are conditioning a distribution, not editing it — which is why the feedback loop is seconds long and why there is nothing to deploy.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Attention layers weigh the input against itself; prompt content decides what gets weighted.</li><li>&#x27;Think step by step&#x27; works by conditioning on a region of the training distribution, not by unlocking anything.</li><li>Few-shot examples specify format and style more reliably than describing them in prose.</li><li>Explicit task, scope, format and fallback each remove ambiguity the model would otherwise resolve on its own.</li><li>No infrastructure, no training, and a feedback loop measured in seconds.</li></ul></div>
+  <figure class="example">
+  <figcaption>&#x27;Is this code secure?&#x27; versus an engineered prompt</figcaption>
+  <p>The first version leaves the model to decide what &#x27;secure&#x27; covers, how deep to look, what format to answer in, and what to do when it finds nothing. The second decides all four. Same model, same weights, same code under review.</p>
+  <pre><code># before
+Is this code secure?
+
+# after
+Review the Python function below for security defects.
+
+Scope: injection, authentication and authorisation, secrets handling,
+unsafe deserialisation, and input validation. Ignore style and performance.
+
+Work through the data flow from untrusted input to each sink before answering.
+
+For every finding report:
+  - severity (high / medium / low)
+  - the exact line
+  - why it is exploitable, concretely
+  - a fix
+
+If a category has no findings, say so explicitly rather than omitting it.
+
+FUNCTION:
+&lt;code here&gt;</code></pre>
+</figure><figure class="example">
+  <figcaption>Few-shot conditioning</figcaption>
+  <p>Two examples pin down the output format, the level of detail, and the handling of the empty case — all without a single instruction describing any of them. This is usually the cheapest way to stop format drift.</p>
+  <pre><code>Extract every dependency and its version constraint.
+
+Input:  &quot;needs requests&gt;=2.28 and pydantic 2.x&quot;
+Output: requests&gt;=2.28, pydantic&gt;=2.0,&lt;3.0
+
+Input:  &quot;no external dependencies&quot;
+Output: (none)
+
+Input:  &quot;we pin numpy at 1.26.4 and use httpx for the client&quot;
+Output:</code></pre>
+</figure>
+</section>
+<section id="where-prompt-engineering-stops-9" class="block section">
+  <div class="section-head">
+    <span class="num">09</span>
+    <div>
+      <h2>Where prompt engineering stops</h2>
+      <a class="stamp" href="#" data-t="650">10:50</a>
+    </div>
+  </div>
+  <p class="summary">No phrasing adds information the weights never held, and finding a good prompt is empirical rather than derivable.</p>
+  <p>There is a hard ceiling, and it follows directly from the mechanism. Prompting redistributes attention over what is in the model. If a fact is not there — it happened after the cutoff, or it lives only in your private wiki — no rewording will retrieve it. Push anyway and the model will produce something fluent and plausible, which is a worse outcome than a refusal because it is harder to notice.</p>
+<p>It also cannot repair what is there and wrong. Outdated information in the weights stays outdated. Instructing the model to be accurate does not make it accurate; it only makes it sound more confident, since assertive text is what follows such instructions in the training data.</p>
+<p>And the process is genuinely empirical. Small rewordings produce changes in output that nobody can predict from first principles, so prompts are found by trial, not derived. The consequence is that the discipline is not really about clever phrasing. It is about having a fixed set of test cases and a scoring rule, so you can tell whether version 7 beats version 3 across the distribution rather than on the one example you happened to be staring at. Teams that skip this end up with long, ornate prompts full of clauses that were added for a reason nobody remembers and that nobody has ever measured.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Prompting cannot add knowledge that is not in the weights.</li><li>It cannot correct stale or wrong parametric knowledge either.</li><li>Pushed past its knowledge, a model produces fluent invention rather than refusing.</li><li>Prompt quality is discovered empirically — the leverage is in the eval harness, not the wording.</li><li>If the missing ingredient is facts, the fix is retrieval, not a better prompt.</li></ul></div>
+  <figure class="example">
+  <figcaption>A minimal prompt eval harness</figcaption>
+  <p>Thirty lines and it changes how prompt work is done. Each case pairs an input with a programmatic check. Compare candidate prompts on the same cases and the argument about which is better stops being a matter of opinion.</p>
+  <pre><code>CASES = [
+    (&quot;def f(u): os.system(&#x27;ping &#x27; + u)&quot;,
+     lambda out: &quot;injection&quot; in out.lower() and &quot;high&quot; in out.lower()),
+    (&quot;def add(a, b): return a + b&quot;,
+     lambda out: &quot;no findings&quot; in out.lower()),        # must not invent bugs
+]
+
+def score(template):
+    passed = sum(
+        check(model.generate(template.format(code=code)))
+        for code, check in CASES
+    )
+    return passed / len(CASES)
+
+for name, template in CANDIDATE_PROMPTS.items():
+    print(f&quot;{name:&lt;24} {score(template):.0%}&quot;)</code></pre>
+</figure><figure class="example">
+  <figcaption>Diagnosing which lever you need</figcaption>
+  <p>A quick test that separates a prompting problem from a knowledge problem: paste the missing information directly into the prompt by hand. If the answer becomes correct, the model was capable and the information was absent — that is a retrieval problem, and better wording will never solve it. If the answer is still wrong with the facts sitting right there, the problem is the request.</p>
+  
+</figure>
+</section>
+<section id="combining-all-three-10" class="block section">
+  <div class="section-head">
+    <span class="num">10</span>
+    <div>
+      <h2>Combining all three</h2>
+      <a class="stamp" href="#" data-t="693">11:33</a>
+    </div>
+  </div>
+  <p class="summary">In production these are layers rather than alternatives, each covering a gap the other two leave open.</p>
+  <p>Take a legal assistant as the worked case. Retrieval pulls specific cases and recent decisions, because case law changes continuously and no training run keeps pace with it. Fine-tuning teaches the firm&#x27;s own conventions — how its memos are structured, what its house style is, which lines of argument it favours — behaviour that no quantity of retrieved text will impart. Prompt engineering enforces the required document format on each individual request and sets the reasoning approach. Remove any one layer and a specific class of failure reappears.</p>
+<p>The division of labour becomes obvious once you name what each one fixes. Missing or changing facts point at retrieval. Wrong behaviour, tone, or format consistency at scale points at fine-tuning. An ambiguous or under-specified request points at the prompt.</p>
+<p>Order of work matters as much as the choice. Prompt engineering first, always: it is the cheapest, the fastest to evaluate, and it tells you whether the model is even capable of the task before you spend anything. Retrieval second, if the remaining failures are factual. Fine-tuning last, once you have a stable prompt and a real evaluation — because the eval harness you built for prompt engineering is precisely the instrument you need to find out whether fine-tuning helped or quietly broke something.</p>
+<p>One summary worth keeping: prompt engineering gives flexibility and immediate results but cannot extend knowledge; RAG extends knowledge and stays current but adds latency and infrastructure; fine-tuning delivers deep domain expertise but demands significant resources and ongoing maintenance.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Retrieval for facts, fine-tuning for behaviour, prompting for the request itself.</li><li>A legal system uses all three: case retrieval, firm-specific style, per-request formatting.</li><li>Prompt engineering is flexible and immediate but cannot extend knowledge.</li><li>RAG extends knowledge and keeps it current, at the price of latency and infrastructure.</li><li>Fine-tuning enables deep domain expertise, at the price of data, compute and maintenance.</li><li>Work cheapest-first: prompt, then retrieval, then fine-tuning — each stage builds the eval the next one needs.</li></ul></div>
+  <figure class="example">
+  <figcaption>Symptom to lever</figcaption>
+  <p>Diagnose from the failure, not from the technique you already wanted to use. Two of these entries point at fine-tuning for reasons that have nothing to do with knowledge, which is the distinction people most often collapse.</p>
+  <pre><code>symptom                                      reach for
+─────────────────────────────────────────────────────────────────────
+&quot;it doesn&#x27;t know our internal facts&quot;         RAG
+&quot;it&#x27;s citing last year&#x27;s numbers&quot;            RAG (and check index freshness)
+&quot;it ignores half my instructions&quot;            prompt engineering
+&quot;the output format keeps drifting&quot;           prompting → fine-tuning at scale
+&quot;it doesn&#x27;t sound like our house style&quot;      fine-tuning
+&quot;it&#x27;s too slow&quot;                              fine-tuning (removes the retrieval hop)
+&quot;it invents facts under pressure&quot;            RAG + an explicit refusal clause</code></pre>
+</figure><figure class="example">
+  <figcaption>All three layers in one request</figcaption>
+  <p>The final prompt sent to a legal assistant. The model is fine-tuned on firm memos, the context block came from retrieval, and everything else is prompt engineering. Each layer is visible and each is doing work the others cannot.</p>
+  <pre><code># model: firm-memo-v3  (fine-tuned → house style, memo structure, argument patterns)
+
+Draft a memo section on the enforceability of the clause below.
+Follow the standard memo format: Issue, Rule, Application, Conclusion.
+Cite only from the authorities provided. Where they are silent, say so.
+                                    ↑ prompt engineering
+
+&lt;authorities&gt;
+[1] Smith v. Doe (2024) — holding on unconscionability ...
+[2] Statute §14.2, amended March 2025 ...
+&lt;/authorities&gt;
+                                    ↑ RAG (retrieved this morning)
+
+Clause: &lt;text&gt;</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Parametric knowledge</dt><dd>Information encoded implicitly in a model&#x27;s weights during training. It cannot be listed, edited or deleted directly — only probed by asking the model.</dd></div><div class="term"><dt>Knowledge cutoff</dt><dd>The date at which a model&#x27;s training data ends. Nothing after it exists in the weights, no matter how significant.</dd></div><div class="term"><dt>RAG (Retrieval Augmented Generation)</dt><dd>Searching a corpus for passages relevant to a query, inserting them into the prompt, and generating an answer from them. The model itself is never modified.</dd></div><div class="term"><dt>Vector embedding</dt><dd>A fixed-length list of numbers representing a piece of text, arranged so that texts with similar meaning produce nearby vectors.</dd></div><div class="term"><dt>Cosine similarity</dt><dd>The cosine of the angle between two vectors, used to score relevance. It ignores magnitude, so a long document and a short phrase about the same thing still match.</dd></div><div class="term"><dt>Vector database</dt><dd>A store built for fast nearest-neighbour search over embeddings. It is the piece of infrastructure RAG obliges you to run and keep in sync.</dd></div><div class="term"><dt>Chunking</dt><dd>Splitting documents into passages before embedding them. Chunk size and boundaries strongly affect whether retrieval can find anything.</dd></div><div class="term"><dt>Grounding</dt><dd>Constraining a model to answer from supplied text rather than from memory, usually by instruction. It is what makes a retrieved answer checkable.</dd></div><div class="term"><dt>Fine-tuning</dt><dd>Continuing training on a pre-trained model with a focused dataset, so the desired behaviour ends up stored in the weights.</dd></div><div class="term"><dt>Supervised fine-tuning (SFT)</dt><dd>Fine-tuning on explicit input–output pairs, where each example shows a request and the response the model should have produced.</dd></div><div class="term"><dt>Backpropagation</dt><dd>The algorithm that works out how much each weight contributed to the error, so the optimiser knows which direction to move it.</dd></div><div class="term"><dt>Cross-entropy loss</dt><dd>The standard training objective for language models: it is large when the model assigned low probability to the token that was actually correct.</dd></div><div class="term"><dt>Catastrophic forgetting</dt><dd>Loss of general capability during specialised training, as the weights drift away from the configuration that supported it.</dd></div><div class="term"><dt>LoRA / PEFT</dt><dd>Parameter-efficient fine-tuning: freeze the base model and train small adapter matrices instead. Cheaper to train, cheaper to store, and reversible.</dd></div><div class="term"><dt>Attention mechanism</dt><dd>The component in each transformer layer that weighs parts of the input against one another, deciding what influences the output most.</dd></div><div class="term"><dt>Few-shot prompting</dt><dd>Including worked examples in the prompt to demonstrate the desired output rather than describing it.</dd></div><div class="term"><dt>Context window</dt><dd>The maximum amount of text a model can attend to at once. It bounds how much retrieved material a RAG system can supply.</dd></div><div class="term"><dt>Inference</dt><dd>Running a trained model to produce output, as opposed to training it. RAG adds work here; fine-tuning moves work out of it.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>RAG and fine-tuning both let a model use information it was never originally trained on. Why does only one of them leave you operating infrastructure?</summary>
+  <div class="answer"><p>RAG resolves knowledge at query time, so the corpus must stay embedded, indexed and synchronised in a vector database for as long as the system runs. Fine-tuning resolves it at training time and writes the result into the weights, so at inference there is nothing external to consult — the cost moves from ongoing operations to periodic retraining.</p></div>
+</details><details class="q">
+  <summary>A keyword search for &#x27;revenue growth&#x27; returns nothing, yet the RAG system surfaces a document titled &#x27;Q4 performance&#x27;. What made that possible, and what would break it?</summary>
+  <div class="answer"><p>Both the query and the document were converted to vector embeddings, and relevance was scored by cosine similarity, which measures closeness in meaning rather than overlap in words. It breaks if the query and the corpus are embedded by different models — the vectors then occupy incomparable spaces — or if chunking split the relevant passage so that neither half carries the meaning.</p></div>
+</details><details class="q">
+  <summary>Your fine-tuned support model handles tickets far better than the base model, but has started giving noticeably worse answers to ordinary general questions. What happened, and what should you have been measuring?</summary>
+  <div class="answer"><p>Catastrophic forgetting: training hard on a narrow distribution pulled the weights away from the configuration supporting general capability. You should have run a held-out general-capability evaluation at every checkpoint alongside the domain evaluation, so the falling general score was visible before you shipped. A domain-only dashboard cannot show this by construction.</p></div>
+</details><details class="q">
+  <summary>Why does &#x27;think step by step&#x27; improve output when the weights are byte-for-byte identical either way?</summary>
+  <div class="answer"><p>The instruction conditions the model on a region of its training distribution where methodical reasoning preceded correct results, so attention weights shift toward those patterns. No capability is added — existing capability is selected. This is also why the effect is unreliable: it depends on what the training data associated with such phrasing.</p></div>
+</details><details class="q">
+  <summary>A model confidently states something wrong about a policy that exists only in your internal wiki. Why is rewriting the prompt the wrong fix?</summary>
+  <div class="answer"><p>The information was never in the weights, so there is no pattern for a prompt to activate. Prompting redistributes attention over what the model holds; it cannot introduce what is absent. The fix is retrieval — put the policy text into the context — plus an explicit instruction to say &#x27;I don&#x27;t know&#x27; when the context is silent.</p></div>
+</details><details class="q">
+  <summary>Why is it better to build a prompt evaluation harness before fine-tuning rather than after?</summary>
+  <div class="answer"><p>Two reasons. Prompting may solve the problem outright, at no cost, which you cannot know without measuring. And if it does not, the harness is the only instrument that can tell you whether fine-tuning improved things — without a pre-existing baseline on fixed cases, &#x27;the fine-tuned model seems better&#x27; is an impression, not a result.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Build the twelve-line RAG loop against a folder of your own PDFs, then vary chunk size across 200, 500 and 1000 tokens and watch retrieval quality change with nothing else touched.</li><li>Add a reranking stage: retrieve 50 candidates by vector search, score them with a cross-encoder, keep the top 4, and measure whether answer quality justifies the extra latency.</li><li>Instrument each stage of a RAG query separately — query embedding, vector search, generation — and find where the time actually goes before optimising anything.</li><li>Fine-tune a small open model with LoRA on a few hundred examples, and evaluate at every checkpoint on both a domain set and a general benchmark to watch forgetting happen in real numbers.</li><li>Read the LoRA paper (Hu et al., 2021) for the argument that weight updates during adaptation have low intrinsic rank, which is why small adapters recover most of full fine-tuning&#x27;s benefit.</li><li>Compare RAG against long-context prompting on the same task: paste the entire document set into the context window and measure cost, latency and accuracy against retrieval over the same corpus.</li><li>Write ten fixed test cases for a prompt you already use in production, score your current wording against two rewrites, and see whether the version you assumed was best actually is.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

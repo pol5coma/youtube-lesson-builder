@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Three Levels of LLM Evals: Unit Tests, Aligned Judges &amp; A/B Testing</title>
+<meta name="description" content="Build an evaluation-driven workflow — assertions on every change, human-aligned judges every week, and A/B tests on major releases.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-questions-evaluations-exist-to-answer-1"><span class="n">1</span>The questions evaluations exist to answer</a></li>
+<li><a href="#the-three-core-challenges-of-llm-development-2"><span class="n">2</span>The three core challenges of LLM development</a></li>
+<li><a href="#what-an-eval-is-and-the-analyze-measure-improve-cycle-3"><span class="n">3</span>What an eval is, and the analyze-measure-improve cycle</a></li>
+<li><a href="#level-1-unit-tests-as-evals-4"><span class="n">4</span>Level 1: unit tests as evals</a></li>
+<li><a href="#level-2-humans-first-then-an-aligned-model-judge-5"><span class="n">5</span>Level 2: humans first, then an aligned model judge</a></li>
+<li><a href="#the-alignment-process-and-the-agreement-score-6"><span class="n">6</span>The alignment process and the agreement score</a></li>
+<li><a href="#level-3-a-b-testing-with-real-users-7"><span class="n">7</span>Level 3: A/B testing with real users</a></li>
+<li><a href="#reference-based-versus-reference-free-metrics-8"><span class="n">8</span>Reference-based versus reference-free metrics</a></li>
+<li><a href="#four-mistakes-and-the-principles-that-avoid-them-9"><span class="n">9</span>Four mistakes, and the principles that avoid them</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Advanced</span><span class="pill ghost">AI evaluation</span><span class="muted">Dave Ebbelaar</span></div>
+  <h1>The Three Levels of LLM Evals: Unit Tests, Aligned Judges &amp; A/B Testing</h1>
+  <p class="lede">Build an evaluation-driven workflow — assertions on every change, human-aligned judges every week, and A/B tests on major releases.</p>
+  <p class="muted small">For engineers building production LLM applications who want a systematic way to improve them instead of guessing · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=a3SMraZWNNs" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Comfortable writing Python, including functions and exceptions</li><li>You have built at least one LLM workflow with a prompt and structured output</li><li>Familiarity with the idea of tracing or logging requests in production</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Reports suggest a large share of AI projects fail to reach production — Gartner has projected that 40% of agentic AI projects will be cancelled by 2027, and an MIT figure of 95% of generative AI pilots failing has circulated widely. Whether or not those exact numbers hold, the pattern behind them is real: teams build something that works on the happy path, ship it, and then have no systematic way to find out what is going wrong or to fix it without breaking something else.</p>
+<p>This lesson lays out the engineering answer. It starts with the three core challenges that make LLM development different from ordinary software — you do not understand the data flowing through your system, you cannot fully specify what you want in a prompt, and behaviour is inconsistent across near-identical inputs. It then presents evaluations organised into three levels of increasing cost: unit tests you run on every change, human and model evaluation you run weekly, and A/B tests you run on major releases.</p>
+<p>The centrepiece is the alignment process: how to build an LLM judge that actually agrees with a domain expert, measured by an agreement score you drive upward through iteration. This is the step nearly everyone skips in favour of an off-the-shelf tool with a pretty dashboard, and skipping it is what produces confident metrics that mean nothing.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Three core challenges define LLM development: not understanding your data at scale, the gap between what you want and what you can specify, and inconsistent behaviour on similar inputs.</li><li>An eval is a systematic measurement of quality — a single metric for a specific aspect. One system has many evals.</li><li>Evals are operationalised three ways: background monitoring, real-time guardrails, and improvement tooling for labelling and fine-tuning data.</li><li>The analyze → measure → improve cycle is the working loop: collect and categorise failures, turn them into metrics, then change prompts, models, or architecture.</li><li>Level 1 is unit tests — fast, cheap assertions run on every code and prompt change.</li><li>Level 2 is human and model evaluation — systematic review run weekly or bi-weekly. Humans must come first; the LLM judge is aligned to them, never the reverse.</li><li>Level 3 is A/B testing with real users, reserved for major releases because of its cost.</li><li>The agreement score between human and model critique is the metric you optimise; meta-prompting can rewrite the judge prompt to raise it.</li><li>Reference-based metrics compare to a known correct answer; reference-free metrics score qualities like tone or safety where many answers are valid.</li><li>The four common mistakes are tool-first thinking, generic-metrics obsession, avoiding your data, and unaligned judges.</li></ul>
+  </div>
+</section>
+<section id="the-questions-evaluations-exist-to-answer-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The questions evaluations exist to answer</h2>
+      <a class="stamp" href="#" data-t="124">2:04</a>
+    </div>
+  </div>
+  <p class="summary">Every engineer building on LLMs eventually hits a wall of questions that logs alone cannot answer.</p>
+  <p>Start with the questions, because they make the need concrete. What happens if I adjust the system prompt? How do I know if my RAG pipeline is working correctly? Is the classification step right? Beyond factual accuracy, is the tone of voice on point? How will this behave on real user inputs we have not seen? Are we catching unsafe or problematic outputs? How do I know when performance is degrading in production? Is the system robust enough to flag prompt injections?</p>
+<p>If you build a workflow, put it in production, and let it run, you have no principled way to answer any of these. A tracing platform helps — you can inspect what happened after something goes wrong — but that only lets you react to issues as they surface.</p>
+<p>The deeper problem is regression. When you change a system prompt to fix one case, how do you know you have not opened holes elsewhere, for other cases and other data flowing through the system? Reactive log-reading cannot tell you that, because you would have to notice the new failure first. Evaluations give you a fixed set of cases you re-run after every change, which is what converts &#x27;I fixed it&#x27; into &#x27;I fixed it and nothing else broke&#x27;.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Tracing platforms let you diagnose issues reactively, after they surface — necessary but not sufficient.</li><li>The hard question is regression: does fixing one case break others you are not watching?</li><li>LLMs are non-deterministic, context-sensitive, and a response can be factually correct while the tone is wrong.</li><li>A question can have many valid answers, and failure modes are subtle and hard to predict.</li><li>An LLM application is never truly finished — there is always a further prompt optimisation available.</li></ul></div>
+  <figure class="example">
+  <figcaption>The regression you cannot see</figcaption>
+  <p>A customer reports that billing tickets are misrouted. You add a line to the system prompt emphasising billing keywords, confirm the reported ticket now routes correctly, and ship. Two weeks later, technical tickets containing the word &#x27;charge&#x27; — as in &#x27;my device will not charge&#x27; — are being sent to billing. Nothing alerted you, because you only ever re-checked the case you were fixing.</p>
+  
+</figure>
+</section>
+<section id="the-three-core-challenges-of-llm-development-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>The three core challenges of LLM development</h2>
+      <a class="stamp" href="#" data-t="292">4:52</a>
+    </div>
+  </div>
+  <p class="summary">Understanding your data, closing the specification gap, and coping with inconsistent behaviour — these are what evaluation exists to address.</p>
+  <p>Drilling into why this is hard produces three distinct sub-problems.</p>
+<p>First, understanding the data. When you build a workflow you test isolated, simple examples — the happy path, the way you imagine users will behave. At scale it is drastically different, because users are unpredictable. You genuinely do not know what people are asking, how your system is responding, or what the edge cases are until you look.</p>
+<p>Second, the specification gap. There is always a distance between what you want the system to do and what you can actually express in prompts and code. You know a good output when you see it; translating that recognition into clear instructions is surprisingly hard. And when you spot a bad answer, attributing it is its own problem — was it a prompting issue, a retrieval issue, a combination, or an error in your pipeline logic? You need to be able to tell those apart to close the gap.</p>
+<p>Third, inconsistent behaviour. The system works on your test cases and behaves unpredictably on real inputs. Small changes in wording lead to completely different outputs, which makes the product feel unreliable. Subtle differences in how a question is phrased or a document is formatted can change everything.</p>
+<p>Because of these, success depends on how fast you can iterate — and that in turn rests on three capabilities: evaluation quality (systematic measurement through automated tests, human evaluation, and success metrics), debugging ability (trace logging, data inspection, error analysis), and the ability to change behaviour based on what you learned. Most teams only build the third, which is exactly why they never improve past the demo. All three together create a virtuous improvement cycle.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Understanding the data: you test the happy path; real usage at scale is drastically different and users are unpredictable.</li><li>The specification gap: you recognise a good output but cannot fully express what makes it good in a prompt.</li><li>Attribution is part of the gap — was the failure prompting, retrieval, or pipeline logic?</li><li>Inconsistent behaviour: small wording changes produce completely different outputs.</li><li>Success rests on three capabilities — evaluation quality, debugging, and the ability to change behaviour. Most teams build only the last.</li></ul></div>
+  <figure class="example">
+  <figcaption>Attribution in a RAG pipeline</figcaption>
+  <p>A customer gets a wrong answer about a refund window. There are at least three distinct causes with three distinct fixes, and you cannot tell them apart without instrumenting each stage.</p>
+  <pre><code>Bad answer observed
+  |
+  +-- Retrieval returned the wrong policy document?
+  |     -&gt; fix chunking / embeddings / reranking
+  |
+  +-- Right document retrieved, model ignored it?
+  |     -&gt; fix the prompt&#x27;s grounding instructions
+  |
+  +-- Right document, right reading, wrong arithmetic?
+        -&gt; move the computation out of the model</code></pre>
+</figure>
+</section>
+<section id="what-an-eval-is-and-the-analyze-measure-improve-cycle-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>What an eval is, and the analyze-measure-improve cycle</h2>
+      <a class="stamp" href="#" data-t="541">9:01</a>
+    </div>
+  </div>
+  <p class="summary">An eval is a systematic measurement of one specific quality aspect; the working loop is collect failures, turn them into metrics, then improve.</p>
+  <p>The definition is deliberately plain: an evaluation is a systematic measurement of quality in an AI system. An individual eval is a single metric measuring one specific aspect of performance — and one system has many of them. You might separately check responses for factual accuracy, tone appropriateness, instruction-following, and output-format compliance.</p>
+<p>Evals get operationalised in three ways. As background monitoring, tracking performance over time. As guardrails, blocking bad outputs in real time. And as improvement tools, labelling data for fine-tuning or building custom test suites.</p>
+<p>The lifecycle for applying them — a mental model drawn from work by Hamel Husain and Shreya Shankar on application-centric AI evals for engineers and technical PMs — is analyze, measure, improve. Analyze: collect examples of what is flowing through your system and categorise the failure modes. In the real world these arrive as user complaints, errors you spot while reading data, or outright application errors like crashes and outputs that failed to store. Measure: translate those insights into quantitative metrics, which can be as simple as a boolean pass/fail, or scores and rankings on a 0–1 or 1–10 scale. Improve: refine prompts, try different models, change the architecture.</p>
+<p>Then you go round again. The cycle is what addresses all three core challenges at once, and running it repeatedly is what creates a flywheel of continuous improvement rather than a series of one-off fixes.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>An eval is a systematic measurement of quality; a single eval measures one specific aspect, and a system has many.</li><li>Three operationalisations: background monitoring, real-time guardrails, and improvement tooling for labelling and datasets.</li><li>Analyze: collect real examples and categorise failure modes from complaints, data inspection, and application errors.</li><li>Measure: turn insights into quantitative metrics — booleans first, scores and rankings later.</li><li>Improve: refine prompts, swap models, change architecture — then repeat the cycle.</li></ul></div>
+  <figure class="example">
+  <figcaption>One system, many evals</figcaption>
+  <p>A single support workflow carries several independent measurements, each answering a different question about the same response.</p>
+  <pre><code>evals = {
+    &quot;format_valid&quot;:     lambda r: r.category in CATEGORIES,
+    &quot;has_response&quot;:     lambda r: len(r.response) &gt; 10,
+    &quot;factually_correct&quot;: judge_factual,     # LLM judge
+    &quot;tone_appropriate&quot;:  judge_tone,        # LLM judge
+    &quot;no_pii_leaked&quot;:     regex_pii_check,   # guardrail
+}</code></pre>
+</figure>
+</section>
+<section id="level-1-unit-tests-as-evals-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Level 1: unit tests as evals</h2>
+      <a class="stamp" href="#" data-t="746">12:26</a>
+    </div>
+  </div>
+  <p class="summary">Fast, cheap Python assertions over structured output, run on every code and prompt change.</p>
+  <p>Level 1 is the cheapest tier and should run constantly — on every code change and every prompt change. These are ordinary unit tests, the same kind any serious software project has, applied to an LLM workflow.</p>
+<p>The mechanism is Python&#x27;s assert. Everything after the keyword must evaluate to true; if it does, execution continues silently, and if it is false, Python raises an AssertionError you can catch and report.</p>
+<p>The most productive place to apply this is structured output, because structured output gives you fields with types and allowed values that you can assert against deterministically. Take a support ticket: &#x27;My credit card was charged twice this month.&#x27; Your workflow classifies it and returns a category plus a confidence score. You can now assert that the category is one of your known categories, that the confidence is a float, that it lies between 0 and 1, and — specific to this input — that the category is billing.</p>
+<p>Organise these as an evals folder containing raw event JSON captured from your actual system. This is why capturing raw events matters so much: those files become your test fixtures. As your workflow grows to five or ten steps, you can assert at every step — the classification, the routing decision, the confidence on the structured object, the generated answer, the success flag from the final API call.</p>
+<p>What should you test? The failure modes. When you hit an error and diagnose it, write a test that pins it down so it can never recur silently. Start with a simple loop and a print-based report; move to pytest when you want a proper runner.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Fast, cheap assertions run on every code and prompt change — the tier you run most often.</li><li>Python&#x27;s assert passes silently on true and raises AssertionError on false.</li><li>Structured output is the natural target: assert on allowed values, types, and ranges.</li><li>Keep an evals folder of raw event JSON captured from your real system — this is why capturing raw events matters.</li><li>Assert at every step of a multi-step workflow, not just the final output.</li><li>What to test comes from your failure modes: when something breaks, write the test that catches it next time.</li></ul></div>
+  <figure class="example">
+  <figcaption>Assertions over a classification step</figcaption>
+  <p>Load a real captured event, run the workflow, and assert the properties that must hold. The generic checks catch schema drift; the specific check pins this ticket&#x27;s expected routing.</p>
+  <pre><code>import json
+from pathlib import Path
+
+CATEGORIES = {&quot;billing&quot;, &quot;technical&quot;, &quot;general&quot;}
+
+def load_event(name):
+    return json.loads(Path(f&quot;evals/events/{name}.json&quot;).read_text())
+
+def test_billing_categorization():
+    event = load_event(&quot;billing_double_charge&quot;)
+    result = process_customer_message(event[&quot;message&quot;])
+
+    # generic invariants - catch schema drift
+    assert result.category in CATEGORIES
+    assert isinstance(result.confidence, float)
+    assert 0.0 &lt;= result.confidence &lt;= 1.0
+    assert len(result.response) &gt; 10
+
+    # input-specific expectation
+    assert result.category == &quot;billing&quot;</code></pre>
+</figure><figure class="example">
+  <figcaption>A minimal test runner</figcaption>
+  <p>Before reaching for pytest, this is enough to get value. It reports which scenarios passed and shows the assertion that failed.</p>
+  <pre><code>TESTS = [
+    test_billing_categorization,
+    test_feature_request_categorization,
+    test_support_categorization,
+]
+
+passed = 0
+for test in TESTS:
+    try:
+        test()
+        print(f&quot;PASS  {test.__name__}&quot;)
+        passed += 1
+    except AssertionError as e:
+        print(f&quot;FAIL  {test.__name__}: {e}&quot;)
+
+print(f&quot;\n{passed}/{len(TESTS)} tests passed&quot;)</code></pre>
+</figure><figure class="example">
+  <figcaption>Asserting through a multi-step workflow</figcaption>
+  <p>As the cognitive architecture grows, each stage gets its own assertion inside the same test, so a failure localises to a step.</p>
+  <pre><code>def test_billing_end_to_end():
+    event = load_event(&quot;billing_double_charge&quot;)
+
+    classified = classify(event)
+    assert classified.category == &quot;billing&quot;
+
+    routed = route(classified)
+    assert routed.handler == &quot;billing_handler&quot;
+
+    answer = generate(routed)
+    assert answer.confidence &gt; 0.5
+    assert &quot;refund&quot; in answer.response.lower()
+
+    sent = deliver(answer)
+    assert sent.success is True</code></pre>
+</figure>
+</section>
+<section id="level-2-humans-first-then-an-aligned-model-judge-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Level 2: humans first, then an aligned model judge</h2>
+      <a class="stamp" href="#" data-t="1075">17:55</a>
+    </div>
+  </div>
+  <p class="summary">The common misconception is that you can hand evaluation straight to an LLM. You cannot instruct a model to review what you have not learned to review yourself.</p>
+  <p>Level 2 is systematic review of quality, run weekly or bi-weekly depending on system size. It is where most of the value lives and where the most common mistake is made.</p>
+<p>The misconception is that you plug in an eval tool, give an LLM some instructions, and let it monitor your whole system. That is the dream, and it is what you should avoid at all cost in the beginning. The reason is straightforward: how can you instruct a model to perform a review when you have no idea what to look for or how to score these inputs and outputs? Your eval must be aligned with how a human — ideally a domain expert — reads the data.</p>
+<p>So humans come first. Look at as much data as possible initially, and involve both an engineer, who needs to understand what is flowing through the system, and domain experts, who know what good means in the business context. Remove all friction from viewing data: build simple dashboards, or just use a spreadsheet, which goes a long way. Save good examples for later reference.</p>
+<p>Only once you have a feel for how a human evaluates your system do you turn to an LLM judge. Use the most capable model you can afford — this is not the job for a cheap small model. Focus on specific quality dimensions rather than a single overall score, start with binary good/bad, and always generate detailed critiques rather than bare scores, so the model explains why.</p>
+<p>And this never fully ends. Your system and data will drift over time — through prompt changes, data changes, new features, different users — so what &#x27;good&#x27; means shifts too. Human and model evaluation go hand in hand permanently; you track human-model agreement over time rather than declaring the judge finished after two weeks.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Run systematic review weekly or bi-weekly; it costs more than level 1 because humans spend time on it.</li><li>You cannot skip the human step — you cannot write instructions for a review you have not learned to perform.</li><li>Involve both engineers (to understand the data flow) and domain experts (to know what good means).</li><li>Remove all friction from viewing data; a spreadsheet is a legitimate and effective tool.</li><li>Use the most capable model you can afford as the judge, focus on specific dimensions, and start binary.</li><li>Always generate detailed critiques, not just scores.</li><li>Drift is permanent — what good looks like changes, so track human-model agreement continuously.</li></ul></div>
+  <figure class="example">
+  <figcaption>A judge prompt with a required critique</figcaption>
+  <p>Binary outcome, explicit criteria, and an explanation the human can audit. Start here rather than with a five-metric scoring rubric.</p>
+  <pre><code>JUDGE = &quot;&quot;&quot;Evaluate this customer service response on these criteria:
+
+- accuracy:    are the facts correct?
+- helpfulness: does it solve the customer&#x27;s problem?
+- tone:        is it professional and empathetic?
+
+&lt;question&gt;{question}&lt;/question&gt;
+&lt;response&gt;{response}&lt;/response&gt;
+
+Provide a detailed critique explaining your reasoning,
+then rate 1 (good) or 0 (bad).
+&quot;&quot;&quot;
+
+class Critique(BaseModel):
+    explanation: str
+    outcome: bool</code></pre>
+</figure>
+</section>
+<section id="the-alignment-process-and-the-agreement-score-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>The alignment process and the agreement score</h2>
+      <a class="stamp" href="#" data-t="1367">22:47</a>
+    </div>
+  </div>
+  <p class="summary">Run model critique and human critique in parallel over the same rows, score the match, and iterate the judge prompt until agreement climbs.</p>
+  <p>This is the most fundamental component of improving an LLM application over time, and almost everyone skips it.</p>
+<p>The process: collect model predictions, generate model critiques, get human evaluations on the same data, compare model versus human judgements, iterate on the evaluator prompt, and repeat until agreement is sufficient.</p>
+<p>Concretely, it is a spreadsheet. Column A holds inputs — ideally real questions captured from your system, though synthetic data generated by an LLM is a fine starting point if you do not yet have a hundred real ones. Column B holds the output your workflow produced for each. Column C is the model critique: loop the input-output pairs through your judge prompt with structured output, storing both the explanation and a boolean outcome. In parallel — and this is the essential part — a human reviews the same pairs and records their own critique and outcome. A final column checks whether the two match: 1 if the human and model outcomes agree, 0 if they do not.</p>
+<p>The mean of that column is your agreement score. In the worked example it starts at 70% across ten rows. Whether that is good depends on your system, but you want it as high as you can drive it.</p>
+<p>Now iterate — and note carefully that the human critique stays fixed. It is your golden standard, the thing you are optimising toward. What changes is the judge prompt. You can tweak it by hand, or use meta-prompting, which is the more powerful option: export the dataset, show a strong model the inputs, outputs, human critiques, model outcomes, the current agreement score, and the current judge prompt, then ask it to rewrite the prompt to maximise agreement. The model spots patterns in what the human cared about and folds them into the judge prompt. Re-run, record the new agreement score, and repeat.</p>
+<p>This is much closer to how data scientists and ML engineers work than to ordinary software engineering: continuous experiments, moving a metric by percentage points, requiring you to understand the nuances of what is actually happening in your system.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The loop: model critiques and human critiques on the same rows, compared, with the judge prompt iterated until they agree.</li><li>The human critique is the fixed golden standard; the judge prompt is what you change.</li><li>Agreement score = the fraction of rows where the human and model outcomes match.</li><li>Meta-prompting — showing a strong model the mismatches and the current judge prompt, and asking it to rewrite for higher agreement — is the powerful way to iterate.</li><li>Real captured inputs are best, but LLM-generated synthetic examples are a legitimate starting point.</li><li>This resembles ML experimentation more than software engineering: move a metric through repeated experiments.</li></ul></div>
+  <figure class="example">
+  <figcaption>The alignment spreadsheet</figcaption>
+  <p>Ten rows, two independent critiques, and one derived column. The 70% at the bottom is the number every iteration tries to raise.</p>
+  <pre><code>| # | input              | output          | model | human | match |
+|---|--------------------|-----------------|-------|-------|-------|
+| 1 | order 3 days late  | I understand... | 1     | 1     | 1     |
+| 2 | cancel subscription| Sure, here...   | 1     | 1     | 1     |
+| 3 | charged twice      | Let me check... | 1     | 0     | 0     |
+| 4 | where is my refund | Refunds take... | 0     | 0     | 1     |
+| 5 | wrong size sent    | Apologies...    | 1     | 1     | 1     |
+|...|                    |                 |       |       |       |
+
+agreement score = 7/10 = 70%</code></pre>
+</figure><figure class="example">
+  <figcaption>A human critique that the model missed</figcaption>
+  <p>Row 3 is where the judge and the domain expert diverge, and the human&#x27;s reasoning is exactly the signal meta-prompting needs to fold into the next judge prompt.</p>
+  <pre><code>Human critique (outcome: BAD):
+  &quot;This response is too casual for a 3-day delay. The customer
+   said &#x27;late&#x27;, which implies frustration. It should acknowledge
+   that the delay is unacceptable, show more urgency, and
+   proactively offer to discuss compensation.&quot;
+
+Model critique (outcome: GOOD):
+  &quot;The response is polite, acknowledges the issue, and asks for
+   the order number to investigate further.&quot;
+
+-&gt; The judge has no notion that delay severity should change tone.</code></pre>
+</figure><figure class="example">
+  <figcaption>The meta-prompt that rewrites your judge</figcaption>
+  <p>Rather than guessing at prompt edits, hand the discrepancies to a strong model and let it find the pattern in the human&#x27;s preferences.</p>
+  <pre><code>Below are 10 input/output pairs from our support system.
+
+For each I have included:
+  - the human expert&#x27;s critique and outcome (the gold standard)
+  - our current LLM judge&#x27;s critique and outcome
+
+Current agreement: 70%.
+
+Here is the judge prompt we are currently using:
+&lt;current_prompt&gt;{judge_prompt}&lt;/current_prompt&gt;
+
+Study the rows where the judge disagreed with the human. Identify
+what the human consistently cares about that the judge misses.
+Rewrite the judge prompt so that re-running it on this data would
+reach as close to 100% agreement as possible. Do not overfit to
+individual rows - encode the general principle.</code></pre>
+</figure><figure class="example">
+  <figcaption>Computing the agreement score</figcaption>
+  <p>The metric itself is trivial. The work is in producing the two columns honestly.</p>
+  <pre><code>def agreement_score(rows):
+    matches = sum(1 for r in rows
+                  if r[&quot;human_outcome&quot;] == r[&quot;model_outcome&quot;])
+    return matches / len(rows)
+
+for i, prompt in enumerate(judge_prompt_versions, 1):
+    rows = run_judge(dataset, prompt)
+    print(f&quot;iteration {i}: {agreement_score(rows):.0%}&quot;)
+
+# iteration 1: 70%
+# iteration 2: 80%
+# iteration 3: 90%</code></pre>
+</figure>
+</section>
+<section id="level-3-a-b-testing-with-real-users-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Level 3: A/B testing with real users</h2>
+      <a class="stamp" href="#" data-t="1906">31:46</a>
+    </div>
+  </div>
+  <p class="summary">The trickiest and most expensive level — compare prompts, models, or whole workflows by their effect on real business outcomes.</p>
+  <p>Level 3 runs experiments with real users to measure business impact, reserved for major releases because of its cost. You use it to compare different prompts, different models, or entirely different workflows.</p>
+<p>The cost is high because you need enough data for the comparison to mean anything. Running five examples and concluding &#x27;I think option B is better&#x27; is not an experiment. You want volume, which takes time and exposes real users to the variant.</p>
+<p>There is a practical middle ground worth knowing. You can run the comparison internally against your own evaluation harness — compare two system prompts by the overall good/bad rate from your human column, or later from your aligned judge — without wiring up a full user-satisfaction system. In the worked example the human scores give a 60% good rate, and a competing prompt can be measured against that same set. This gives you most of the decision value at a fraction of the cost.</p>
+<p>Full A/B testing embedded in the application, with users giving satisfaction ratings or thumbs up/down, is genuinely hard to implement, and it only really makes sense once your application is mature and has enough users that small prompt changes matter. The metrics at this level are business metrics: user satisfaction score, task completion rate, time to resolution, engagement, and ultimately sales and retention.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Level 3 measures business impact with real users, reserved for major releases because it is costly.</li><li>It requires enough data to be meaningful — a handful of examples is not an experiment.</li><li>A cheaper middle ground: compare prompt variants against your own labelled set and its good/bad rate.</li><li>Full in-app A/B testing with satisfaction ratings is complex and suits mature, high-traffic applications.</li><li>Metrics here are business metrics: satisfaction, task completion, time to resolution, engagement, retention.</li></ul></div>
+  <figure class="example">
+  <figcaption>Offline prompt comparison before any user sees it</figcaption>
+  <p>Run two prompt variants over the same fixed dataset and compare their good rates using the judge you already aligned. Most decisions can be made here.</p>
+  <pre><code>def good_rate(prompt, dataset, judge):
+    outputs = [run_workflow(row[&quot;input&quot;], prompt) for row in dataset]
+    verdicts = [judge(o) for o in outputs]
+    return sum(v.outcome for v in verdicts) / len(verdicts)
+
+baseline = good_rate(PROMPT_V1, dataset, aligned_judge)  # 0.60
+variant  = good_rate(PROMPT_V2, dataset, aligned_judge)  # 0.75
+
+print(f&quot;baseline {baseline:.0%} -&gt; variant {variant:.0%}&quot;)</code></pre>
+</figure>
+</section>
+<section id="reference-based-versus-reference-free-metrics-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Reference-based versus reference-free metrics</h2>
+      <a class="stamp" href="#" data-t="2069">34:29</a>
+    </div>
+  </div>
+  <p class="summary">When you know the correct answer, testing is easy; when many answers are valid, you score qualities instead.</p>
+  <p>Metrics divide into two categories, and knowing which one you are in tells you how hard the measurement will be.</p>
+<p>Reference-based metrics apply when you know the golden answer — you know what the output should be, so you compare against it. Exact string matching, semantic similarity, code execution results, SQL query correctness, and structured data validation all fall here. These are comparatively easy to implement, and much of this can be captured at level 1 with unit tests.</p>
+<p>Reference-free metrics apply when you do not know exactly what the correct output should be, or when many outputs are legitimately correct. Answering a customer query has effectively infinite good answers, differing in tone, length, and structure. Here you score qualities instead: tone appropriateness, length constraints, absence of hallucination, format compliance, safety and toxicity. These are typically scored on a scale — 0 to 1, or 1 to 5 — where the top of the scale means a perfect match to how you feel the output should be.</p>
+<p>In the real world you will find yourself working with reference-free metrics a great deal, which is precisely why the LLM-as-a-judge machinery and its alignment process matter so much. Whichever category you are in, the advice is the same: start simple, start binary, good and bad. Getting that working is challenging enough.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Reference-based: you know the correct answer — exact match, semantic similarity, code execution, SQL correctness, schema validation.</li><li>Much reference-based checking can live at level 1 as unit tests.</li><li>Reference-free: many outputs are valid — tone, length, hallucination, format compliance, safety and toxicity.</li><li>Reference-free metrics are usually scored on a 0–1 or 1–5 scale rather than pass/fail.</li><li>Real systems lean heavily on reference-free metrics, which is why judge alignment matters.</li><li>Whichever you use, start binary — good and bad is hard enough to get right.</li></ul></div>
+  <figure class="example">
+  <figcaption>Both kinds on one response</figcaption>
+  <p>The same support reply carries reference-based checks that are trivially automatable and reference-free ones that need a judge.</p>
+  <pre><code># reference-based - a known correct value exists
+assert result.category == &quot;billing&quot;
+assert result.order_id == &quot;A-10294&quot;
+assert json.loads(result.payload)          # schema valid
+
+# reference-free - many valid answers, score the quality
+tone      = judge_tone(result.response)        # 0.0 - 1.0
+grounded  = judge_no_hallucination(result)     # bool
+safe      = judge_safety(result.response)      # bool</code></pre>
+</figure>
+</section>
+<section id="four-mistakes-and-the-principles-that-avoid-them-9" class="block section">
+  <div class="section-head">
+    <span class="num">09</span>
+    <div>
+      <h2>Four mistakes, and the principles that avoid them</h2>
+      <a class="stamp" href="#" data-t="2232">37:12</a>
+    </div>
+  </div>
+  <p class="summary">Tool-first thinking, generic-metrics obsession, avoiding your data, and unaligned judges — with looking at data as the highest-value habit.</p>
+  <p>Four failure patterns recur, each with a direct fix.</p>
+<p>Tool-first thinking is reaching for a purchase instead of a diagnosis. RAG problems? Let us buy a new vector database. Accuracy issues? Let us switch to a more powerful model. Need a metric? Let us buy an eval platform with ten metrics out of the box. The fix is to start simple and build custom solutions based on what you actually need.</p>
+<p>Generic-metrics obsession is drowning in meaningless scores — helpfulness 4.2, truthfulness 4.5. What does that tell you? Nothing actionable. The fix is specific, actionable metrics built from what you want to know about your system, starting with booleans.</p>
+<p>Avoiding your data is the most consequential. It sounds like: we can use a tool for this, the LLM will check it, real users will tell us if it is broken, trust your gut, go with vibes. The fix is to look at lots of real data constantly. A principal engineer at Zapier reportedly spends three hours a day looking at traces and data — someone paid to write software who understands you cannot improve an AI system without knowing what flows through it. Engineers from a software background ignore this most often; it is closer to how data scientists work.</p>
+<p>Unaligned LLM judges is assuming the judge works without validating it. The fix is always to validate judge alignment first by bringing a human into the loop.</p>
+<p>The principles that follow: start simple and specific, focusing on your biggest problems first. Use existing tools before buying new ones. Build domain-specific evaluations, because they differ for every project. Start with unit tests and manual review — that gets you a long way. Look at lots of data; manual inspection has the highest value-to-prestige ratio, and you are doing it wrong if you are not looking at data. Sample broadly, then focus on patterns, and never stop examining real examples. Remove all friction from viewing data, build custom tools for your domain, automate repetitive tasks, and track metrics over time. And only use LLMs to scale — generating test cases, creating synthetic data, automating critique and labelling — but always validate with humans.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Tool-first thinking: buying a database, a model, or a platform instead of diagnosing. Fix: start simple, build what you need.</li><li>Generic-metrics obsession: &#x27;helpfulness 4.2&#x27; is unactionable. Fix: specific metrics, starting binary.</li><li>Avoiding your data: the most consequential mistake. Fix: look at lots of real data, constantly and forever.</li><li>Unaligned judges: assuming the judge works. Fix: validate alignment with a human first.</li><li>Manual inspection has the highest value-to-prestige ratio — unglamorous and the most useful thing you can do.</li><li>Only use LLMs to scale: generate test cases, create synthetic data, automate critique — but always validate with humans.</li></ul></div>
+  <figure class="example">
+  <figcaption>You are succeeding versus you are struggling</figcaption>
+  <p>The concrete symptoms of an evaluation-driven workflow, contrasted with its absence. This is the diagnostic to run on your own team.</p>
+  <pre><code>Succeeding                        Struggling
+--------------------------------  --------------------------------
+Deploy changes confidently        Everything breaks something else
+Failures caught before users      Surprised by user complaints
+You understand system behaviour   Progress feels like trial &amp; error
+Improvements compound over time   You cannot measure if changes help</code></pre>
+</figure><figure class="example">
+  <figcaption>The full development cycle</figcaption>
+  <p>How the levels fit together in day-to-day work: monitor, capture, isolate, fix locally, then re-run everything.</p>
+  <pre><code>1. Monitor traces / failure patterns / user feedback
+2. Capture the raw event into evals/events/
+3. Write a test that reproduces the failure   (level 1)
+4. Fix locally - prompt, model, or architecture
+5. Confirm the new test passes
+6. Re-run ALL tests - did the fix break anything?
+7. Weekly: human + judge review on fresh data  (level 2)
+8. Major release: A/B test the change          (level 3)</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Eval</dt><dd>A systematic measurement of quality in an AI system; a single eval measures one specific aspect of performance.</dd></div><div class="term"><dt>Evaluation-driven workflow</dt><dd>A development process where improvement is systematic rather than accidental, because every change is measured against a fixed set of evals.</dd></div><div class="term"><dt>Analyze–measure–improve</dt><dd>The evaluation lifecycle: collect and categorise failures, turn insights into quantitative metrics, then refine prompts, models, or architecture.</dd></div><div class="term"><dt>Specification gap</dt><dd>The distance between what you want a system to do and what you can actually express in prompts and code.</dd></div><div class="term"><dt>Assertion</dt><dd>A Python statement that passes silently when its condition is true and raises an AssertionError when false, used as the basis of level 1 evals.</dd></div><div class="term"><dt>Agreement score</dt><dd>The fraction of examples where a human&#x27;s critique outcome matches the LLM judge&#x27;s outcome; the metric you iterate the judge prompt to improve.</dd></div><div class="term"><dt>Meta-prompting</dt><dd>Asking a strong model to rewrite your judge prompt by showing it the human-model disagreements and the current prompt, so it encodes what the human cares about.</dd></div><div class="term"><dt>Reference-based metric</dt><dd>A measurement made against a known correct answer — exact match, semantic similarity, code execution, or schema validation.</dd></div><div class="term"><dt>Reference-free metric</dt><dd>A measurement of a quality where many outputs are valid — tone, length, hallucination, format compliance, safety.</dd></div><div class="term"><dt>Guardrail</dt><dd>An eval operationalised in real time to block a bad output before it reaches the user.</dd></div><div class="term"><dt>Raw event</dt><dd>The exact input payload your workflow received, captured and stored so it can later be replayed as a test fixture.</dd></div><div class="term"><dt>Drift</dt><dd>The gradual change over time in what &#x27;good&#x27; means for your system, caused by prompt changes, data changes, new features, or different users.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why can you not build an LLM judge before doing human evaluation, even though the judge would save time?</summary>
+  <div class="answer"><p>Because the judge prompt is a written specification of what to look for, and you cannot write that specification for a review you have not learned to perform. Until a human — ideally a domain expert — has read real data and formed a view of what good means, you have nothing to instruct the model with, and any metrics it produces will look rigorous while measuring the wrong thing.</p></div>
+</details><details class="q">
+  <summary>During the alignment loop, why does the human critique stay fixed while the judge prompt changes?</summary>
+  <div class="answer"><p>Because the human critique is the golden standard you are optimising toward. If you adjusted the human labels to match the model, you would be moving the target to meet the measurement, which guarantees agreement while destroying its meaning. Only the judge prompt is a free variable.</p></div>
+</details><details class="q">
+  <summary>Why is capturing raw events from production described as crucial for level 1 evals?</summary>
+  <div class="answer"><p>Because raw events are your test fixtures. Assertions need realistic inputs, and inputs you invent reflect the happy path you already imagined rather than the messy reality users produce. Stored raw events let you replay exactly what your system received when it failed, turning each incident into a permanent regression test.</p></div>
+</details><details class="q">
+  <summary>Your judge reports &#x27;helpfulness 4.2&#x27; across all outputs. Why is this an example of generic-metrics obsession, and what would be better?</summary>
+  <div class="answer"><p>Because the number is not actionable — it does not tell you what is wrong or what to change, and small movements in it are indistinguishable from noise. A better approach is specific binary metrics tied to failure modes you have actually observed, such as &#x27;did it give the customer a route to resolution?&#x27;, which points directly at a fix when it fails.</p></div>
+</details><details class="q">
+  <summary>Why does the lesson say human and model evaluation must continue permanently rather than being finished after a few weeks of alignment?</summary>
+  <div class="answer"><p>Because of drift. Prompt modifications, data changes, new features, and different users all change what good looks like over time, so a judge aligned to last quarter&#x27;s standard slowly stops measuring the current one. Tracking human-model agreement continuously is what detects that divergence before it corrupts your metrics.</p></div>
+</details><details class="q">
+  <summary>You fix a misrouted billing ticket by editing the system prompt and confirm the fixed case now works. Why is this insufficient, and what does the three-level structure add?</summary>
+  <div class="answer"><p>Because confirming the case you fixed says nothing about regressions elsewhere — the prompt change may have broken cases you are not looking at. Level 1 gives you a suite of assertions over captured events that you re-run after every change, so &#x27;I fixed it&#x27; becomes &#x27;I fixed it and the other cases still pass&#x27;.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Create an evals/events/ folder, drop in ten real captured payloads from your system, and write assertions for the structured fields each one should produce.</li><li>Run the alignment exercise on ten rows: judge critique in one column, your own critique in another, and compute the agreement score.</li><li>Take your worst-disagreeing rows and write the meta-prompt that rewrites your judge prompt, then measure whether agreement actually improved.</li><li>Convert your ad-hoc test loop to pytest so the whole eval folder runs from a single terminal command.</li><li>Audit your current metrics: for each one, ask what you would change if it moved by 10%. Delete the ones with no answer.</li><li>Block out time to read production traces with no goal other than understanding what users actually send you.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

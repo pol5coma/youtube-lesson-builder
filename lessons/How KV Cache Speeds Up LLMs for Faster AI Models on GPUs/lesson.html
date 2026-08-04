@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How KV Cache and PagedAttention Speed Up LLM Inference</title>
+<meta name="description" content="Understand why serving an LLM to many users is a memory problem, and how KV cache, PagedAttention, and vLLM&#x27;s tuning knobs turn wasted GPU memory into throughput.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#why-long-prompts-feel-slow-the-two-phases-of-llm-inference-1"><span class="n">1</span>Why Long Prompts Feel Slow: The Two Phases of LLM Inference</a></li>
+<li><a href="#the-kv-cache-trading-memory-for-compute-2"><span class="n">2</span>The KV Cache: Trading Memory for Compute</a></li>
+<li><a href="#how-naive-kv-cache-allocation-wastes-gpu-memory-3"><span class="n">3</span>How Naive KV Cache Allocation Wastes GPU Memory</a></li>
+<li><a href="#pagedattention-virtual-memory-for-the-gpu-4"><span class="n">4</span>PagedAttention: Virtual Memory for the GPU</a></li>
+<li><a href="#tuning-vllm-for-maximum-throughput-5"><span class="n">5</span>Tuning vLLM for Maximum Throughput</a></li>
+<li><a href="#speculative-decoding-spending-idle-gpu-cycles-6"><span class="n">6</span>Speculative Decoding: Spending Idle GPU Cycles</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">LLM inference optimization</span><span class="muted">IBM Technology</span></div>
+  <h1>How KV Cache and PagedAttention Speed Up LLM Inference</h1>
+  <p class="lede">Understand why serving an LLM to many users is a memory problem, and how KV cache, PagedAttention, and vLLM&#x27;s tuning knobs turn wasted GPU memory into throughput.</p>
+  <p class="muted small">For engineers who deploy or serve LLMs in production and want to understand where GPU memory and latency actually go · 27 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=o0gkdZBtwEg" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Basic understanding of the transformer attention mechanism (queries, keys, values)</li><li>Familiarity with how LLMs generate text one token at a time</li><li>Basic GPU/VRAM concepts (what GPU memory is used for during inference)</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>When an LLM API feels fast for one user and grindingly slow for a hundred, the model itself is rarely the problem. The bottleneck is almost always how the serving system manages GPU memory during inference, specifically the context the model has to keep readily available for every request it is handling at once.</p>
+<p>LLM inference splits into two phases with different bottlenecks: a compute-bound prefill phase that processes the whole prompt at once, and a memory-bound decode phase that generates one token at a time while repeatedly reading back everything generated so far. The KV cache exists to make decode cheaper by avoiding redundant recomputation, but naive implementations of that cache waste most of the memory they reserve. PagedAttention, from the open-source vLLM project, fixes that waste by applying the same virtual-memory paging trick operating systems use for RAM.</p>
+<p>This lesson walks through both phases, explains why the KV cache is a memory-for-compute trade, shows exactly how naive allocation wastes 60-80% of that memory, and covers the practical vLLM settings — GPU memory utilization, prefix caching, chunked prefill, and speculative decoding — that convert PagedAttention&#x27;s efficiency into real throughput and latency gains you can configure today.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>LLM inference has two distinct phases: prefill (compute-bound, processes the whole prompt at once) and decode (memory-bound, generates one token at a time).</li><li>The KV cache avoids recomputing attention keys and values for every prior token at each generation step, trading GPU memory for compute.</li><li>Model weights alone can consume the majority of a GPU&#x27;s memory, leaving a small, fixed budget that every concurrent request&#x27;s KV cache has to share.</li><li>Naive fixed-block KV cache allocation reserves memory for the worst-case sequence length per request, and research cited in the video puts the resulting waste at 60-80% of the KV cache budget.</li><li>PagedAttention applies OS-style virtual memory paging — small fixed-size, non-contiguous pages plus a block table — to eliminate internal fragmentation, external fragmentation, and duplicate storage of shared prefixes.</li><li>Prefix caching and chunked prefill are practical vLLM settings that reuse KV cache across requests sharing a prompt and stop long prefills from stalling in-flight decode work, respectively.</li><li>Speculative decoding spends otherwise-idle GPU compute during decode to draft and verify multiple tokens per step, cutting latency without changing output quality, and is most useful at low-to-moderate concurrency.</li></ul>
+  </div>
+</section>
+<section id="why-long-prompts-feel-slow-the-two-phases-of-llm-inference-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Why Long Prompts Feel Slow: The Two Phases of LLM Inference</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">Serving an LLM exposes two different bottlenecks: a compute-bound prefill phase before the first token, and a memory-bound decode phase for every token after that.</p>
+  <p>When you send a prompt to an LLM API, there is a pause before the first token appears, then tokens stream back quickly. That pause is the prefill phase: the model runs every token of your input through every transformer layer at once to build the internal representation, the attention keys and values, that it needs before it can generate anything. Prefill is compute-bound: the GPU&#x27;s matrix-multiply units are the limiting factor, and the time it takes scales with prompt length and model size, not with how many other users happen to be active.</p>
+<p>Once prefill finishes, the model enters the decode phase: it generates one output token at a time, and after each token it must attend over every token that came before it, the original prompt plus everything generated so far. Because decode only computes one new token&#x27;s worth of math per step, the GPU&#x27;s compute units are mostly idle during this phase; the real bottleneck is how fast the GPU can read the stored context back out of memory. That is why decode is memory-bound rather than compute-bound.</p>
+<p>This split matters because it changes what &quot;more users&quot; actually costs. Adding concurrent users mostly adds parallel compute work during prefill, which GPUs handle well. But it also multiplies the amount of context that has to sit resident in GPU memory simultaneously, one growing context per active request, during decode. When that memory becomes fragmented, full, or has to be recomputed, decode latency is what degrades first, visible as slower token streaming rather than a slower initial load.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Prefill processes the entire input prompt in one pass and is limited by GPU compute throughput.</li><li>Decode generates one token at a time and is limited by GPU memory bandwidth, not raw compute.</li><li>Time-to-first-token is dominated by prefill; the cadence of streaming tokens afterward is dominated by decode.</li><li>More concurrent users mainly stress decode, because each user&#x27;s growing context must stay resident in GPU memory at the same time as everyone else&#x27;s.</li></ul></div>
+  <figure class="example">
+  <figcaption>Spotting the two phases from the outside</figcaption>
+  <p>Call an LLM API with a 2,000-token prompt and time it: the delay before the first streamed token is prefill; the token-by-token cadence after that is decode. Doubling the prompt length roughly doubles prefill time, but barely changes the per-token decode rate, because decode work depends on how much context must be read at each step, which grows far more slowly per step than the one-time cost of encoding the whole prompt.</p>
+  
+</figure>
+</section>
+<section id="the-kv-cache-trading-memory-for-compute-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>The KV Cache: Trading Memory for Compute</h2>
+      <a class="stamp" href="#" data-t="173">2:53</a>
+    </div>
+  </div>
+  <p class="summary">Attention needs a query, key, and value for every token at every layer; caching the keys and values means each new token only computes its own instead of recomputing history.</p>
+  <p>At every transformer layer, each token produces three vectors: a query (what am I looking for), a key (what do I contain, for others to match against), and a value (what I actually contribute if matched). Attention for a given token compares its query against the keys of all preceding tokens to get relevance weights, then combines their values using those weights.</p>
+<p>Autoregressive generation means the model produces its response one token at a time, and attention is causal: each token can only attend to itself and everything before it, never to future tokens. Naively, generating token 1000 would require recomputing the keys and values for tokens 1 through 999 all over again, even though those vectors never change once computed. Repeating that recomputation at every one of n generation steps makes total attention work grow quadratically with response length.</p>
+<p>The KV cache removes that redundancy: once a token&#x27;s key and value vectors are computed, they are stored in GPU memory. Each new token only computes its own key, value, and query, then attends over the cached key/value history of everything before it. This turns a quadratic recomputation problem into a linear one, at the cost of memory instead of compute. That trade only pays off because spending GPU memory is far cheaper than repeating a full forward pass through every transformer layer for every prior token, on every step.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Every token produces a query, key, and value vector at each transformer layer.</li><li>Causal attention means token N only attends to tokens 1..N, never to tokens after it.</li><li>Without caching, generating token N re-derives the keys and values of all N-1 prior tokens, at every step.</li><li>The KV cache stores keys and values once computed, so later tokens only compute their own.</li><li>This converts per-response attention compute from quadratic to linear, at the cost of GPU memory instead.</li></ul></div>
+  <figure class="example">
+  <figcaption>Naive recomputation versus a KV cache</figcaption>
+  <p>Pseudocode contrasting a naive decode loop, which reruns attention over the full prefix at every step, against a cached loop, which only computes the new token&#x27;s K/V/Q and appends to a running cache. The naive version does O(n) work per step for n steps (O(n^2) total); the cached version does O(1) new work per step plus a cheap read of the cache.</p>
+  <pre><code># Naive: recompute keys/values for every prior token at every step
+def generate_naive(tokens, model):
+    output = []
+    for i in range(len(tokens), MAX_LEN):
+        # recomputes K, V for ALL tokens seen so far, every single step
+        keys, values = model.compute_kv(tokens)
+        query = model.compute_query(tokens[-1])
+        next_token = model.attend_and_predict(query, keys, values)
+        tokens.append(next_token)
+        output.append(next_token)
+    return output
+
+# With a KV cache: only compute K/V for the newest token
+def generate_cached(tokens, model):
+    output = []
+    kv_cache = model.compute_kv(tokens)  # prefill: build cache once
+    for i in range(len(tokens), MAX_LEN):
+        query = model.compute_query(tokens[-1])
+        # only this token&#x27;s K, V are computed and appended
+        new_k, new_v = model.compute_kv([tokens[-1]])
+        kv_cache.append(new_k, new_v)
+        next_token = model.attend_and_predict(query, kv_cache.keys, kv_cache.values)
+        tokens.append(next_token)
+        output.append(next_token)
+    return output</code></pre>
+</figure>
+</section>
+<section id="how-naive-kv-cache-allocation-wastes-gpu-memory-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>How Naive KV Cache Allocation Wastes GPU Memory</h2>
+      <a class="stamp" href="#" data-t="260">4:20</a>
+    </div>
+  </div>
+  <p class="summary">Weights alone can eat most of a GPU&#x27;s memory, and traditional serving systems reserve a fixed worst-case block of the remainder for every request, wasting most of it.</p>
+  <p>Model weights already claim a large share of GPU memory before a single request arrives. A 13-billion-parameter model like Llama 13B needs about 26 GB just to hold its weights on a 40 GB A100 card, roughly 65% of the card, because each parameter typically needs 2 bytes in FP16. That leaves only about 35% (around 14 GB) for everything else, most importantly the KV cache shared across every concurrently active request.</p>
+<p>Traditional serving systems allocate that remaining memory naively: they pre-allocate a fixed, contiguous block per request sized to the maximum possible sequence length, say 2,048 tokens, regardless of how long the request actually turns out to be. If the average user sends 200 tokens and gets 300 back (500 tokens total), but the system reserved room for 2,048, then 1,500 tokens&#x27; worth of memory sits empty and unusable by any other request for the entire lifetime of that request.</p>
+<p>The video cites research showing this pattern wastes 60-80% of the KV cache memory budget. That is memory that could have served additional concurrent requests but instead sits idle, capping how many users a single GPU can actually serve, which is exactly the pattern of GPU memory spiking and throughput tanking as concurrency rises, even though most of that memory is not doing useful work.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Model weights alone can consume the majority of GPU memory (about 65% for a 13B model on a 40 GB GPU).</li><li>Naive serving reserves a fixed block per request sized to the maximum possible output length, not actual usage.</li><li>Reserved-but-unused memory cannot be lent to other concurrent requests while it sits idle.</li><li>Reported waste from this fixed-block approach is 60-80% of the KV cache memory budget.</li></ul></div>
+  <figure class="example">
+  <figcaption>Computing reserved-but-wasted memory for one request</figcaption>
+  <p>A simple calculation showing how much of a per-request KV cache reservation goes unused when the system reserves for the maximum context length instead of the actual token count.</p>
+  <pre><code>max_context_tokens = 2048
+actual_prompt_tokens = 200
+actual_output_tokens = 300
+actual_used_tokens = actual_prompt_tokens + actual_output_tokens  # 500
+
+reserved_but_unused = max_context_tokens - actual_used_tokens  # 1548 tokens
+waste_fraction = reserved_but_unused / max_context_tokens
+
+print(f&quot;Unused tokens reserved: {reserved_but_unused}&quot;)   # 1548
+print(f&quot;Fraction wasted: {waste_fraction:.0%}&quot;)            # 76%
+# This single-request estimate lands inside the 60-80% waste range
+# reported for naive fixed-block KV cache allocation.</code></pre>
+</figure>
+</section>
+<section id="pagedattention-virtual-memory-for-the-gpu-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>PagedAttention: Virtual Memory for the GPU</h2>
+      <a class="stamp" href="#" data-t="348">5:48</a>
+    </div>
+  </div>
+  <p class="summary">PagedAttention borrows the OS trick of paging: it splits KV cache into small fixed-size blocks that can live anywhere in memory, addressed through a lightweight lookup table.</p>
+  <p>Naive KV cache allocation wastes memory in three specific ways. Internal fragmentation reserves an entire hotel floor, the maximum sequence length, for a guest who only needs one room. External fragmentation happens when variable-length allocations leave gaps between them: a new request needing 500 tokens&#x27; worth of memory might find enough total free memory scattered around, but no single contiguous region big enough to hold it. Redundant duplication happens when an identical system prompt is stored separately in every concurrent request&#x27;s KV cache instead of once.</p>
+<p>PagedAttention fixes all three at once by applying the same insight operating systems use for RAM: virtual memory paging. Instead of one contiguous block per request, KV cache is split into small, fixed-size pages, 16 tokens each by default. Pages are allocated on demand as generation proceeds and can live anywhere in physical GPU memory, non-contiguous. A lightweight block table, the GPU equivalent of an OS page table, maps each request&#x27;s logical sequence of pages, what the model sees, to wherever those pages actually sit in VRAM.</p>
+<p>This design removes internal fragmentation, because a request only holds as many pages as it currently needs rather than the theoretical maximum. It removes external fragmentation, because free pages of the same fixed small size can be reused anywhere, with no contiguous run required. And it enables prefix caching (covered next), because the block table can point more than one request&#x27;s logical sequence at the very same physical page instead of duplicating it.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Internal fragmentation: reserving max-length memory for a request that ends up using far less of it.</li><li>External fragmentation: enough total free memory exists, but no single contiguous region is large enough for a new allocation.</li><li>Redundant duplication: an identical shared prefix, such as a system prompt, gets stored separately for every request that uses it.</li><li>PagedAttention splits KV cache into fixed-size pages, 16 tokens by default, allocated on demand rather than reserved up front.</li><li>A block table maps logical page addresses (what the model sees) to physical addresses (where data actually lives in VRAM), the same indirection an OS uses for virtual memory.</li></ul></div>
+  <figure class="example">
+  <figcaption>A block table in miniature</figcaption>
+  <p>A minimal simulation of how a block table decouples the logical page order a request sees from the physical pages actually holding data in VRAM, and how two requests can share a physical page for an identical prefix.</p>
+  <pre><code># physical_pages holds the actual KV data, indexed by physical page id
+physical_pages = {}  # {physical_id: kv_data_for_16_tokens}
+
+# each request has a block table: logical page index -&gt; physical page id
+request_a_block_table = [0, 1, 2]   # request A&#x27;s tokens live in physical pages 0,1,2
+request_b_block_table = [0, 3]      # request B shares page 0 (same system prompt!)
+
+def read_token_kv(block_table, logical_page, offset_in_page):
+    physical_id = block_table[logical_page]
+    return physical_pages[physical_id][offset_in_page]
+
+# Because both block tables point logical page 0 at physical page 0,
+# the shared system prompt&#x27;s KV data is stored once, not twice --
+# this is exactly what prefix caching relies on.</code></pre>
+</figure>
+</section>
+<section id="tuning-vllm-for-maximum-throughput-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Tuning vLLM for Maximum Throughput</h2>
+      <a class="stamp" href="#" data-t="476">7:56</a>
+    </div>
+  </div>
+  <p class="summary">Three practical vLLM settings, GPU memory utilization, prefix caching, and chunked prefill, turn PagedAttention&#x27;s efficiency into measurable throughput and latency gains.</p>
+  <p>GPU memory utilization controls what fraction of the VRAM remaining after model weights is handed to KV cache pages. The default is 0.9. Push it toward 0.95 on stable, predictable workloads to pack in more concurrent requests; pull it back toward 0.8 if out-of-memory errors show up during bursty load, since spiky traffic needs headroom the default does not leave. Benchmark per model with a load-testing tool, the video points to GuideLLM, an open-source part of the vLLM project, rather than guessing at the right value.</p>
+<p>Prefix caching builds on the fact that PagedAttention already hashes each KV page by the token sequence it contains. Enabling it means requests sharing an identical prefix, a system prompt, a few-shot preamble, the start of a multi-turn conversation, point their block table at the same physical pages instead of each recomputing and storing that prefix separately; vLLM computes it once. In RAG pipelines, multi-turn chat, and coding agents, all of which repeat a large shared prefix across many requests, hit rates of 75-95% are common, and time-to-first-token drops sharply because prefill for the shared portion is skipped entirely.</p>
+<p>Chunked prefill addresses a different stall: by default vLLM runs a prefill to completion before resuming any decode work, which freezes already-streaming tokens for other users whenever a new long prompt arrives, visible as stutter. Chunked prefill instead prioritizes in-flight decode requests each step, then fills whatever compute budget remains with a chunk of prefill work rather than blocking on it. Production deployments cited in the video saw roughly 50% throughput improvement from this alone. It is typically paired with raising max-num-batched-tokens above 2048, so each step has enough budget to actually admit prefill chunks alongside decode.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>--gpu-memory-utilization sets the fraction of post-weights VRAM given to KV cache (default 0.9, roughly 0.8-0.95 depending on how bursty traffic is).</li><li>Benchmark per model with a load-testing tool such as GuideLLM rather than assuming the default is optimal for your workload.</li><li>Prefix caching reuses KV pages across requests that share an identical prefix, avoiding recomputing and re-storing it.</li><li>Shared-prefix workloads (RAG, multi-turn chat, coding agents) commonly see 75-95% prefix cache hit rates.</li><li>Chunked prefill interleaves prefill work with ongoing decode instead of blocking decode on it, reducing stutter and improving throughput (about 50% in production reports cited).</li></ul></div>
+  <figure class="example">
+  <figcaption>Launching vLLM with tuned settings</figcaption>
+  <p>A representative vLLM server launch combining the three settings discussed: a slightly raised GPU memory utilization for a stable workload, prefix caching enabled for a workload with shared prompts, and chunked prefill enabled with a raised batched-token budget.</p>
+  <pre><code>vllm serve meta-llama/Llama-2-13b-chat-hf \
+  --gpu-memory-utilization 0.95 \
+  --enable-prefix-caching \
+  --enable-chunked-prefill \
+  --max-num-batched-tokens 4096</code></pre>
+</figure>
+</section>
+<section id="speculative-decoding-spending-idle-gpu-cycles-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Speculative Decoding: Spending Idle GPU Cycles</h2>
+      <a class="stamp" href="#" data-t="564">9:24</a>
+    </div>
+  </div>
+  <p class="summary">During decode the GPU has spare compute sitting idle between memory reads; speculative decoding uses that slack to draft several tokens at once and verify them in a single pass.</p>
+  <p>Because decode is memory-bound, the GPU&#x27;s compute units are not fully busy between the memory reads needed to fetch cached KV data; there is idle compute capacity at every step. Speculative decoding puts that idle capacity to work: a small, fast draft model proposes a short sequence of candidate next tokens ahead of time.</p>
+<p>The large model then checks all of those candidates in a single forward pass, cheap, because verification is compute-bound and compute is exactly what is sitting idle, rather than running one sequential forward pass per token. Correct guesses are accepted and emitted immediately; the first incorrect guess is rejected and corrected by the large model, and generation continues from there. Because every accepted token is still exactly what the large model would have produced on its own, output quality is mathematically identical to running the large model alone. This is purely a latency optimization, not a quality trade-off.</p>
+<p>The gain is largest at low-to-moderate concurrency, where the GPU has slack to spend on drafting and verifying extra tokens. At very high concurrency, the batch of concurrent requests already keeps the GPU&#x27;s compute busy, so there is less idle capacity left to spend on speculation, and the benefit shrinks. That makes speculative decoding a tool for interactive, latency-sensitive workloads rather than for maximizing raw aggregate throughput at scale. vLLM ships a zero-cost n-gram speculator out of the box, well suited to structured or repetitive outputs where recent context is a strong predictor of what comes next.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Decode leaves GPU compute partially idle because it is bottlenecked on memory reads, not math.</li><li>A small draft model proposes multiple candidate tokens; the large model verifies them all in a single forward pass.</li><li>Accepted tokens are exactly what the large model would have generated alone, so output quality is unchanged.</li><li>Gains shrink at high concurrency, since a full batch already keeps the GPU&#x27;s compute busy.</li><li>vLLM includes a built-in, zero-cost n-gram speculator suited to structured or repetitive output.</li></ul></div>
+  <figure class="example">
+  <figcaption>Enabling vLLM&#x27;s built-in n-gram speculator</figcaption>
+  <p>The zero-cost speculative decoding option mentioned in the video: an n-gram-based draft model that needs no separate model weights, useful for latency-sensitive, structured or repetitive output tasks such as JSON extraction or code completion.</p>
+  <pre><code>vllm serve meta-llama/Llama-2-13b-chat-hf \
+  --speculative-model [ngram] \
+  --num-speculative-tokens 5 \
+  --ngram-prompt-lookup-max 4</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Prefill phase</dt><dd>The compute-bound stage of LLM inference where the model processes the entire input prompt at once to build its internal representation before generating any output token.</dd></div><div class="term"><dt>Decode phase</dt><dd>The memory-bound stage of LLM inference where the model generates one output token at a time, reading the accumulated context from GPU memory at each step.</dd></div><div class="term"><dt>KV cache</dt><dd>Stored attention key and value vectors from previously processed tokens, kept in GPU memory so later tokens do not have to recompute them.</dd></div><div class="term"><dt>Autoregressive generation</dt><dd>Generating text one token at a time, where each new token is produced based on all tokens generated so far.</dd></div><div class="term"><dt>Causal attention</dt><dd>An attention pattern where a token can only attend to itself and the tokens before it, never to tokens that come later.</dd></div><div class="term"><dt>PagedAttention</dt><dd>A memory management technique for KV cache that splits it into small fixed-size, non-contiguous pages addressed through a block table, modeled on OS virtual memory paging.</dd></div><div class="term"><dt>Block table</dt><dd>A lookup structure that maps a request&#x27;s logical sequence of KV cache pages to the physical pages that actually hold that data in GPU memory.</dd></div><div class="term"><dt>Internal fragmentation</dt><dd>Wasted memory that occurs when a fixed allocation is sized for the worst case but the actual usage is much smaller, leaving the unused portion locked up and unusable by others.</dd></div><div class="term"><dt>External fragmentation</dt><dd>Wasted memory that occurs when enough total free space exists but it is scattered in gaps too small individually to satisfy a new contiguous allocation.</dd></div><div class="term"><dt>Prefix caching</dt><dd>Reusing the same stored KV cache pages across multiple requests that share an identical prompt prefix, instead of recomputing and storing it separately for each.</dd></div><div class="term"><dt>Chunked prefill</dt><dd>A scheduling strategy that interleaves pieces of a new request&#x27;s prefill work with ongoing decode steps, instead of finishing prefill entirely before resuming decode.</dd></div><div class="term"><dt>Speculative decoding</dt><dd>A latency optimization where a small draft model proposes several candidate tokens that a larger model verifies in one forward pass, accepting correct guesses and correcting the first wrong one.</dd></div><div class="term"><dt>Time to first token (TTFT)</dt><dd>The delay between sending a prompt and receiving the first generated token back, dominated by the prefill phase.</dd></div><div class="term"><dt>vLLM</dt><dd>An open-source LLM inference and serving engine that introduced PagedAttention and provides the tuning options for KV cache management discussed in this lesson.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why is prefill compute-bound while decode is memory-bound, even though both are steps of the same model doing inference?</summary>
+  <div class="answer"><p>Prefill processes every token of the prompt through every layer in one pass, so the GPU&#x27;s matrix-multiply units are saturated and are the limiting factor. Decode processes only one new token per step, so the amount of new computation is small; the limiting factor becomes how quickly the GPU can read the already-computed context (the KV cache) back out of memory for each step.</p></div>
+</details><details class="q">
+  <summary>Without a KV cache, why does generating the 1000th token of a response cost far more work than generating the 10th token, and how does the cache remove that cost?</summary>
+  <div class="answer"><p>Without caching, every generation step reruns attention over the full prefix seen so far, so the 1000th token requires recomputing keys and values for all 999 prior tokens, while the 10th token only recomputes 9. That makes total work grow quadratically with response length. The KV cache stores each token&#x27;s key and value vectors the first time they are computed, so every later step only computes the new token&#x27;s own key, value, and query and reads the rest from the cache, making the work per step constant instead of growing.</p></div>
+</details><details class="q">
+  <summary>Why does reserving GPU memory for the maximum possible sequence length waste memory even when most requests are far shorter, and why can&#x27;t that reserved memory just be used by other requests in the meantime?</summary>
+  <div class="answer"><p>Naive systems allocate one fixed, contiguous block per request sized to the worst case (e.g. 2048 tokens) at the moment the request starts, regardless of how many tokens it will actually use. Because the block is reserved and contiguous, the unused portion is locked to that request for its entire lifetime and cannot be handed to any other request, even though the memory sits empty; this is internal fragmentation, and research cited in the video puts the waste at 60-80% of the KV cache budget.</p></div>
+</details><details class="q">
+  <summary>How does PagedAttention&#x27;s block table let two different requests share an identical system prompt&#x27;s KV cache without storing it twice?</summary>
+  <div class="answer"><p>PagedAttention breaks KV cache into small fixed-size pages that can live anywhere in physical memory, and each request has its own block table mapping its logical page order to physical page locations. Because the pages holding the shared prompt are hashed by their token content, two requests with the same prefix can have their block tables point their corresponding logical pages at the very same physical pages, so the data is stored once and read by both, instead of being duplicated per request.</p></div>
+</details><details class="q">
+  <summary>Speculative decoding uses a smaller, less capable draft model to guess upcoming tokens. Why doesn&#x27;t this reduce the quality of the final output?</summary>
+  <div class="answer"><p>The draft model&#x27;s guesses are never emitted directly; the large model verifies every candidate token in a single forward pass, and only tokens the large model itself confirms are accepted. Any guess the large model would not have produced is rejected and replaced with the large model&#x27;s own correct token. Since every emitted token is one the large model actually endorsed, the output is mathematically identical to what the large model would have generated running alone; the draft model only changes how fast that same output is reached, using GPU compute that would otherwise sit idle during decode.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Run vllm serve locally with --gpu-memory-utilization at 0.8 versus 0.95 under a bursty load test and observe the throughput-versus-OOM tradeoff directly.</li><li>Read the original PagedAttention paper, &quot;Efficient Memory Management for Large Language Model Serving with PagedAttention,&quot; for the full block table and scheduling design.</li><li>Enable --enable-prefix-caching on a RAG or multi-turn chat workload and measure the change in time-to-first-token and cache hit rate.</li><li>Benchmark a model with GuideLLM before and after enabling --enable-chunked-prefill to see the effect on streaming stutter under concurrent load.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

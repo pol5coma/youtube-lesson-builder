@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generative vs Agentic AI: One Call versus a Loop</title>
+<meta name="description" content="Understand what actually changes when a model stops answering and starts acting.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#reactive-generation-versus-proactive-goal-pursuit-1"><span class="n">1</span>Reactive generation versus proactive goal pursuit</a></li>
+<li><a href="#what-a-generative-model-is-actually-doing-2"><span class="n">2</span>What a generative model is actually doing</a></li>
+<li><a href="#the-agent-loop-perceive-decide-act-learn-3"><span class="n">3</span>The agent loop: perceive, decide, act, learn</a></li>
+<li><a href="#the-shared-substrate-an-llm-as-reasoning-engine-4"><span class="n">4</span>The shared substrate: an LLM as reasoning engine</a></li>
+<li><a href="#generative-in-practice-the-human-curates-5"><span class="n">5</span>Generative in practice: the human curates</a></li>
+<li><a href="#agentic-in-practice-multi-step-work-under-a-single-goal-6"><span class="n">6</span>Agentic in practice: multi-step work under a single goal</a></li>
+<li><a href="#chain-of-thought-the-internal-dialogue-before-the-action-7"><span class="n">7</span>Chain-of-thought: the internal dialogue before the action</a></li>
+<li><a href="#systems-that-know-when-to-generate-and-when-to-act-8"><span class="n">8</span>Systems that know when to generate and when to act</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Advanced</span><span class="pill ghost">AI system architecture</span><span class="muted">IBM Technology</span></div>
+  <h1>Generative vs Agentic AI: One Call versus a Loop</h1>
+  <p class="lede">Understand what actually changes when a model stops answering and starts acting.</p>
+  <p class="muted small">For engineers deciding whether a feature needs a model call or an agent · 26 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=EDb37y_MhRw" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>How a chat completion API call works: messages in, message out</li><li>Comfort reading Python</li><li>Some exposure to function/tool calling, though the lesson explains it</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>The difference between generative and agentic AI is not a difference in model. It is a difference in control flow. A generative system is one request and one response: you prompt, it produces, it stops. An agentic system takes that same model and puts it inside a loop that observes, decides, acts on the world, and feeds the result back in.</p>
+<p>That structural change is what produces every other difference. A single call is cheap, fast, bounded and easy to evaluate. A loop is none of those things — it can run for minutes, call external systems, cost an unpredictable amount, and fail in ways a single call cannot. In exchange it can pursue a goal you specified once, across many steps, without you supervising each one.</p>
+<p>Both rest on the same foundation. A large language model provides the reasoning in both cases; in the agentic case it is doing something narrower and more specific than people usually assume — it chooses the next action and interprets the last result. Everything else in an agent is ordinary software.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Generative and agentic AI differ in control flow, not in the model — one is a call, the other is a loop containing that call.</li><li>A generative system is reactive: it waits for a prompt, produces content, and stops.</li><li>An agentic system is proactive: given a goal, it perceives, decides, acts, and learns from the result, repeating with minimal human input.</li><li>The same LLM serves as the reasoning engine in both; in an agent it decides the next action and interprets the last observation.</li><li>Chain-of-thought decomposition is how an agent turns a vague goal into an ordered sequence of executable steps.</li><li>Generative workflows keep a human curating every output; agentic workflows spend human attention on the goal and the guard rails instead.</li><li>A loop has no natural stopping point, so termination conditions, step budgets, and failure handling are your responsibility, not the model&#x27;s.</li><li>Cost and latency become unbounded and data-dependent the moment you move from one call to a loop.</li></ul>
+  </div>
+</section>
+<section id="reactive-generation-versus-proactive-goal-pursuit-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Reactive generation versus proactive goal pursuit</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">One produces content and stops. The other pursues an objective across many actions. The gap between them is a while loop.</p>
+  <p>Generative systems — chatbots, image generators, code completion — are fundamentally reactive. They wait. Nothing happens until you prompt them, and once they have produced their output their work is over. They take no further step without your input, and they have no notion of an objective that outlives the current response.</p>
+<p>Agentic systems are proactive. They usually still start from a prompt, but that prompt is treated as a goal to pursue rather than a request to answer. The system then takes a series of actions toward that goal, deciding for itself what to do next, and continues with minimal human intervention until it decides it is done.</p>
+<p>Hold onto what has and has not changed. The model is the same model. The API is the same API. What changed is that somebody wrapped it in a loop, gave it the ability to call out to the world, and fed the results of those calls back into its context. That is the entire architectural distinction, and every practical consequence — cost, latency, failure modes, testability — follows from it.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Generative systems are reactive: prompt in, content out, done.</li><li>Agentic systems are proactive: goal in, sequence of actions out, done when the goal is met.</li><li>The model is identical; the control flow around it is what differs.</li><li>An agent&#x27;s prompt is an objective that outlives any single response.</li><li>Every practical difference follows from the loop, not from the model.</li></ul></div>
+  <figure class="example">
+  <figcaption>The same model, two shapes of program</figcaption>
+  <p>This is the whole distinction in fourteen lines. The top is a function call. The bottom is a control structure that happens to contain one.</p>
+  <pre><code># generative: one call, one result, done
+answer = model.generate(prompt)
+
+
+# agentic: the call is now inside a loop that can act on the world
+state = {&quot;goal&quot;: goal, &quot;history&quot;: []}
+
+while not done(state):
+    observation = perceive(state)          # look at the world
+    action      = model.decide(state, observation)   # the LLM&#x27;s job
+    result      = execute(action)          # actually do it
+    state       = update(state, action, result)      # learn from it</code></pre>
+</figure><figure class="example">
+  <figcaption>Where the human sits</figcaption>
+  <p>Not a difference in how much human effort is involved, but in where it is spent. Generative work spends it per output. Agentic work spends it up front on the goal and the constraints — and then on reviewing what already happened.</p>
+  <pre><code>generative :  human → prompt → output → human reviews → prompt → output → ...
+              └── attention on every single result ──┘
+
+agentic    :  human → goal ──→ [ agent loops, acts, retries ] ──→ result → human reviews
+              └─ attention on the goal and the guard rails ─┘</code></pre>
+</figure>
+</section>
+<section id="what-a-generative-model-is-actually-doing-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>What a generative model is actually doing</h2>
+      <a class="stamp" href="#" data-t="40">0:40</a>
+    </div>
+  </div>
+  <p class="summary">Sophisticated pattern completion: statistical relationships learned from a large corpus, used to predict what plausibly comes next.</p>
+  <p>A generative model learned the statistical relationships in its training data — between words, between pixels, between audio samples — and at generation time it uses those relationships to predict what should come next given what has come so far. Text models produce a probability distribution over the vocabulary at each position and sample from it. That is the whole mechanism.</p>
+<p>Calling it pattern matching is accurate but easy to under-read. The patterns are extremely rich, and the model is conditioning on the entire prompt at every step, which is why the output is coherent over long spans and responsive to detail. But note what is absent: there is no plan, no world model being consulted, no check against reality. A step is plausible or it is not, and the model was optimised for plausible.</p>
+<p>Different media use different architectures — transformers for text and code, diffusion models for most images and audio — but the framing holds across them. The output is a sample from a learned distribution conditioned on your input.</p>
+<p>One consequence matters more than the rest for what follows. Because the model produces the plausible continuation rather than the verified one, a generative system needs something outside it to check the result. In a generative workflow that something is a human. In an agentic workflow, it has to be built.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Generation is next-token prediction: a distribution over the vocabulary, sampled at each position.</li><li>Coherence comes from conditioning on the whole prompt at every step, not from a stored plan.</li><li>Text and code use transformers; images and audio typically use diffusion models.</li><li>The model optimises for plausible continuations, not verified ones.</li><li>Something outside the model must check the output — a human in generative use, machinery in agentic use.</li></ul></div>
+  <figure class="example">
+  <figcaption>One step of generation</figcaption>
+  <p>The model&#x27;s actual output is the distribution, not the word. Sampling turns it into a token, and the token is appended and fed back. Temperature controls how much probability mass outside the top candidate gets a chance — which is also why the same prompt can produce different results.</p>
+  <pre><code>prompt = &quot;The capital of France is&quot;
+
+# the model produces a distribution over the whole vocabulary
+logits = model(prompt)              # shape: [vocab_size]
+probs  = softmax(logits / temperature)
+
+#   &quot; Paris&quot;   0.94
+#   &quot; located&quot; 0.02
+#   &quot; a&quot;       0.01
+#   ...
+
+next_token = sample(probs)          # append, then repeat with the longer prompt</code></pre>
+</figure><figure class="example">
+  <figcaption>Why plausible is not the same as correct</figcaption>
+  <p>Both continuations are statistically excellent. Only one is true, and nothing in the generation mechanism distinguishes them — which is precisely the gap that human review, or an agent&#x27;s verification step, exists to close.</p>
+  <pre><code>prompt: &quot;The library function `parse_config` accepts a parameter called&quot;
+
+  &quot; path&quot;     — plausible, and true
+  &quot; filename&quot; — equally plausible, and invented
+
+# the model has no way to check; it was trained to continue, not to verify</code></pre>
+</figure>
+</section>
+<section id="the-agent-loop-perceive-decide-act-learn-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>The agent loop: perceive, decide, act, learn</h2>
+      <a class="stamp" href="#" data-t="82">1:22</a>
+    </div>
+  </div>
+  <p class="summary">Four stages, repeated. Everything that makes an agent an agent lives in this cycle rather than in the model.</p>
+  <p>An agentic system moves through a life cycle. It perceives its environment — reads files, queries an API, checks the current state of whatever it is working on. It decides an action to take. It executes that action. Then it learns from the output of that action, and the cycle begins again. Round and round until the goal is met.</p>
+<p>Only the decide step is the model. Perceive is I/O. Execute is a function call. Learn, in most production agents, means appending the result to a message history so the next decide step can see it. That accounting is worth internalising, because it tells you where bugs will actually live: not in the model&#x27;s reasoning, but in tool definitions, error handling, and state management.</p>
+<p>What this structure buys is recovery. A generative call that produces something wrong produces something wrong and stops. An agent that takes a wrong action sees the result of that action — a failing test, a 404, an empty result set — and gets another turn with that information in context. Fallibility per step matters much less when the loop can observe and correct.</p>
+<p>What it costs is control. The loop has no natural stopping point. Nothing in the model guarantees it will decide it is finished, or that it will not oscillate between two actions forever. Termination is a design problem you own: a step budget, a wall-clock timeout, a no-progress detector, and a rule for what happens when the budget runs out.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The cycle is perceive → decide → act → learn, repeated until done.</li><li>Only &#x27;decide&#x27; is the model; the other three stages are ordinary software.</li><li>Feeding action results back into context is what allows an agent to recover from a bad step.</li><li>The loop has no inherent stopping condition — step budgets and timeouts are your responsibility.</li><li>Most agent bugs live in tool definitions and error handling, not in model reasoning.</li></ul></div>
+  <figure class="example">
+  <figcaption>A working agent loop</figcaption>
+  <p>This is what almost every agent framework wraps. Note the three defences that have nothing to do with AI: a hard step budget, tool errors fed back as observations rather than raised, and a definite outcome when the budget is exhausted.</p>
+  <pre><code>def run_agent(goal, tools, max_steps=20):
+    messages = [
+        {&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: SYSTEM_PROMPT},
+        {&quot;role&quot;: &quot;user&quot;,   &quot;content&quot;: goal},
+    ]
+
+    for step in range(max_steps):
+        reply = model.chat(messages, tools=tools)      # decide
+
+        if not reply.tool_calls:                       # the agent says it is done
+            return reply.content
+
+        messages.append(reply)
+
+        for call in reply.tool_calls:                  # act
+            try:
+                result = tools[call.name](**call.arguments)
+            except Exception as e:
+                result = f&quot;ERROR: {e}&quot;                 # failures are observations,
+                                                       # not crashes
+            messages.append({                          # learn
+                &quot;role&quot;: &quot;tool&quot;,
+                &quot;tool_call_id&quot;: call.id,
+                &quot;content&quot;: str(result),
+            })
+
+    raise StepBudgetExceeded(goal, messages)           # never loop forever</code></pre>
+</figure><figure class="example">
+  <figcaption>Tools are the agent&#x27;s senses and hands</figcaption>
+  <p>An agent can only perceive and act through the tools you give it. The description field is not documentation — it is the only thing the model uses to decide when to reach for this tool, so it is functionally part of your prompt.</p>
+  <pre><code>{
+  &quot;name&quot;: &quot;search_inventory&quot;,
+  &quot;description&quot;: &quot;Check current stock and price for a product across
+                  all warehouses. Use before promising availability
+                  to a customer.&quot;,
+  &quot;parameters&quot;: {
+    &quot;type&quot;: &quot;object&quot;,
+    &quot;properties&quot;: {
+      &quot;sku&quot;:    {&quot;type&quot;: &quot;string&quot;, &quot;description&quot;: &quot;Product SKU, e.g. &#x27;AB-1042&#x27;&quot;},
+      &quot;region&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;enum&quot;: [&quot;EU&quot;, &quot;US&quot;, &quot;APAC&quot;]}
+    },
+    &quot;required&quot;: [&quot;sku&quot;]
+  }
+}</code></pre>
+</figure><figure class="example">
+  <figcaption>Detecting a stuck loop</figcaption>
+  <p>A step budget catches runaway agents eventually. A no-progress check catches them sooner and more cheaply, by noticing that the agent is repeating an action that already failed.</p>
+  <pre><code>def is_stuck(history, window=3):
+    recent = [(a.name, a.arguments) for a in history[-window:]]
+    return len(recent) == window and len(set(map(str, recent))) == 1
+
+# same tool, same arguments, three times running → intervene rather than
+# burning the rest of the budget</code></pre>
+</figure>
+</section>
+<section id="the-shared-substrate-an-llm-as-reasoning-engine-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>The shared substrate: an LLM as reasoning engine</h2>
+      <a class="stamp" href="#" data-t="123">2:03</a>
+    </div>
+  </div>
+  <p class="summary">Both approaches usually rest on the same model. In an agent, its job is narrower than people assume: choose the next action, interpret the last result.</p>
+  <p>Large language models are the common foundation. They power chatbots directly, and they provide the reasoning that drives agentic systems. Other generative media reach for other architectures — diffusion models for images and audio — but the reasoning layer in agents is overwhelmingly an LLM.</p>
+<p>It is worth being precise about what the model contributes inside an agent, because &#x27;the LLM is the brain&#x27; oversells it. On each turn the model receives the goal, the history so far, and the schemas of the available tools. It emits either a tool call with arguments, or a final answer. That is a classification-and-argument-filling job under uncertainty, repeated. It is not planning in any strong sense, and it holds no state — the message history is the state, and you own it.</p>
+<p>That framing pays off immediately in debugging. When an agent misbehaves, the useful question is rarely &#x27;why did the model reason badly&#x27;. It is: what exactly was in the context at that turn? Was the tool description ambiguous? Did the previous tool return something unreadable? Was the relevant detail forty messages back and pushed toward the middle of a long context? Nearly every agent failure is legible if you dump the message list at the failing step.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>LLMs are the reasoning layer for agents and the generator for chatbots — the same component in two roles.</li><li>Diffusion models cover most image and audio generation; the agentic reasoning layer is an LLM.</li><li>Per turn, the model&#x27;s job is to emit a tool call with arguments, or a final answer.</li><li>The model is stateless; the message history is the state and the application owns it.</li><li>Debug agents by inspecting the exact context at the failing turn, not by theorising about reasoning.</li></ul></div>
+  <figure class="example">
+  <figcaption>What the model sees on turn four</figcaption>
+  <p>The model has no memory between turns. Everything it can use is in this list, which the application assembled. If a needed fact is not here, the model cannot use it — and that is a context construction bug, not a reasoning failure.</p>
+  <pre><code>[
+  {&quot;role&quot;: &quot;system&quot;,
+   &quot;content&quot;: &quot;You are a shopping agent. Confirm price before purchase.&quot;},
+  {&quot;role&quot;: &quot;user&quot;,   &quot;content&quot;: &quot;Buy the AB-1042 under 200 EUR&quot;},
+
+  {&quot;role&quot;: &quot;assistant&quot;, &quot;tool_calls&quot;: [search_inventory(sku=&quot;AB-1042&quot;, region=&quot;EU&quot;)]},
+  {&quot;role&quot;: &quot;tool&quot;,      &quot;content&quot;: &quot;in_stock: 3, price: 189.00 EUR, warehouse: NL&quot;},
+
+  {&quot;role&quot;: &quot;assistant&quot;, &quot;tool_calls&quot;: [check_price_history(sku=&quot;AB-1042&quot;, days=30)]},
+  {&quot;role&quot;: &quot;tool&quot;,      &quot;content&quot;: &quot;min: 175.00, max: 210.00, current: 189.00&quot;},
+
+  # turn 4: given all of the above, emit the next tool call or a final answer
+]</code></pre>
+</figure><figure class="example">
+  <figcaption>A debugging habit worth adopting</figcaption>
+  <p>Log the full context at every turn from the first day of the project. When an agent does something inexplicable in production, this transcript is the difference between a five-minute diagnosis and a week of guessing.</p>
+  <pre><code>def decide(messages, tools, step):
+    log.debug(&quot;step=%d context=%s&quot;, step, json.dumps(messages, indent=2))
+    reply = model.chat(messages, tools=tools)
+    log.debug(&quot;step=%d chose=%s&quot;, step, reply.tool_calls or &quot;FINAL&quot;)
+    return reply</code></pre>
+</figure>
+</section>
+<section id="generative-in-practice-the-human-curates-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Generative in practice: the human curates</h2>
+      <a class="stamp" href="#" data-t="208">3:28</a>
+    </div>
+  </div>
+  <p class="summary">Generative workflows produce possibilities. A person selects, corrects and directs — and that review step is load-bearing.</p>
+  <p>Consider a video creator using generative AI across a production: drafting and reviewing scripts, proposing thumbnail concepts, generating background music. At every one of those steps there is a human looking at what came back, judging whether it is what they wanted, and refining it when it is not — which it often is not.</p>
+<p>The AI generates possibilities; the human curates them. That division is the point, not a limitation people are working to remove. It suits tasks where the cost of a bad output is low, where quality is subjective enough that only the person asking can judge it, and where iteration is cheap and fast.</p>
+<p>The engineering implication is that the review step is part of the system. If you build a generative feature and quietly remove the human — auto-publishing generated copy, committing generated code unreviewed — you have not built an efficient generative system. You have built an agentic one without the guard rails an agentic system needs.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Generative workflows pair machine output with human judgement on every result.</li><li>They suit low-stakes, subjective, fast-iteration tasks.</li><li>The human review step is a component of the system, not overhead to optimise away.</li><li>Removing the reviewer without adding verification turns a generative system into an unguarded agentic one.</li><li>Cost and latency are bounded and predictable: one call, one result.</li></ul></div>
+  <figure class="example">
+  <figcaption>Generate options, do not generate the answer</figcaption>
+  <p>A small design choice with a large effect on generative features. Returning several candidates makes the human&#x27;s job selection rather than correction, which is faster and produces better outcomes than asking for one output and editing it.</p>
+  <pre><code>def thumbnail_concepts(title, n=5):
+    return [
+        model.generate(
+            f&quot;Propose a thumbnail concept for a video titled {title!r}. &quot;
+            f&quot;One sentence. Be specific and visual.&quot;,
+            temperature=0.9,          # high: we want spread, not consensus
+        )
+        for _ in range(n)
+    ]
+
+# the human picks one and refines it — selection beats correction</code></pre>
+</figure>
+</section>
+<section id="agentic-in-practice-multi-step-work-under-a-single-goal-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Agentic in practice: multi-step work under a single goal</h2>
+      <a class="stamp" href="#" data-t="250">4:10</a>
+    </div>
+  </div>
+  <p class="summary">Agents earn their complexity on tasks that need ongoing management across many steps, where waiting for a human between each one defeats the purpose.</p>
+  <p>Take a personal shopping agent. Given a product to buy, it hunts for availability across platforms, monitors price movement over time, handles checkout, and coordinates delivery — largely by itself, coming back to you only when it genuinely needs something.</p>
+<p>Every one of those characteristics is what justifies the loop. The task is multi-step, and the later steps depend on what the earlier ones found. It runs over time rather than at one moment. It requires reacting to a changing world. Break that into individual prompts with a human between each and you have not simplified anything — you have made the human the loop.</p>
+<p>But apply the reverse test before building one. If the task is a single step, an agent is a slower and less reliable function call. If every step needs approval anyway, the agent is a worse interface than a form. And if the actions are irreversible — purchases, deletions, sent messages — you need the loop to be interruptible and every consequential action to be either reversible or explicitly confirmed. The agent that can spend money is exactly the one that needs a spending limit enforced outside the model, not requested inside the prompt.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Agents fit multi-step tasks where later steps depend on earlier results.</li><li>They fit work that unfolds over time and reacts to a changing environment.</li><li>If a task is one step, an agent is a slow, unreliable function call.</li><li>If every step needs approval, a form is a better interface than an agent.</li><li>Irreversible actions need limits enforced in code, never merely requested in the prompt.</li></ul></div>
+  <figure class="example">
+  <figcaption>Enforce limits outside the model</figcaption>
+  <p>The prompt says &#x27;under 200 EUR&#x27;. That is a request. This is a guarantee. Any action with real consequences should pass through a check the model cannot talk its way past, because the model is a probabilistic system and your budget is not.</p>
+  <pre><code>def purchase(sku, price_eur, *, budget_eur, confirmed):
+    if price_eur &gt; budget_eur:
+        return f&quot;REFUSED: {price_eur} exceeds budget {budget_eur}&quot;
+    if not confirmed:
+        raise NeedsHumanApproval(sku=sku, price=price_eur)
+    return checkout(sku)
+
+# the model can request a purchase; only this function can make one</code></pre>
+</figure><figure class="example">
+  <figcaption>Deciding whether you need an agent at all</figcaption>
+  <p>Four questions, and three of them have to point the same way. Most features that get built as agents fail the first or second and would have been better as a single call plus a form.</p>
+  <pre><code>Does the task need more than one step?                       no → single call
+Do later steps depend on what earlier steps found?           no → a pipeline
+Would a human have to wait around between steps?             no → keep the human
+Are the actions reversible, or cheaply confirmable?          no → add approval
+
+all four favourable → an agent is genuinely the right shape</code></pre>
+</figure>
+</section>
+<section id="chain-of-thought-the-internal-dialogue-before-the-action-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Chain-of-thought: the internal dialogue before the action</h2>
+      <a class="stamp" href="#" data-t="338">5:38</a>
+    </div>
+  </div>
+  <p class="summary">The agent breaks a complex goal into smaller logical steps by generating its own reasoning, then acts on the result.</p>
+  <p>Chain-of-thought reasoning is a process where the agent decomposes a complex task into smaller logical steps, in much the way a person tackles a hard problem — by talking it through before doing anything.</p>
+<p>Give an agent &#x27;organise a conference&#x27; and its internal dialogue goes roughly: first I need the requirements — size, duration, budget. Then I should research venues matching those parameters. Then, for the venues that qualify, I need to check availability. And so on. The agent is exploring the problem space in text before touching the world, and that exploration is generated by the same next-token prediction described earlier. Generation is the cognitive engine driving the agent&#x27;s decision making.</p>
+<p>The engineering value is that this reasoning is text, which makes it inspectable and testable in a way that a hidden plan would not be. You can log it, diff it across runs, and assert on it. When an agent takes an absurd action, the reasoning that preceded it is usually where the mistake is visible.</p>
+<p>Two cautions. The reasoning is a generated artefact, not a guaranteed account of why the action was chosen — plausible-sounding justification for a bad choice is entirely possible. And decomposition is not free: every reasoning token is latency and cost on every turn. Which is why the interesting design question is usually how much thinking to buy per step, not whether to allow it.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Chain-of-thought decomposes a goal into ordered, executable steps.</li><li>The reasoning is generated text, so it can be logged, inspected and asserted on.</li><li>Generation is the cognitive engine: the same mechanism, aimed at planning instead of prose.</li><li>Stated reasoning is not a guaranteed explanation — a bad action can arrive with a convincing rationale.</li><li>Reasoning tokens cost latency and money on every turn; depth is a budget decision.</li></ul></div>
+  <figure class="example">
+  <figcaption>Decomposition producing a checkable plan</figcaption>
+  <p>Asking for the plan as structured output rather than prose makes it a data structure you can validate before any action runs — checking that dependencies are acyclic, that no step calls an unavailable tool, and that the cost is within budget.</p>
+  <pre><code>PLAN_SCHEMA = {
+  &quot;steps&quot;: [
+    {&quot;id&quot;: 1, &quot;action&quot;: &quot;gather_requirements&quot;,
+     &quot;needs&quot;: [],     &quot;produces&quot;: &quot;size, duration, budget&quot;},
+    {&quot;id&quot;: 2, &quot;action&quot;: &quot;search_venues&quot;,
+     &quot;needs&quot;: [1],    &quot;produces&quot;: &quot;candidate venues&quot;},
+    {&quot;id&quot;: 3, &quot;action&quot;: &quot;check_availability&quot;,
+     &quot;needs&quot;: [2],    &quot;produces&quot;: &quot;available venues&quot;},
+    {&quot;id&quot;: 4, &quot;action&quot;: &quot;request_quotes&quot;,
+     &quot;needs&quot;: [3],    &quot;produces&quot;: &quot;pricing&quot;}
+  ]
+}
+
+# validate before executing anything
+assert is_acyclic(plan)
+assert all(s[&quot;action&quot;] in TOOLS for s in plan[&quot;steps&quot;])</code></pre>
+</figure><figure class="example">
+  <figcaption>The reason–act trace</figcaption>
+  <p>Interleaving reasoning with actions gives you a readable execution log. When step 3 does something unexpected, the thought immediately above it usually contains the error — a wrong assumption stated plainly.</p>
+  <pre><code>Thought: I need the budget before I can filter venues. It was not given.
+Action:  ask_user(question=&quot;What is the budget per attendee?&quot;)
+Obs:     &quot;120 EUR&quot;
+
+Thought: Budget known. 200 attendees x 120 = 24,000 total. Search within that.
+Action:  search_venues(capacity=200, max_total_eur=24000, city=&quot;Barcelona&quot;)
+Obs:     [3 venues]
+
+Thought: Three candidates. Availability next, cheapest first.
+Action:  check_availability(venue_id=&quot;v-88&quot;, dates=[&quot;2026-09-14&quot;])</code></pre>
+</figure>
+</section>
+<section id="systems-that-know-when-to-generate-and-when-to-act-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Systems that know when to generate and when to act</h2>
+      <a class="stamp" href="#" data-t="380">6:20</a>
+    </div>
+  </div>
+  <p class="summary">The strongest systems are neither purely generative nor purely agentic — they explore options through generation and commit to them through action.</p>
+  <p>The useful end state is not one approach beating the other. It is systems that understand when to explore possibilities through generation and when to commit to a course of action, and that switch between the two deliberately.</p>
+<p>The pattern to look for is a division by reversibility. Generation is cheap and reversible, so use it liberally for anything you can throw away: drafts, candidate plans, hypotheses, options. Action is expensive and often irreversible, so gate it — with a check, a budget, a confirmation, or a test that has to pass. In practice a well-built agent generates many possibilities and acts on very few of them.</p>
+<p>The same split shows up in how you evaluate the thing. Generative quality is judged on the output, usually by a person or a rubric. Agentic quality is judged on whether the goal was reached, at what cost, with what side effects, and how it behaved when a step failed. Systems that mix both need both evaluations, and teams routinely build only the first — which is how an agent ships with good-looking outputs and no idea what it does on the unhappy path.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Mature systems generate to explore and act to commit, switching deliberately.</li><li>Divide by reversibility: generate freely, act under a gate.</li><li>Good agents generate many candidates and execute few.</li><li>Generative evaluation judges the output; agentic evaluation judges goal completion, cost and side effects.</li><li>Building only output-quality evaluation leaves the failure path untested.</li></ul></div>
+  <figure class="example">
+  <figcaption>Generate three, verify, act on one</figcaption>
+  <p>The generative and agentic halves in a single function. Candidates are free, so produce several. Execution is not, so only a validated candidate reaches it — and if none validate, escalating beats acting on the least bad option.</p>
+  <pre><code>def act_on_best(goal, state, k=3):
+    candidates = [propose_action(goal, state) for _ in range(k)]   # generative
+
+    for action in rank_by_confidence(candidates):
+        ok, reason = validate(action, state)        # schema, budget, permissions
+        if ok:
+            return execute(action)                                  # agentic
+        log.info(&quot;rejected %s: %s&quot;, action, reason)
+
+    raise NoValidAction(goal, candidates)           # escalate, do not improvise</code></pre>
+</figure><figure class="example">
+  <figcaption>Two evaluations, not one</figcaption>
+  <p>Most teams build the left column and ship. The right column is what tells you whether the system is safe to leave running, and it is only measurable if you have instrumented the loop from the start.</p>
+  <pre><code>generative eval                    agentic eval
+──────────────────────────────────────────────────────────────
+is the output good?                was the goal reached?
+rated by human or rubric           measured against a success check
+one call, one score                steps taken, tokens spent, wall time
+                                   side effects (writes, spend, messages)
+                                   behaviour when a tool failed
+                                   behaviour at the step budget</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Generative AI</dt><dd>A system that produces content in response to a prompt and then stops. Reactive by construction: one request, one result.</dd></div><div class="term"><dt>Agentic AI</dt><dd>A system that pursues a goal across multiple self-directed actions, observing results and adjusting, with minimal human intervention.</dd></div><div class="term"><dt>Agent loop</dt><dd>The repeating cycle of perceive, decide, act and learn that defines an agent. The model supplies the decide step; the rest is ordinary software.</dd></div><div class="term"><dt>Tool (function calling)</dt><dd>A function exposed to the model with a name, description and parameter schema. Tools are the only way an agent can observe or change anything outside its context.</dd></div><div class="term"><dt>Chain-of-thought reasoning</dt><dd>Generating intermediate reasoning steps before answering or acting, so a complex goal is broken into smaller logical pieces.</dd></div><div class="term"><dt>Next-token prediction</dt><dd>The mechanism behind text generation: produce a probability distribution over the vocabulary and sample the next token, repeatedly.</dd></div><div class="term"><dt>Diffusion model</dt><dd>The architecture behind most image and audio generation, which produces output by iteratively denoising random noise.</dd></div><div class="term"><dt>Step budget</dt><dd>A hard cap on how many iterations an agent may run. Necessary because nothing in the model guarantees the loop terminates.</dd></div><div class="term"><dt>Message history</dt><dd>The accumulated record of instructions, model replies and tool results. Since the model is stateless, this list is the agent&#x27;s entire memory.</dd></div><div class="term"><dt>Human in the loop</dt><dd>A required approval point before a consequential action proceeds. In generative workflows it is continuous; in agentic ones it is placed at specific gates.</dd></div><div class="term"><dt>Reason–act trace</dt><dd>An execution log alternating stated reasoning with the action taken, used to make an agent&#x27;s behaviour inspectable after the fact.</dd></div><div class="term"><dt>Temperature</dt><dd>A sampling parameter controlling how much probability mass outside the top candidate is used. Higher values give more varied output.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Two systems use the identical model, the identical prompt and the identical API. One is generative and one is agentic. What is actually different?</summary>
+  <div class="answer"><p>The control flow around the call. The agentic system puts the model inside a loop with tools, feeding each action&#x27;s result back into context so the next turn can use it. Nothing about the model changed — which is why &#x27;is this agentic?&#x27; is a question about your code, not about which model you bought.</p></div>
+</details><details class="q">
+  <summary>An agent takes a nonsensical action at step 7. Why is &#x27;the model reasoned badly&#x27; usually the wrong first hypothesis?</summary>
+  <div class="answer"><p>Because the model only sees the context you assembled for that turn. Far more often the tool description was ambiguous, a previous tool returned something unparseable, or the relevant fact was crowded out of a long context. Dump the message list at step 7 and the cause is usually visible immediately.</p></div>
+</details><details class="q">
+  <summary>Your prompt instructs the agent never to spend more than 200 EUR. Why is that insufficient, and what replaces it?</summary>
+  <div class="answer"><p>A prompt is a request to a probabilistic system, so compliance is likely but not guaranteed, and any instruction can be undermined by unusual input or a long context. The limit has to be a check inside the purchase function, which refuses regardless of what the model asked for. Enforce consequential constraints in code; use the prompt to explain them.</p></div>
+</details><details class="q">
+  <summary>Why does an agent tolerate a wrong step much better than a single generative call tolerates a wrong answer?</summary>
+  <div class="answer"><p>The agent observes the consequence — a failing test, a 404, an empty result — and gets another turn with that observation in context, so it can correct. A generative call produces its output and stops, with no opportunity to notice anything is wrong. Per-step reliability matters less when the loop can see and recover.</p></div>
+</details><details class="q">
+  <summary>A task is a single well-defined step that a human must approve anyway. Why is an agent the wrong architecture?</summary>
+  <div class="answer"><p>The loop buys recovery across dependent steps and autonomy between them, and neither applies here. You pay unpredictable latency, unpredictable cost and non-determinism for benefits the task cannot use. A single call behind a form is faster, cheaper and testable.</p></div>
+</details><details class="q">
+  <summary>Why is generating several candidate actions and executing one a better pattern than generating one action and executing it?</summary>
+  <div class="answer"><p>Generation is cheap and reversible while execution is expensive and often not, so the asymmetry favours producing spare candidates and spending the validation effort before committing. It also gives you a fallback: if the top candidate fails validation, the next is already available without another round trip.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Implement the twenty-line agent loop above against two real tools and deliberately make one of them fail intermittently — then watch whether your error handling actually lets the agent recover or just loops.</li><li>Take an agent you already have and log the full message list at every turn, then read the transcript of a run that went wrong; note how many failures are context construction rather than reasoning.</li><li>Measure the cost distribution of an agentic feature across 100 runs: tokens and wall time per run. The spread, not the mean, is what breaks capacity planning.</li><li>Build the no-progress detector and instrument how often it fires in normal operation — the number is usually higher than teams expect.</li><li>Take a task you currently solve with an agent, rewrite it as a fixed pipeline with one model call per stage, and compare reliability, cost and latency. Many agentic features are pipelines that were never tested as pipelines.</li><li>Read the ReAct paper (Yao et al., 2022) for the original formulation of interleaving reasoning traces with actions, which is the pattern nearly every agent framework now implements.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

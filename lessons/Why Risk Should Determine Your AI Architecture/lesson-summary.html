@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why Risk Should Determine Your AI Architecture — Condensed</title>
+<meta name="description" content="Learn to derive an AI system&#x27;s architecture from the risk of its use case, not from what is technically easiest to build.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-summary">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#easy-ai-vs-risk-appropriate-ai-1"><span class="n">1</span>Easy AI vs. Risk-Appropriate AI</a></li>
+<li><a href="#from-data-to-knowledge-why-context-and-relationships-matter-2"><span class="n">2</span>From Data to Knowledge: Why Context and Relationships Matter</a></li>
+<li><a href="#the-bookshelf-test-pattern-recognition-isn-t-knowledge-3"><span class="n">3</span>The Bookshelf Test: Pattern Recognition Isn&#x27;t Knowledge</a></li>
+<li><a href="#from-principles-to-requirements-4"><span class="n">4</span>From Principles to Requirements</a></li>
+<li><a href="#three-tiers-of-explainability-baseline-enhanced-vigilant-5"><span class="n">5</span>Three Tiers of Explainability: Baseline, Enhanced, Vigilant</a></li>
+<li><a href="#matching-architectural-rigor-to-risk-6"><span class="n">6</span>Matching Architectural Rigor to Risk</a></li>
+<li><a href="#governing-ai-for-the-long-term-7"><span class="n">7</span>Governing AI for the Long Term</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">AI Risk Governance</span><span class="pill ghost">Condensed</span></div>
+  <h1>Why Risk Should Determine Your AI Architecture</h1>
+  <p class="lede">Learn to derive an AI system&#x27;s architecture from the risk of its use case, not from what is technically easiest to build.</p>
+  <p class="muted small">For product leaders, architects, and governance teams who need to decide how much rigor an AI system requires before it gets built · 27 July 2026</p>
+  <p class="muted small">Every section, key point, term and question from the full lesson is here. The extended explanations and the additional examples are not.</p>
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=3G6AVkp4Rf0" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson.html">Read the full lesson</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Building an AI system has become cheap. Deciding how much rigor that system needs has not gotten any easier, and most teams get the order backwards: they build first and ask who should oversee the system afterward. By the time governance is bolted on, the architecture usually cannot support the oversight anyone actually wants — the audit trail was never captured, the explanation was never designed to be traceable, and no one assigned accountability before deployment.</p>
+<p>This lesson works through a framework for avoiding that trap. It starts with a simple hierarchy — data, information, knowledge — and shows why an AI system that only has data can look competent while being wrong in ways that matter. It then shows how to turn a vague principle like &quot;explainability&quot; into something an engineer can build, a buyer can put in a contract, and an auditor can check, by tying the required rigor to the risk of the decision the system is making.</p>
+<p>The throughline is one idea: risk should inform requirements, requirements should inform architecture, and only then does it make sense to talk about which model, which team, and which governance structure a project needs. Skipping straight to &quot;can we build this&quot; is how teams end up with systems they cannot explain, defend, or fix.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>Architecture should be derived from risk: risk informs requirements, requirements inform architecture — not the reverse.</li><li>Data is not information, and information is not knowledge. Each step requires adding something the previous layer did not have: context, then relationships.</li><li>A system that only sees data can produce confident, plausible, and wrong conclusions, because it has pattern recognition without the context to explain why the pattern exists.</li><li>Abstract principles like fairness or explainability cannot be built, audited, or contracted for directly. They need to be operationalized into specific, risk-calibrated requirements.</li><li>Explainability is not one thing. A baseline explanation, an enhanced explanation, and a vigilant explanation impose very different architectural burdens.</li><li>The amount of rigor a use case needs depends on the consequence of being wrong, not on the cost or difficulty of building the system.</li><li>High-stakes systems need architecture that supports traceable, contestable, and defensible decisions from the start — retrofitting this after deployment rarely works.</li><li>The real test of an AI system is not whether it can be built today, but whether its design and reasoning can still be defended months later.</li></ul>
+  </div>
+</section>
+<section id="easy-ai-vs-risk-appropriate-ai-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Easy AI vs. Risk-Appropriate AI</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">Modern tooling makes it easy to build an AI system quickly, but easy-to-build and risk-appropriate are two different design goals, and most teams only optimize for the first.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>&quot;Easy to build&quot; and &quot;risk-appropriate&quot; are independent properties of a system — a system can be both, or easy and inappropriate.</li><li>Building first and assigning oversight afterward is backwards; oversight capabilities have to be designed in, not retrofitted.</li><li>Governance failures — an unexplainable decision, undetected model drift, unclear accountability — are symptoms of skipping the risk-first ordering.</li><li>The correct sequence is: assess risk, derive requirements from that risk, then design architecture to meet those requirements.</li></ul></div>
+  <figure class="example">
+  <figcaption>Backwards vs. risk-first project ordering</figcaption>
+  <p>Contrasting the common failure sequence with the sequence this lesson argues for. The first path treats oversight as an afterthought; the second treats it as a design input.</p>
+  <pre><code># Common (backwards) approach
+1. Build the system because the tooling makes it easy
+2. Ship it
+3. Ask &quot;who should oversee this?&quot; only once something goes wrong
+
+# Risk-first approach
+1. Classify the risk of the use case (who is affected, how badly, how reversibly)
+2. Derive functional and non-functional requirements from that risk level
+3. Design the architecture so it can meet those requirements
+4. Assign a team and governance structure capable of operating that architecture</code></pre>
+</figure>
+</section>
+<section id="from-data-to-knowledge-why-context-and-relationships-matter-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>From Data to Knowledge: Why Context and Relationships Matter</h2>
+      <a class="stamp" href="#" data-t="45">0:45</a>
+    </div>
+  </div>
+  <p class="summary">Data becomes information once it has context, and information becomes knowledge once you also understand the relationships behind it — most AI systems stop at the first layer while behaving as if they&#x27;ve reached the third.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Data + context = information: a fact placed in its surrounding sequence.</li><li>Information + relationships = knowledge: understanding who is involved and why, not just what happened.</li><li>Storytelling is an efficient way humans package data, context, and relationships together for transmission.</li><li>A system that only has data can still generate fluent output — fluency is not evidence that context or relationships were understood.</li></ul></div>
+  <figure class="example">
+  <figcaption>The torn diary page</figcaption>
+  <p>A single torn page found on the street is data. Finding the notebook it came from adds context and turns it into information. Recognizing it as a specific person&#x27;s diary adds a relationship and turns it into knowledge. Each step required something the previous layer did not contain on its own.</p>
+  
+</figure>
+</section>
+<section id="the-bookshelf-test-pattern-recognition-isn-t-knowledge-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>The Bookshelf Test: Pattern Recognition Isn&#x27;t Knowledge</h2>
+      <a class="stamp" href="#" data-t="132">2:12</a>
+    </div>
+  </div>
+  <p class="summary">Asking a general-purpose AI model to infer a person&#x27;s job from a photo of their bookshelf shows how a system with only data — no context, no relationships — can produce a confident and wrong conclusion.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The model saw real data (actual book titles) but had no context for why any particular book was on the shelf.</li><li>It defaulted to the strongest statistical association in the data — cryptography books correlating with intelligence work — rather than the true explanation (a personal interest).</li><li>A confident, specific answer is not evidence that a system understood the situation; it may just mean the pattern match was strong.</li><li>This gap between pattern recognition and knowledge is exactly where AI systems produce plausible-sounding but incorrect conclusions.</li></ul></div>
+  <figure class="example">
+  <figcaption>Cryptography books, wrong conclusion</figcaption>
+  <p>A bookshelf containing AI/data science books, science fiction, cryptography, history, painting, and welding books (plus some Calvin and Hobbes) led a general-purpose model to guess the owner worked for the NSA. The over-weighted cryptography row produced a specific, wrong, and unverifiable claim — the kind of failure that matters much more once the same reasoning pattern is applied to a hiring, lending, or medical decision instead of a party trick.</p>
+  
+</figure>
+</section>
+<section id="from-principles-to-requirements-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>From Principles to Requirements</h2>
+      <a class="stamp" href="#" data-t="215">3:35</a>
+    </div>
+  </div>
+  <p class="summary">When a decision must be explainable, that is an architecture problem, not a model-tuning problem — and vague principles like &quot;explainability&quot; or &quot;fairness&quot; only become buildable once they are turned into specific, risk-calibrated requirements.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Needing an auditable explanation is an architecture requirement, not something solved by improving the model alone.</li><li>A principle (&quot;be fair,&quot; &quot;be explainable&quot;) is a statement of intent — it cannot be built, audited, or put in a contract as-is.</li><li>Operationalization converts a principle into specific functional and non-functional requirements, calibrated to risk.</li><li>Operationalized requirements serve three audiences at once: builders (what to implement), buyers (what to contract for), and governance boards (what to review).</li></ul></div>
+  <figure class="example">
+  <figcaption>Turning a principle into a requirement</figcaption>
+  <p>&quot;The system should be explainable&quot; is a principle — it gives no instruction. &quot;For this use case, the system must log the top three contributing factors per decision and expose them in a human-readable format within the same response&quot; is an operationalized requirement — an engineer can implement it, a contract can specify it, and an auditor can verify it.</p>
+  
+</figure>
+</section>
+<section id="three-tiers-of-explainability-baseline-enhanced-vigilant-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Three Tiers of Explainability: Baseline, Enhanced, Vigilant</h2>
+      <a class="stamp" href="#" data-t="299">4:59</a>
+    </div>
+  </div>
+  <p class="summary">Explainability is not binary. Baseline, enhanced, and vigilant explanations each impose a different, escalating architectural burden, matched to how much is at stake if the explanation is wrong or missing.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Baseline explainability: a short, generic reason. Fine when a wrong output is low-consequence.</li><li>Enhanced explainability: sources and data lineage are visible, but the underlying reasoning steps still aren&#x27;t.</li><li>Vigilant explainability: data lineage, provenance, test-retest reliability, and a traceable explanation tied to one specific decision instance.</li><li>The jump from enhanced to vigilant is a jump from &quot;showing sources&quot; to &quot;showing your work&quot; for one particular case.</li><li>The appropriate tier is chosen per use case, based on the consequence of an unexplained or wrong decision — not applied uniformly.</li></ul></div>
+  <figure class="example">
+  <figcaption>Same question, three tiers of answer</figcaption>
+  <p>Given the question &quot;why did you recommend/decide this?&quot; the three tiers answer very differently. Baseline: &quot;because of your prior viewing history.&quot; Enhanced: &quot;because people who rewatched the same five shows you did also watched this — here is the underlying viewing data.&quot; Vigilant (clinical triage): a specific, reconstructable chain from this patient&#x27;s inputs, through the model&#x27;s reasoning, to this recommendation, backed by evidence the system is reliable on repeat runs.</p>
+  <pre><code>tier        | what it must expose
+------------|----------------------------------------------
+baseline    | a short generic reason
+enhanced    | reason + cited sources + data lineage
+vigilant    | reason + lineage + provenance + test-retest
+            | reliability + a trace tied to this exact decision</code></pre>
+</figure>
+</section>
+<section id="matching-architectural-rigor-to-risk-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Matching Architectural Rigor to Risk</h2>
+      <a class="stamp" href="#" data-t="382">6:22</a>
+    </div>
+  </div>
+  <p class="summary">The right level of rigor for a given principle isn&#x27;t fixed — it&#x27;s a function of the risk of the use case, and that risk level cascades into what architecture, team, and skills the project actually needs.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The correct rigor tier is a function of risk, not a fixed standard applied to every system.</li><li>Risk level determines architecture, the skills the build team needs, and the skills the governance team needs.</li><li>The relevant question is capability under risk (&quot;can we build this the way it needs to be built&quot;), not raw cost.</li><li>Designing for failure, red-teaming, and assigning accountability belong before deployment, not after.</li><li>Low-risk systems can reasonably stay at baseline explainability; over-engineering them wastes effort that high-risk systems actually need.</li></ul></div>
+  <figure class="example">
+  <figcaption>Risk level as a routing function</figcaption>
+  <p>A simple decision rule for choosing an explainability tier from a use case&#x27;s risk classification, matching the video&#x27;s low/medium/high framing to baseline/enhanced/vigilant.</p>
+  <pre><code>function required_tier(risk_level):
+    if risk_level == &quot;low&quot;:        # e.g. content recommendation
+        return &quot;baseline&quot;
+    elif risk_level == &quot;medium&quot;:   # e.g. pre-qualification screening
+        return &quot;enhanced&quot;
+    elif risk_level == &quot;high&quot;:     # e.g. clinical triage, benefits determination
+        return &quot;vigilant&quot;
+
+# The output of this function should shape the architecture,
+# not be decided after the architecture is already built.</code></pre>
+</figure>
+</section>
+<section id="governing-ai-for-the-long-term-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Governing AI for the Long Term</h2>
+      <a class="stamp" href="#" data-t="426">7:06</a>
+    </div>
+  </div>
+  <p class="summary">For high-stakes use cases, risk-calibrated requirements aren&#x27;t aspirational extras — they&#x27;re what the use case demands, and the real test of a system is whether it can still be defended months after it ships.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>For high-stakes domains, rigorous requirements are not aspirational — they are what responsible deployment actually requires.</li><li>The meaningful test of a system is defensibility months later, not buildability today.</li><li>Defensibility requires reconstructable reasoning, demonstrated reliability, and accountability assigned in advance.</li><li>Risk should drive architecture decisions ahead of budget, urgency, or ease of building.</li></ul></div>
+  <figure class="example">
+  <figcaption>The six-month defensibility test</figcaption>
+  <p>A practical check for any AI system before launch: could the team reconstruct and justify a specific decision six months from now, to an auditor, a regulator, or an affected person? If the architecture doesn&#x27;t retain what would be needed to answer that, the system is not ready for its risk tier, regardless of how well it performs today.</p>
+  
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Risk-calibrated requirements</dt><dd>Functional and non-functional requirements whose rigor is set according to how severe the consequences of a wrong or unexplained decision would be, rather than being fixed for every system.</dd></div><div class="term"><dt>Operationalization</dt><dd>The process of turning an abstract principle (like fairness or explainability) into specific, implementable, and auditable requirements.</dd></div><div class="term"><dt>Data, information, knowledge</dt><dd>A hierarchy where data is a raw fact, information is data placed in context, and knowledge is information understood through its relationships — each layer requires something the one below it lacks.</dd></div><div class="term"><dt>Pattern recognition</dt><dd>A system&#x27;s ability to identify statistical correlations in its input data, without necessarily understanding why those correlations exist or whether they apply to the current situation.</dd></div><div class="term"><dt>Explainability</dt><dd>A system&#x27;s capacity to communicate why it produced a given output, ranging from a brief generic reason to a fully traceable, reconstructable chain of reasoning.</dd></div><div class="term"><dt>Baseline explainability</dt><dd>The lightest tier of explanation: a short, generic reason for an output, appropriate when the consequence of being wrong is minor.</dd></div><div class="term"><dt>Enhanced explainability</dt><dd>A mid-tier explanation that cites sources and shows data lineage, but does not expose the underlying step-by-step reasoning.</dd></div><div class="term"><dt>Vigilant explainability</dt><dd>The highest tier of explanation, required for high-stakes decisions: it includes data lineage, provenance, test-retest reliability, and a traceable explanation tied to one specific decision instance.</dd></div><div class="term"><dt>Data lineage / provenance</dt><dd>A record of where a piece of data originated and what transformations it went through before reaching the system that used it.</dd></div><div class="term"><dt>Test-retest reliability</dt><dd>A measure of whether a system produces consistent outputs when given the same or equivalent inputs repeatedly.</dd></div><div class="term"><dt>Auditability</dt><dd>The property of a system that allows an independent party to review and verify how and why a specific decision was made.</dd></div><div class="term"><dt>Contestability</dt><dd>The property of a decision-making system that allows an affected person to challenge a specific decision and receive a substantive review of it.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why did a general-purpose AI model conclude, incorrectly, that the bookshelf&#x27;s owner worked for the NSA?</summary>
+  <div class="answer"><p>The model had data (the book titles) but no context or relationships — it couldn&#x27;t tell why the cryptography books were there or whether all the books even belonged to one person&#x27;s professional life. It defaulted to the strongest statistical association (cryptography correlates with intelligence work), which is what pattern recognition produces when it substitutes for actual understanding.</p></div>
+</details><details class="q">
+  <summary>Why is building a system first and asking &quot;who should oversee it&quot; afterward a structural problem, not just a process inefficiency?</summary>
+  <div class="answer"><p>Oversight capabilities — audit trails, traceable reasoning, exposed data lineage — have to be designed into the architecture from the start. If the system wasn&#x27;t built to capture and expose that information, no amount of process or policy layered on afterward can retrieve it; the architecture itself is the constraint.</p></div>
+</details><details class="q">
+  <summary>Why can&#x27;t a principle like &quot;the system should be explainable&quot; be directly built, audited, or put into a contract?</summary>
+  <div class="answer"><p>A principle is a statement of intent — it doesn&#x27;t specify what to log, what threshold to meet, or what to expose. It has to be operationalized into a specific requirement (e.g., &quot;expose the top three contributing factors per decision&quot;) before an engineer, an auditor, or a contract can act on it.</p></div>
+</details><details class="q">
+  <summary>Why is a baseline explanation acceptable for a Netflix recommendation but not for a clinical triage decision made by AI?</summary>
+  <div class="answer"><p>The consequence of an unexplained wrong output differs by orders of magnitude: at worst a bad recommendation wastes someone&#x27;s time, while a bad triage decision can affect a patient&#x27;s health. The triage case needs vigilant explainability — lineage, provenance, reliability evidence, and a decision-specific trace — because the cost of an unexamined error is much higher.</p></div>
+</details><details class="q">
+  <summary>Why does risk level determine the skills a team needs, not just the technology it uses?</summary>
+  <div class="answer"><p>A high-risk system requires people who can design for failure, red-team the system before launch, and structure accountability in advance — capabilities that have nothing to do with model selection. Low-risk systems don&#x27;t need that skill set, so risk level effectively sets the bar for who should be on the team, not just what should be built.</p></div>
+</details><details class="q">
+  <summary>What distinguishes &quot;enhanced&quot; explainability from &quot;vigilant&quot; explainability, and why does that difference matter architecturally?</summary>
+  <div class="answer"><p>Enhanced explainability can show sources and data lineage but not the underlying reasoning steps. Vigilant explainability adds test-retest reliability evidence and a trace tied to one specific decision instance — meaning the architecture must retain enough internal state to reconstruct exactly how that one decision was reached, which is a much heavier data-retention and logging burden than simply citing sources.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Compare this baseline/enhanced/vigilant explainability framework against the risk tiers (minimal, limited, high, unacceptable) defined in the EU AI Act.</li><li>Read about the NIST AI Risk Management Framework and map its &quot;govern, map, measure, manage&quot; functions onto the risk-first ordering described here.</li><li>Look up GDPR Article 22&#x27;s &quot;right to explanation&quot; as a real-world legal requirement that pushes certain automated decisions toward vigilant-tier explainability.</li><li>Research the DIKW (data-information-knowledge-wisdom) hierarchy in information science and compare it to the data-information-knowledge chain described here.</li><li>Design an operationalized requirement, at each of the three explainability tiers, for a use case in your own domain (e.g. a hiring screen, a fraud flag, a content recommendation).</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

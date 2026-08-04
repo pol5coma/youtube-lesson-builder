@@ -1,0 +1,165 @@
+{
+  "video_url": "https://www.youtube.com/watch?v=u57EnkQaUTY",
+  "channel": "IBM Technology",
+  "lesson": {
+    "title": "What is Prompt Caching? Optimize LLM Latency with AI Transformers",
+    "subtitle": "Understand how caching the input to an LLM — not its output — cuts cost and latency on long, repeated prompts.",
+    "topic": "LLM inference optimization",
+    "difficulty": "Intermediate",
+    "audience": "developers building LLM applications who want to cut API latency and cost on prompts with large, repeated context",
+    "overview": "Prompt caching is one of the simplest ways to make large language model applications faster and cheaper, but its name is misleading. It does not cache the model's answer. It caches the internal computation the model does while reading your input, so that the next time the same input (or the same beginning of it) shows up, the model can skip straight to generating a response instead of re-reading everything from scratch.\n\nTo understand why that works, you need a rough picture of what an LLM does before it writes its first output token: it converts your prompt into a set of internal representations called key-value (KV) pairs, one set per transformer layer, and that conversion is where most of the pre-generation cost lives. Prompt caching stores those KV pairs so repeated or shared prefixes never have to be recomputed.\n\nThis lesson walks through the distinction between prompt caching and output caching, what actually gets cached and why, how prompt structure determines whether caching kicks in at all, and the practical limits — minimum size, expiration, automatic versus explicit caching — that decide whether it is worth using for a given application.",
+    "key_takeaways": [
+      "Prompt caching stores the model's internal representation of the input (KV pairs), not the output — every cached request still generates a fresh response.",
+      "This is different from output caching, which stores the final answer and skips the model call entirely for identical repeated queries.",
+      "Before generating any output, a transformer computes key-value pairs for every token at every layer; this is called the prefill phase, and it is the part prompt caching speeds up.",
+      "Caching only pays off once a prompt is large — short prompts finish the prefill phase so fast that managing a cache costs more than it saves.",
+      "Common things to cache are large reference documents, system prompts, few-shot examples, tool/function definitions, and conversation history — anything static that gets reused across requests.",
+      "Automatic caching relies on prefix matching: it compares the new prompt to the cached one token by token from the start and stops at the first difference, so static content must come before dynamic content (like the user's question) or the cache never gets used.",
+      "Most systems require a prompt to be around 1024 tokens or more before caching activates, and cached entries typically expire after 5 to 10 minutes (some last up to 24 hours) to keep data fresh.",
+      "Some providers cache automatically based on prefix matching; others require you to explicitly mark which segments of a prompt should be cached in the API call."
+    ],
+    "prerequisites": [
+      "Basic familiarity with how you send a prompt to an LLM through an API (input in, generated text out)",
+      "A rough idea of what a transformer model and 'tokens' are"
+    ],
+    "sections": [
+      {
+        "title": "Prompt Caching Is Not Output Caching",
+        "timestamp": "0:00",
+        "summary": "Prompt caching stores what the model computed from your input, not the answer it produced — every request still gets a freshly generated response.",
+        "explanation": "The word 'caching' usually means storing a result so you can skip the work next time. Database query caching works exactly like that: run a SQL query once, store the result, and the next identical query returns the stored answer without touching the database again. It is tempting to assume LLM prompt caching works the same way — cache the model's answer, and repeat questions get an instant, pre-written reply.\n\nThat version does exist, and it is called output caching: store the full response for a given prompt, and when the same prompt arrives again, return the stored response and skip the LLM call entirely. It works, but it only helps when the exact same question is asked repeatedly and an identical canned answer is acceptable.\n\nPrompt caching is a different mechanism. It caches only the input side — the internal work the model does while reading and understanding your prompt — while still running the generation step fresh every time. That distinction matters because it means prompt caching stays useful even when every request asks something different, as long as they share a common prefix.",
+        "key_points": [
+          "Output caching stores the final answer and returns it verbatim for repeated identical prompts, skipping the model entirely.",
+          "Prompt caching stores only the model's internal processing of the input; it still generates a new response every time.",
+          "Because prompt caching does not require an identical full prompt, it works even when only part of the prompt (e.g., a shared document) repeats and the rest (the question) changes."
+        ],
+        "examples": [
+          {
+            "title": "Database cache vs. prompt cache",
+            "description": "A SQL query cache stores 'SELECT * FROM orders WHERE id=42' → its result row, and returns that row instantly on the next identical query. An LLM prompt cache instead stores the model's internal representation of a 50-page manual pasted into the prompt; if the next request pastes the same manual but asks a different question, the manual's representation is reused but the model still generates a brand-new answer to the new question.",
+            "code": ""
+          }
+        ]
+      },
+      {
+        "title": "Inside the Transformer: KV Pairs and the Prefill Phase",
+        "timestamp": "2:07",
+        "summary": "Before an LLM can write its first output token, it converts every input token into key-value pairs at every transformer layer — that conversion is the expensive step prompt caching skips.",
+        "explanation": "When a prompt reaches an LLM, the model does not jump straight to writing a response. First it runs the entire prompt through its transformer layers to compute a set of internal values for every token, commonly called key-value (KV) pairs. You can think of these as the model's working notes on your prompt: how each word relates to every other word, which parts of the context are relevant to which other parts, and what to pay attention to when it eventually starts generating text.\n\nThis computation happens at every transformer layer, for every token, and involves a large number of matrix operations. It all takes place before the model produces a single output token, which is why this stage is called the prefill phase — the model is 'filling' its internal state from the prompt before generation (the 'decode' phase) begins.\n\nFor a short prompt, the prefill phase is nearly instant, so there is nothing meaningful to save. But prefill cost scales with the number of tokens and layers, so a long prompt — thousands of tokens across dozens of layers — turns prefill into real, measurable latency. Prompt caching works by storing the KV pairs computed during prefill so that, when the same prefix appears again, the model can skip recomputing them and jump straight into generation.",
+        "key_points": [
+          "KV pairs are the model's internal representation of how tokens in the prompt relate to each other; they are computed at every transformer layer.",
+          "The stage where KV pairs are computed, before any output is generated, is called the prefill phase.",
+          "Prefill cost grows with prompt length and model depth (number of layers), which is why it matters most for long prompts.",
+          "Prompt caching stores the prefill output (KV pairs) so a repeated prefix does not need to be recomputed."
+        ],
+        "examples": [
+          {
+            "title": "Prefill cost at different prompt sizes",
+            "description": "A prompt like 'What's the capital of France?' is only a handful of tokens, so prefill finishes in a tiny fraction of a second — caching it saves almost nothing. A prompt containing a 50-page document is thousands of tokens; computing KV pairs for all of them across every transformer layer is millions of operations, so caching that prefill output produces a noticeable latency drop on the next request that reuses the same document.",
+            "code": ""
+          }
+        ]
+      },
+      {
+        "title": "Why Caching Pays Off with Long, Reused Context",
+        "timestamp": "3:36",
+        "summary": "Caching a large, unchanging block of context — like a document pasted into the prompt — lets later requests skip straight to processing only the new question.",
+        "explanation": "The clearest case for prompt caching is a prompt built from two parts: a large, static chunk of context, and a small, changing instruction on top of it. Picture pasting a 50-page document into the context window and asking the model to summarize it. The model has to run the prefill phase over the entire document before it can generate the summary, which is expensive precisely because the document is long.\n\nNow suppose a later request — in a new conversation, or a separate API call — sends the same 50-page document again, but this time asks a different question instead of requesting a summary. If the system recognizes that the document at the start of the new prompt matches what is already cached, it retrieves the cached KV pairs for the document and only runs prefill on the new question at the end. The document itself never gets reprocessed.\n\nThis is where the savings compound: the more requests that reuse the same static prefix, the more prefill work gets skipped in total, and the benefit scales with how large that shared prefix is relative to the small part that changes each time.",
+        "key_points": [
+          "The pattern that benefits most from prompt caching is: large static content + small changing instruction.",
+          "A cache hit means only the new, non-matching part of the prompt needs to go through prefill.",
+          "Savings accumulate across every subsequent request that reuses the same cached prefix, not just the second one."
+        ],
+        "examples": [
+          {
+            "title": "Same document, two different requests",
+            "description": "Request 1: [50-page manual] + 'Summarize this document.' Request 2 (sent later): [same 50-page manual] + 'What does section 4 say about liability?' On request 2, the system matches the manual against the cache, reuses its KV pairs, and only computes prefill for the new question — instead of reprocessing all 50 pages again.",
+            "code": ""
+          }
+        ]
+      },
+      {
+        "title": "What Gets Cached in Practice",
+        "timestamp": "5:05",
+        "summary": "Anything static and reused — reference documents, system prompts, few-shot examples, tool definitions, and conversation history — are the usual candidates for caching.",
+        "explanation": "Large reference material is one obvious candidate: a product manual, a research paper, a legal contract, or any document you expect to ask multiple questions about over time. But the most commonly cached element in real applications is the system prompt — the block of instructions that tells a chatbot how to behave: its persona, its rules, its tone, what it is and is not allowed to do. Nearly every production chatbot sends the same system prompt on every single request, which makes it an ideal caching target since it never changes between calls.\n\nFew-shot examples are another common case: when you want a model to format its output a specific way, you show it a handful of example input/output pairs in the prompt. Those examples are identical on every call, so they are pure caching upside. The same logic extends to tool and function definitions — the JSON schemas describing what tools an agent can call — and to conversation history in a multi-turn chat, where earlier turns stay fixed while only the newest message changes.\n\nThe common thread across all of these is that they are static relative to the part of the prompt that actually varies per request. Anything that repeats unchanged across many calls is a candidate; anything that is different every time is not.",
+        "key_points": [
+          "System prompts are the most common thing cached, since they are identical on nearly every request a chatbot handles.",
+          "Long reference documents that get queried repeatedly (manuals, contracts, papers) are strong caching candidates.",
+          "Few-shot examples and tool/function definitions are typically static and therefore cacheable.",
+          "Conversation history in a multi-turn chat can be cached up through the last completed turn, leaving only the newest message to reprocess."
+        ],
+        "examples": [
+          {
+            "title": "A cacheable system prompt",
+            "description": "A customer-service chatbot's instructions rarely change between requests, which is exactly what makes them worth caching — the cost of processing this block is paid once, not on every user message.",
+            "code": "SYSTEM PROMPT (static, cached):\n\"You are a helpful customer service agent for Acme Corp.\nAlways be polite and concise. Never discuss competitors.\nIf you don't know an answer, offer to escalate to a human agent.\"\n\nUSER MESSAGE (dynamic, not cached):\n\"What's your return policy on electronics?\""
+          }
+        ]
+      },
+      {
+        "title": "Prefix Matching: How Caching Decides What to Reuse",
+        "timestamp": "5:47",
+        "summary": "Automatic caching compares a new prompt against the cached one token by token from the very start, and stops reusing the cache the instant a token differs — so prompt order determines whether caching helps at all.",
+        "explanation": "Automatic prompt caching relies on a technique called prefix matching. When a new request comes in, the system compares it against what is stored in the cache starting from the first token and moving forward. As long as tokens keep matching, that portion is served from cache. The moment a token differs from what was cached, matching stops there, and everything from that point onward — including everything after it in the prompt — has to be processed normally, even if later parts happen to match something else in the cache.\n\nThis has a direct consequence for how you should write prompts if you want automatic caching to work: put all the static, reusable content first, and put the part that changes on every request last. A prompt ordered as [system instructions] + [document] + [few-shot examples] + [user question] keeps everything static at the front. When the next request comes in with a different question but the same instructions, document, and examples, the prefix match succeeds all the way through the static content, and only the new question at the end needs fresh processing.\n\nFlip that order — put the user's question first, followed by the static content — and prefix matching breaks immediately, because the question is different every time and it is the very first thing compared. The system will never get past token one before it hits a mismatch, so none of the static content behind it gets served from cache, and it all gets reprocessed on every single request regardless of how much of it hasn't actually changed.",
+        "key_points": [
+          "Prefix matching checks a new prompt against the cache token by token, starting from position zero.",
+          "The first mismatched token ends the cache hit; everything from that point on is processed as new.",
+          "Static, reused content (instructions, documents, examples) belongs at the start of the prompt; the dynamic, per-request content (the user's question) belongs at the end.",
+          "Putting dynamic content first defeats caching entirely, even if most of the prompt is otherwise unchanged."
+        ],
+        "examples": [
+          {
+            "title": "Cache-friendly vs. cache-breaking prompt order",
+            "description": "The first structure keeps the changing question at the end, so the long static prefix (instructions, manual, examples) matches the cache on every call. The second structure puts the question first, so the mismatch happens immediately and nothing after it is ever served from cache.",
+            "code": "# Cache-friendly (question last)\n[system instructions]\n[20-page manual]\n[few-shot examples]\n[user question: \"What are the warranty terms?\"]\n# -> next call with a different question still\n#    matches everything before the question\n\n# Cache-breaking (question first)\n[user question: \"What are the warranty terms?\"]\n[system instructions]\n[20-page manual]\n[few-shot examples]\n# -> next call's different question mismatches\n#    at token 1, so nothing below it is reused"
+          }
+        ]
+      },
+      {
+        "title": "Practical Limits: Minimum Size, Expiration, and Explicit Caching",
+        "timestamp": "7:58",
+        "summary": "Caching only pays off above a minimum prompt size, cached entries expire after minutes to hours, and some systems require you to mark cacheable sections explicitly rather than relying on automatic prefix matching.",
+        "explanation": "Prompt caching is not free to maintain — storing and looking up a cache has its own overhead. Below roughly 1024 tokens, that overhead exceeds whatever prefill time you'd save, so caching provides no real benefit on short prompts. This is consistent with the earlier point that a prompt like 'What's the capital of France?' gains nothing from caching: it is nowhere near that threshold.\n\nCached entries are also not kept forever. They are typically cleared after 5 to 10 minutes so the cache reflects current data rather than serving stale content indefinitely, though some systems allow entries to persist for up to 24 hours for content that legitimately doesn't change often. This means caching is most valuable for bursts of related requests within a short window — a support session, a document Q&A workflow, a chain of tool calls — rather than for content queried once a day.\n\nFinally, not every provider handles caching the same way. Some caching is fully automatic: the system applies prefix matching to every request without you doing anything special, as described above. Other systems require explicit caching: you have to mark, in the API call itself, which segments of the prompt should be treated as cacheable. Explicit caching gives you more control over exactly what gets cached and for how long, at the cost of having to structure your API calls with that in mind rather than relying on the system to figure it out from prompt order alone.",
+        "key_points": [
+          "Caching typically needs a prompt of at least ~1024 tokens before it produces a net benefit; below that, overhead outweighs savings.",
+          "Cache entries usually expire after 5 to 10 minutes, though some can persist up to 24 hours.",
+          "Short expiration windows mean caching helps most for clusters of related requests close together in time.",
+          "Automatic caching relies purely on prefix matching; explicit caching requires you to mark cacheable segments yourself in the API request."
+        ],
+        "examples": [
+          {
+            "title": "Explicit vs. automatic caching in an API call",
+            "description": "In an automatic-caching system, you send the prompt normally and the provider decides what to cache based on prefix matching against recent requests. In an explicit-caching system, you annotate specific blocks of the request — commonly the system prompt or a large document — so the provider knows exactly what to persist, independent of whether the rest of the prompt matches anything.",
+            "code": "# Automatic caching: nothing special to write,\n# the provider matches prefixes on its own.\nresponse = client.generate(\n    prompt=system_instructions + document + question\n)\n\n# Explicit caching: mark which blocks are cacheable.\nresponse = client.generate(messages=[\n    {\"role\": \"system\", \"content\": system_instructions, \"cache\": True},\n    {\"role\": \"user\", \"content\": document, \"cache\": True},\n    {\"role\": \"user\", \"content\": question}  # not cached, changes every call\n])"
+          }
+        ]
+      }
+    ],
+    "glossary": [
+      {"term": "Prompt caching", "definition": "Storing the model's internal processing of an input prompt (or its static prefix) so that repeated or shared portions of future prompts don't need to be recomputed. The model still generates a fresh output every time."},
+      {"term": "Output caching", "definition": "Storing the final generated response to a prompt and returning it directly for identical future requests, skipping the model call entirely."},
+      {"term": "KV pairs (key-value pairs)", "definition": "Internal values a transformer computes for every token at every layer, representing how each token relates to the others in the input. These are what prompt caching actually stores."},
+      {"term": "Prefill phase", "definition": "The stage of LLM processing where the model computes KV pairs for the entire input prompt, before it generates its first output token."},
+      {"term": "Transformer layer", "definition": "One of several stacked processing stages in a transformer model; KV pairs are computed independently at each layer as the input passes through the model."},
+      {"term": "Prefix matching", "definition": "A technique that compares a new prompt against a cached one token by token from the start, treating everything up to the first differing token as a cache hit."},
+      {"term": "System prompt", "definition": "Instructions sent with every request to an LLM that define its behavior, persona, and rules, typically identical across many calls and therefore a strong caching candidate."},
+      {"term": "Few-shot examples", "definition": "Sample input/output pairs included in a prompt to show the model the format or style of response desired."},
+      {"term": "Context window", "definition": "The maximum amount of text (measured in tokens) an LLM can process as input in a single request."},
+      {"term": "Token", "definition": "A chunk of text (roughly a word or part of a word) that an LLM processes as a single unit; prompt length and caching thresholds are measured in tokens."}
+    ],
+    "quiz": [
+      {"question": "Why does caching provide almost no benefit for a short prompt like 'What's the capital of France?'", "answer": "The prefill phase for a handful of tokens is already extremely fast, so there is very little computation to save. Below roughly 1024 tokens, the overhead of storing and looking up a cache entry can exceed whatever time it would save, so caching adds cost rather than removing it."},
+      {"question": "If a prompt caching system claims to speed up repeated requests, what exactly is it reusing — the prompt's processing, or the model's answer? Why does that distinction matter for a document Q&A tool where every question is different?", "answer": "It reuses the prompt's processing (the cached KV pairs from the prefill phase), not the answer. That matters for a document Q&A tool because every question about the document is different, so output caching (storing answers) would never get a hit — but prompt caching still helps, because the document itself is an unchanging prefix shared across all those different questions."},
+      {"question": "A developer puts the user's question at the very start of their prompt, followed by a large static system prompt and reference document. Why does this defeat automatic caching even though most of the prompt content doesn't change between requests?", "answer": "Automatic caching uses prefix matching, which compares tokens from the beginning of the prompt. Since the question changes every request and sits first, the mismatch happens at token one, so the cache lookup fails before it ever reaches the static content behind it — none of that static content gets served from cache, regardless of how much of it is identical to the previous request."},
+      {"question": "Why do caching systems set an expiration window (typically 5-10 minutes) instead of keeping cached prompt data indefinitely?", "answer": "A short expiration keeps cached content from going stale — if underlying documents, instructions, or context could change, an indefinitely cached prefix could serve outdated information. It also bounds how much data the system has to store at once, since most caching value comes from bursts of related requests close together in time rather than requests spread far apart."},
+      {"question": "What's the practical difference between a provider that does automatic caching versus one that requires explicit caching, and what does the developer have to do differently in each case?", "answer": "With automatic caching, the provider applies prefix matching to every request on its own; the developer's only job is to structure the prompt with static content first so a match is possible. With explicit caching, the developer must actively mark which segments of the prompt (e.g., the system prompt or a document) should be treated as cacheable in the API call itself, giving more control but requiring more deliberate request design."}
+    ],
+    "further_exploration": [
+      "Look up how a specific LLM provider's API documents its prompt caching (minimum token thresholds, cache lifetime, and whether it's automatic or explicit) and compare it against the general figures in this lesson.",
+      "Measure the latency difference on a real API call by sending the same large document twice with different trailing questions, once with the question first and once with the question last.",
+      "Read about the companion mechanism, KV caching during multi-turn generation within a single response, to see how it differs from prompt caching across separate requests.",
+      "Design a system prompt + reference document + few-shot example structure for an application you're building, ordering it to maximize cache hits."
+    ]
+  }
+}

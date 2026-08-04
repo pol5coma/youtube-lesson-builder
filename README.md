@@ -1,16 +1,26 @@
 # YouTube Lesson Builder
 
-Turn any YouTube video into a clear, structured HTML lesson you can actually study from.
+**Two [Claude Code](https://claude.com/claude-code) skills that turn YouTube videos
+into a body of knowledge you can actually study.**
 
-Give it a link. It reads the video's transcript and writes a self-contained web
-page that **teaches the topic** — sections with explanations, worked examples,
-timestamps back into the video, a glossary, and self-check questions.
+| Skill | What it does |
+|---|---|
+| **`/youtube-lesson`** | Turns one video into a structured HTML lesson — explanations, worked examples, timestamps back into the video, a glossary, self-check questions |
+| **`/concept-map`** | Turns a *folder* of those lessons into one interactive concept map — every recurring idea as a single node, linked to the lessons that teach it |
 
-It runs inside [Claude Code](https://claude.com/claude-code), so **no API key and
-no API credits are needed** — your Claude subscription covers it.
+The first gives you a page per video. The second is what you reach for once you
+have twenty of them and the ideas start repeating: it de-duplicates the overlap
+into a graph you can explore from the basics down to the engineering.
+
+Because they are skills, the reasoning runs on **your Claude subscription** —
+**no API key and no API credits are needed.**
 
 Built for learning: conference talks, tutorials, lectures, interviews, course
 videos. Anything where the value is in the ideas rather than the visuals.
+
+This repo ships a full worked example: 40 lessons on how AI works, and the
+80-concept map built from them. Clone it and you can explore that map
+immediately, or point the skills at your own subject and build your own.
 
 <br>
 
@@ -39,6 +49,41 @@ and opens it.
 You can also just ask for it in your own words — *"turn this video into a lesson
 for beginners: <url>"* — and the skill picks itself up.
 
+To open the concept map that ships with this repo:
+
+```bash
+python3 ai-guide/server.py       # then open the URL it prints
+```
+
+<br>
+
+## The concept map
+
+One page per video stops scaling around the twentieth lesson: the same ideas —
+context windows, RAG, hallucination, agent memory — recur across five or six of
+them, and nothing tells you how they relate.
+
+`/concept-map` collapses that into a single graph. Each recurring idea becomes
+**one** node carrying a summary, an at-a-glance visual, highlights, cited
+sources, and every lesson that teaches it. Nodes are joined by labelled
+relationships (*"attention — is optimized by → KV cache"*), and drilling into a
+node reaches the full lesson page with its source video embedded.
+
+Adding to it works from the browser. Start the server, click **+ Lesson**, paste
+a YouTube URL: the transcript is fetched and parked in a queue together with the
+concept you want it filed under, suggested automatically from the transcript's
+vocabulary. Then, in Claude Code, say **"process the queue"** — the lesson gets
+written, rendered, attached to that concept, and the map rebuilt.
+
+The content is three hand-authored files (`concepts.json` and its two side files
+for sources, schematics and visuals), validated on every build. `build.py` fails
+loudly if a lesson reference is broken, a cross-link points nowhere, a source is
+missing its URL, or — the one that catches forgotten work — **a lesson on disk is
+not reachable from any concept**.
+
+See [`ai-guide/README.md`](ai-guide/README.md) for the content model and the
+five shapes the at-a-glance visuals use.
+
 <br>
 
 ## Two ways to install it
@@ -65,7 +110,11 @@ pip install .
 
 mkdir -p ~/.claude/skills
 cp -r .claude/skills/youtube-lesson ~/.claude/skills/
+cp -r .claude/skills/concept-map    ~/.claude/skills/
 ```
+
+`concept-map` drives scripts that live in `ai-guide/`, so install it globally
+only if you keep a clone around for them to run from.
 
 Or skip the clone entirely:
 
@@ -282,21 +331,37 @@ you publish one, credit the original.
 ## Layout
 
 ```
-ytlesson/
-├── transcript.py   caption fetching, URL parsing, paragraph merging
-├── lesson.py       lesson schema (Pydantic), condense(), the optional API call
-├── render.py       HTML rendering, all CSS and JS inlined
-├── pdf.py          browser detection and HTML → PDF conversion
-└── __main__.py     command-line interface
+.claude/skills/         ← the two skills
+├── youtube-lesson/
+│   ├── SKILL.md        the procedure Claude follows to write a lesson
+│   └── schema.md       the lesson shape it writes against
+└── concept-map/
+    └── SKILL.md        processing the queue, and editing the graph
 
-.claude/
-├── skills/youtube-lesson/
-│   ├── SKILL.md    the procedure Claude follows
-│   └── schema.md   the lesson shape it writes against
-└── settings.json   pre-approves the scripts, so there are no permission prompts
+ytlesson/               ← the lesson builder (Python, no dependencies to speak of)
+├── transcript.py       caption fetching, URL parsing, paragraph merging
+├── lesson.py           lesson schema (Pydantic), condense(), the optional API call
+├── render.py           HTML rendering, all CSS and JS inlined
+├── pdf.py              browser detection and HTML → PDF conversion
+└── __main__.py         command-line interface
 
-pyproject.toml      packaging, so `pip install .` puts `ytlesson` on your PATH
+ai-guide/               ← the concept map (static site + its tooling)
+├── concepts.json       the graph: nodes, cross-links, lesson references
+├── enrichment.json     per-concept sources and hand-drawn SVG schematics
+├── glance.json         per-concept at-a-glance visual
+├── build.py            validator + data.json generator
+├── attach_lesson.py    attach a rendered lesson to a concept
+├── server.py           local server: the site plus the + Lesson queue API
+└── index.html · styles.css · app.js    zero-dependency front end
+
+lessons/                ← the worked example: 40 lessons on how AI works
+pyproject.toml          packaging, so `pip install .` puts `ytlesson` on your PATH
+.claude/settings.json   pre-approves the scripts, so there are no permission prompts
 ```
+
+`lessons/` is content, not code — it is what the skills produced, kept so the
+map has something to be a map *of*. Point the skills at your own videos and your
+own lessons land beside them.
 
 The skill resolves the command at run time — `ytlesson` on PATH, a repo-local
 `.venv`, or an importable package — so the same skill file works whether it is

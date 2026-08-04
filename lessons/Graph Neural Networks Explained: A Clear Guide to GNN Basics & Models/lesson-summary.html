@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graph Neural Networks: How GNNs Learn From Connected Data — Condensed</title>
+<meta name="description" content="Understand how message passing works and how GCN, GraphSAGE, GAT, GIN, and graph transformers each aggregate neighbor information differently.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-summary">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#graphs-as-data-nodes-edges-and-the-adjacency-matrix-1"><span class="n">1</span>Graphs as data: nodes, edges, and the adjacency matrix</a></li>
+<li><a href="#embeddings-and-heterogeneous-vs-homogeneous-graphs-2"><span class="n">2</span>Embeddings, and heterogeneous vs. homogeneous graphs</a></li>
+<li><a href="#message-passing-how-nodes-share-information-3"><span class="n">3</span>Message passing: how nodes share information</a></li>
+<li><a href="#graph-convolutional-networks-gcn-smoothing-over-neighbors-4"><span class="n">4</span>Graph Convolutional Networks (GCN): smoothing over neighbors</a></li>
+<li><a href="#graphsage-sampling-neighbors-to-scale-to-huge-graphs-5"><span class="n">5</span>GraphSAGE: sampling neighbors to scale to huge graphs</a></li>
+<li><a href="#graph-attention-networks-gat-weighing-neighbors-unequally-6"><span class="n">6</span>Graph Attention Networks (GAT): weighing neighbors unequally</a></li>
+<li><a href="#graph-isomorphism-networks-gin-and-why-sum-beats-mean-max-7"><span class="n">7</span>Graph Isomorphism Networks (GIN) and why sum beats mean/max</a></li>
+<li><a href="#graph-transformers-global-attention-over-the-whole-graph-8"><span class="n">8</span>Graph Transformers: global attention over the whole graph</a></li>
+<li><a href="#choosing-an-architecture-9"><span class="n">9</span>Choosing an architecture</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">Graph Neural Networks</span><span class="pill ghost">Condensed</span><span class="muted">IBM Technology</span></div>
+  <h1>Graph Neural Networks: How GNNs Learn From Connected Data</h1>
+  <p class="lede">Understand how message passing works and how GCN, GraphSAGE, GAT, GIN, and graph transformers each aggregate neighbor information differently.</p>
+  <p class="muted small">For people comfortable with basic neural networks (weights, activations, matrix multiplication) who want to understand how models learn from graph-structured data · 27 July 2026</p>
+  <p class="muted small">Every section, key point, term and question from the full lesson is here. The extended explanations and the additional examples are not.</p>
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=eGoszzMkGfU" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson.html">Read the full lesson</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>Basic neural network concepts: weights, activation functions, and how backpropagation updates them</li><li>Comfort with matrix multiplication and matrix notation</li><li>Helpful but not required: familiarity with how convolutional neural networks (CNNs) share weights across local regions</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Most machine learning models expect data arranged as a clean table of rows and columns. A lot of real data isn&#x27;t shaped that way: social networks, molecules, road maps, and citation networks are all collections of entities connected by relationships. A graph captures that directly — entities become nodes, relationships become edges, and a graph neural network (GNN) is a model built to learn from that structure instead of forcing it into a table.</p>
+<p>The core mechanism every GNN shares is message passing: each node repeatedly collects information from its neighbors, combines it, and uses it to update its own representation (embedding). Stack enough of these updates and a node&#x27;s representation ends up encoding not just its own features but the shape of the graph around it.</p>
+<p>Where architectures differ is *how* they aggregate neighbor information. This lesson walks through the graph basics (nodes, edges, adjacency matrices, embeddings), the message-passing mechanism itself, and five major architectures — GCN, GraphSAGE, GAT, GIN, and graph transformers — with working code for each aggregation rule.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>A graph pairs entities (nodes) with relationships (edges); an adjacency matrix records which nodes connect, and for directed graphs, in which direction.</li><li>GNNs learn through message passing: every node repeatedly gathers, aggregates, and folds in information from its neighbors to update its own embedding.</li><li>Stacking message-passing layers grows a node&#x27;s receptive field — layer 1 reaches immediate neighbors, layer 2 reaches neighbors of neighbors, and so on.</li><li>GNN architectures mainly differ in their aggregation rule: GCN smooths neighbor features, GraphSAGE samples neighbors to stay scalable, GAT learns per-neighbor attention weights, and GIN sums for maximum expressive power.</li><li>Sum aggregation (used by GIN) preserves more structural detail than mean or max, which is why GIN matches the discriminative power of the Weisfeiler-Lehman (WL) graph isomorphism test while GCN-style mean/max pooling does not.</li><li>Graph transformers let every node attend to every other node directly (not just immediate neighbors), and add a structural bias term to the attention score so the graph&#x27;s topology isn&#x27;t lost.</li><li>Choosing an architecture is a tradeoff between expressive power (GIN), scalability to huge graphs (GraphSAGE), interpretable importance weighting (GAT), and long-range reasoning (graph transformers).</li></ul>
+  </div>
+</section>
+<section id="graphs-as-data-nodes-edges-and-the-adjacency-matrix-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>Graphs as data: nodes, edges, and the adjacency matrix</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">A graph represents entities as nodes and their relationships as edges; an adjacency matrix is a simple way to record exactly which nodes connect to which.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>A graph is a set of nodes plus a set of edges connecting pairs of nodes.</li><li>Undirected edges are symmetric; directed edges point one way and encode asymmetric relationships.</li><li>An adjacency matrix is an N×N table of 0s and 1s that fully describes which nodes connect to which.</li><li>Row i of the adjacency matrix lists everything node i points to; column i lists everything that points to node i.</li></ul></div>
+  <figure class="example">
+  <figcaption>Encoding a student-teacher graph</figcaption>
+  <p>Node 0 is a student of node 1 (a teacher), and also a student of nodes 2 and 4. Because “is student of” is directional, the edges only run from student to teacher, so row 0 has 1s in columns 1, 2, and 4, while row 1 (the teacher) has no outgoing edges back to node 0.</p>
+  <pre><code>import numpy as np
+
+num_nodes = 5
+A = np.zeros((num_nodes, num_nodes), dtype=int)
+
+# (student, teacher) pairs -- edge means &quot;is student of&quot;
+edges = [(0, 1), (0, 2), (0, 4)]
+for src, dst in edges:
+    A[src, dst] = 1
+
+print(A)
+# row 0 -&gt; [0 1 1 0 1]  node 0 is a student of nodes 1, 2, 4
+# row 1 -&gt; [0 0 0 0 0]  node 1 (a teacher) is a student of no one
+print(A[1, 0])  # 0 -- the reverse edge does not exist
+</code></pre>
+</figure>
+</section>
+<section id="embeddings-and-heterogeneous-vs-homogeneous-graphs-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Embeddings, and heterogeneous vs. homogeneous graphs</h2>
+      <a class="stamp" href="#" data-t="130">2:10</a>
+    </div>
+  </div>
+  <p class="summary">GNNs convert nodes (and edges, and whole graphs) into dense embedding vectors, and graphs are classified by whether they contain one type of node/edge or several.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>An embedding is a dense, low-dimensional vector that summarizes a node&#x27;s features and its structural context.</li><li>Embeddings can be computed at the node, edge, or whole-graph level depending on the task.</li><li>A homogeneous graph has one node type and one edge type; a heterogeneous graph has more than one of either.</li><li>Heterogeneous GNNs generally need type-specific parameters, because different node/edge types aren&#x27;t directly comparable.</li></ul></div>
+  <figure class="example">
+  <figcaption>Homogeneous vs. heterogeneous graph schemas</figcaption>
+  <p>A friend network is homogeneous: every node is the same type and every edge means the same thing. The student/teacher graph is heterogeneous: two node types and an edge type that only makes sense between them.</p>
+  <pre><code>import numpy as np
+
+# Homogeneous: one node type (&quot;person&quot;), one edge type (&quot;friend_of&quot;)
+homogeneous_edges = [(0, 1), (1, 2), (2, 3)]
+
+# Heterogeneous: two node types, one edge type restricted to student-&gt;teacher
+node_types = {0: &quot;student&quot;, 1: &quot;teacher&quot;, 2: &quot;student&quot;, 3: &quot;teacher&quot;}
+edges = {(0, 1): &quot;is_student_of&quot;, (2, 3): &quot;is_student_of&quot;}
+
+# A node embedding table: one dense vector per node, refined later by message passing
+embedding_dim = 4
+num_nodes = 4
+node_embeddings = np.random.randn(num_nodes, embedding_dim) * 0.01
+print(node_embeddings.shape)  # (4, 4) -- low-dimensional, dense, one row per node
+</code></pre>
+</figure>
+</section>
+<section id="message-passing-how-nodes-share-information-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Message passing: how nodes share information</h2>
+      <a class="stamp" href="#" data-t="171">2:51</a>
+    </div>
+  </div>
+  <p class="summary">Nodes don&#x27;t predict in isolation — in each layer, every node sends, aggregates, and folds in messages from its neighbors, and stacking layers widens how far that information travels.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Message passing has three steps per layer: create messages, aggregate them, then update the node&#x27;s embedding.</li><li>A node&#x27;s receptive field grows by one hop per layer — layer 1 reaches direct neighbors, layer 2 reaches neighbors of neighbors.</li><li>The aggregation operation (sum, mean, max, attention) is the main design choice that separates GNN architectures.</li><li>Because the aggregation is the same learned function at every node, the model generalizes across nodes it has never explicitly seen it aggregate for.</li></ul></div>
+  <figure class="example">
+  <figcaption>A generic message-passing layer in NumPy</figcaption>
+  <p>This implements one layer&#x27;s worth of create -&gt; aggregate -&gt; update using sum aggregation and a shared weight matrix, on a small 5-node graph. Running it twice shows the receptive field growing from 1-hop to 2-hop neighbors.</p>
+  <pre><code>import numpy as np
+
+def message_passing_layer(H, A, W, activation=lambda x: np.maximum(x, 0)):
+    &quot;&quot;&quot;
+    H: (num_nodes, in_dim)  node embeddings from the previous layer
+    A: (num_nodes, num_nodes) adjacency matrix (1 if neighbor, else 0)
+    W: (in_dim, out_dim)  shared, learnable weight matrix
+    &quot;&quot;&quot;
+    messages = H                    # step 1: each neighbor&#x27;s embedding is its message
+    aggregated = A @ messages       # step 2: sum incoming messages from neighbors
+    H_next = activation(aggregated @ W)  # step 3: transform + non-linearity
+    return H_next
+
+num_nodes, in_dim, out_dim = 5, 3, 3
+H0 = np.random.randn(num_nodes, in_dim)
+A = np.array([
+    [0, 1, 1, 0, 0],
+    [1, 0, 0, 1, 0],
+    [1, 0, 0, 0, 1],
+    [0, 1, 0, 0, 0],
+    [0, 0, 1, 0, 0],
+])
+W = np.random.randn(in_dim, out_dim) * 0.1
+
+H1 = message_passing_layer(H0, A, W)  # each node now reflects its 1-hop neighbors
+H2 = message_passing_layer(H1, A, W)  # each node now reflects up to 2-hop neighbors
+</code></pre>
+</figure>
+</section>
+<section id="graph-convolutional-networks-gcn-smoothing-over-neighbors-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Graph Convolutional Networks (GCN): smoothing over neighbors</h2>
+      <a class="stamp" href="#" data-t="303">5:03</a>
+    </div>
+  </div>
+  <p class="summary">GCNs generalize the weight-sharing idea behind CNNs to graphs: every node gets a smoothed, aggregated version of its neighbors&#x27; embeddings, passed through a shared weight matrix and a non-linearity.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Formula: h_v^L = sigma(W_L · aggregate({h_u^(L-1) for u in neighbors(v)})).</li><li>The weight matrix W_L is shared across all nodes at a given layer, mirroring a CNN&#x27;s shared filters.</li><li>The non-linearity sigma is what lets stacked layers represent non-linear relationships instead of collapsing to one linear map.</li><li>GCNs work well for semi-supervised node classification, where labels are sparse and need to propagate through the graph.</li></ul></div>
+  <figure class="example">
+  <figcaption>A GCN layer with self-loops and degree normalization</figcaption>
+  <p>The standard GCN layer (Kipf &amp; Welling) adds self-loops to the adjacency matrix so each node includes its own previous embedding, then normalizes by node degree so high-degree nodes don&#x27;t dominate purely by having more neighbors.</p>
+  <pre><code>import numpy as np
+
+def gcn_layer(H_prev, A, W, activation=lambda x: np.maximum(x, 0)):
+    &quot;&quot;&quot;
+    H_prev: (N, d_in)  embeddings from layer L-1
+    A: (N, N)  adjacency matrix WITHOUT self-loops
+    W: (d_in, d_out)  learnable weights for this layer
+    Implements h_L = sigma( D^-1/2 (A + I) D^-1/2 H_(L-1) W )
+    &quot;&quot;&quot;
+    N = A.shape[0]
+    A_hat = A + np.eye(N)                     # add self-loops
+    deg = A_hat.sum(axis=1)                   # degree of each node in A_hat
+    D_inv_sqrt = np.diag(1.0 / np.sqrt(deg))
+    A_norm = D_inv_sqrt @ A_hat @ D_inv_sqrt  # symmetric normalization
+    return activation(A_norm @ H_prev @ W)
+
+N, d_in, d_out = 5, 3, 3
+H0 = np.random.randn(N, d_in)
+A = np.array([
+    [0, 1, 1, 0, 0],
+    [1, 0, 0, 1, 0],
+    [1, 0, 0, 0, 1],
+    [0, 1, 0, 0, 0],
+    [0, 0, 1, 0, 0],
+])
+W = np.random.randn(d_in, d_out) * 0.1
+H1 = gcn_layer(H0, A, W)
+</code></pre>
+</figure>
+</section>
+<section id="graphsage-sampling-neighbors-to-scale-to-huge-graphs-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>GraphSAGE: sampling neighbors to scale to huge graphs</h2>
+      <a class="stamp" href="#" data-t="385">6:25</a>
+    </div>
+  </div>
+  <p class="summary">GraphSAGE (“sample and aggregate”) learns to aggregate over a fixed-size sample of each node&#x27;s neighbors instead of the whole neighborhood, keeping cost constant on graphs with millions of nodes.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Formula: h_v^L = sigma(W · concat(h_v^(L-1), aggregate({h_u^(L-1) for u in sample(neighbors(v))}))).</li><li>Sampling a fixed number of neighbors per layer keeps cost constant regardless of graph size.</li><li>Concatenating (rather than summing) the node&#x27;s own embedding with the aggregated neighbor embedding keeps the two signals separately weighted.</li><li>This makes GraphSAGE well suited to very large graphs, and to inductive settings where the model must handle nodes unseen during training.</li></ul></div>
+  <figure class="example">
+  <figcaption>Neighbor sampling and a GraphSAGE-style layer</figcaption>
+  <p>Instead of aggregating a node&#x27;s full neighbor list, only a fixed-size random sample is used per layer — here 5 neighbors, however many the node actually has.</p>
+  <pre><code>import numpy as np
+
+def sample_neighbors(all_neighbor_ids, sample_size=5, rng=np.random.default_rng()):
+    if len(all_neighbor_ids) &lt;= sample_size:
+        return np.array(all_neighbor_ids)
+    return rng.choice(all_neighbor_ids, size=sample_size, replace=False)
+
+def graphsage_layer(H_prev, node_id, sampled_neighbor_ids, W,
+                     activation=lambda x: np.maximum(x, 0)):
+    &quot;&quot;&quot;
+    H_prev: (N, d_in)  embeddings from layer L-1
+    W: (2*d_in, d_out)  weights sized for [self ; aggregated_neighbors]
+    &quot;&quot;&quot;
+    neighbor_agg = H_prev[sampled_neighbor_ids].mean(axis=0)
+    combined = np.concatenate([H_prev[node_id], neighbor_agg])
+    return activation(W.T @ combined)
+
+N, d_in, d_out = 6, 4, 4
+H0 = np.random.randn(N, d_in)
+all_neighbors_of_0 = [1, 2, 3, 4, 5]  # imagine this list had 10,000 entries
+sampled = sample_neighbors(all_neighbors_of_0, sample_size=3)
+W = np.random.randn(2 * d_in, d_out) * 0.1
+h0_next = graphsage_layer(H0, 0, sampled, W)
+</code></pre>
+</figure>
+</section>
+<section id="graph-attention-networks-gat-weighing-neighbors-unequally-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Graph Attention Networks (GAT): weighing neighbors unequally</h2>
+      <a class="stamp" href="#" data-t="427">7:07</a>
+    </div>
+  </div>
+  <p class="summary">GATs learn an attention coefficient for each neighbor so the model can focus more on the connections that matter, instead of treating every neighbor the same.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Formula: h_v^L = sigma(sum_u alpha_vu · W · h_u^(L-1)) over neighbors u of v.</li><li>Attention coefficients alpha_vu start as learnable parameters and are updated by backpropagation.</li><li>Softmax normalization keeps each node&#x27;s alphas positive and summing to 1, so aggregation stays a weighted average.</li><li>GAT is a good fit when some neighbors are clearly more informative than others, and the model should learn which.</li></ul></div>
+  <figure class="example">
+  <figcaption>Computing attention-weighted neighbor aggregation</figcaption>
+  <p>For one node v, transform every neighbor&#x27;s features, score each (v, u) pair with a learned attention vector plus a LeakyReLU, softmax the scores so they sum to 1, then take the weighted sum.</p>
+  <pre><code>import numpy as np
+
+def leaky_relu(x, slope=0.2):
+    return np.where(x &gt; 0, x, slope * x)
+
+def gat_layer(H_prev, v_idx, neighbor_ids, W, a,
+              activation=lambda x: np.maximum(x, 0)):
+    &quot;&quot;&quot;
+    H_prev: (N, d_in)  embeddings from layer L-1
+    W: (d_in, d_out)  shared weight matrix
+    a: (2*d_out,)  learnable attention vector
+    &quot;&quot;&quot;
+    Wh = H_prev @ W  # transform every node&#x27;s features: (N, d_out)
+
+    scores = np.array([
+        leaky_relu(a @ np.concatenate([Wh[v_idx], Wh[u]]))
+        for u in neighbor_ids
+    ])
+    exp_scores = np.exp(scores - scores.max())  # numerically stable softmax
+    alpha = exp_scores / exp_scores.sum()       # sums to 1 across neighbors
+
+    weighted_sum = sum(a_i * Wh[u] for a_i, u in zip(alpha, neighbor_ids))
+    return activation(weighted_sum), alpha
+
+N, d_in, d_out = 5, 3, 3
+H0 = np.random.randn(N, d_in)
+W = np.random.randn(d_in, d_out) * 0.1
+a = np.random.randn(2 * d_out) * 0.1
+h0_next, alphas = gat_layer(H0, v_idx=0, neighbor_ids=[1, 2, 4], W=W, a=a)
+print(alphas, alphas.sum())  # per-neighbor weights, summing to ~1.0
+</code></pre>
+</figure>
+</section>
+<section id="graph-isomorphism-networks-gin-and-why-sum-beats-mean-max-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>Graph Isomorphism Networks (GIN) and why sum beats mean/max</h2>
+      <a class="stamp" href="#" data-t="511">8:31</a>
+    </div>
+  </div>
+  <p class="summary">GIN sums neighbor embeddings and pushes the result through an MLP, and that sum is what lets it tell apart graph structures that mean- or max-based GNNs incorrectly treat as identical.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Formula: h_v^L = MLP((1 + epsilon) · h_v^(L-1) + sum_u h_u^(L-1)) over neighbors u of v.</li><li>Sum aggregation is injective over multisets in a way mean and max are not, so it preserves more structural information.</li><li>Two graphs are isomorphic if they&#x27;re structurally identical up to relabeling nodes; GNNs that rely on mean/max pooling can fail to distinguish even non-isomorphic graphs.</li><li>The Weisfeiler-Lehman (WL) test is a classical algorithm for graph isomorphism checking; GIN was designed to match its expressive power.</li></ul></div>
+  <figure class="example">
+  <figcaption>Sum vs. mean: which aggregation loses information?</figcaption>
+  <p>Two different neighbor feature sets can average to the exact same vector, making them indistinguishable to a mean-based aggregator — but their sums differ, so a sum-based aggregator (as in GIN) keeps them separable.</p>
+  <pre><code>import numpy as np
+
+# Neighborhood A: two neighbors with these 1-D features
+neighborhood_A = np.array([1.0, 3.0])
+# Neighborhood B: a different pair of neighbors
+neighborhood_B = np.array([2.0, 2.0])
+
+print(neighborhood_A.mean(), neighborhood_B.mean())  # 2.0, 2.0 -- identical!
+print(neighborhood_A.sum(),  neighborhood_B.sum())   # 4.0, 4.0 -- also identical here
+
+# But add a third, differently-sized neighborhood C to see sum&#x27;s real advantage:
+neighborhood_C = np.array([1.0, 3.0, 2.0])  # one extra neighbor
+print(neighborhood_C.mean())  # 2.0 -- STILL collapses onto A and B under mean
+print(neighborhood_C.sum())   # 6.0 -- but sum tells it apart, since it reflects count
+
+def gin_layer(H_prev, neighbor_ids, node_id, mlp, epsilon=0.0):
+    neighbor_sum = H_prev[neighbor_ids].sum(axis=0)
+    combined = (1 + epsilon) * H_prev[node_id] + neighbor_sum
+    return mlp(combined)
+</code></pre>
+</figure>
+</section>
+<section id="graph-transformers-global-attention-over-the-whole-graph-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Graph Transformers: global attention over the whole graph</h2>
+      <a class="stamp" href="#" data-t="691">11:31</a>
+    </div>
+  </div>
+  <p class="summary">Graph transformers let any node attend to any other node directly, using standard query/key/value attention plus a structural bias term so the graph&#x27;s topology still shapes the result.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Global attention lets any node attend to any other node in one layer, not just its direct neighbors.</li><li>Standard attention math applies: Q = HW_Q, K = HW_K, V = HW_V, score = QK^T / sqrt(d).</li><li>A structural bias term B is added to the score so connectivity, distance, and edge type still influence attention, even though attention is global.</li><li>Multi-head attention, residual connections, and layer normalization work the same way they do in standard (non-graph) transformers.</li></ul></div>
+  <figure class="example">
+  <figcaption>Structural-bias attention for a graph transformer</figcaption>
+  <p>The bias matrix B is built from the adjacency matrix here — connected pairs get a small positive bias, disconnected pairs get a negative bias — as a simple stand-in for a learned structural encoding (shortest-path distance or edge type in a full implementation).</p>
+  <pre><code>import numpy as np
+
+def softmax(x):
+    e = np.exp(x - x.max(axis=-1, keepdims=True))
+    return e / e.sum(axis=-1, keepdims=True)
+
+def graph_transformer_attention(H, Wq, Wk, Wv, B):
+    &quot;&quot;&quot;
+    H: (N, d)  node embedding matrix
+    Wq, Wk, Wv: (d, d_k)  learned projections
+    B: (N, N)  structural bias (e.g. from adjacency, distance, or edge type)
+    &quot;&quot;&quot;
+    Q, K, V = H @ Wq, H @ Wk, H @ Wv
+    d_k = Q.shape[-1]
+    scores = (Q @ K.T) / np.sqrt(d_k) + B  # every node can score every other node
+    attn = softmax(scores)
+    return attn @ V
+
+N, d, d_k = 5, 4, 4
+H = np.random.randn(N, d)
+A = np.array([
+    [0, 1, 1, 0, 0],
+    [1, 0, 0, 1, 0],
+    [1, 0, 0, 0, 1],
+    [0, 1, 0, 0, 0],
+    [0, 0, 1, 0, 0],
+])
+B = np.where(A == 1, 0.5, -0.5)  # simple stand-in for a learned structural bias
+Wq = np.random.randn(d, d_k) * 0.1
+Wk = np.random.randn(d, d_k) * 0.1
+Wv = np.random.randn(d, d_k) * 0.1
+H_next = graph_transformer_attention(H, Wq, Wk, Wv, B)
+</code></pre>
+</figure>
+</section>
+<section id="choosing-an-architecture-9" class="block section">
+  <div class="section-head">
+    <span class="num">09</span>
+    <div>
+      <h2>Choosing an architecture</h2>
+      <a class="stamp" href="#" data-t="963">16:03</a>
+    </div>
+  </div>
+  <p class="summary">Every GNN shares the same message-passing skeleton; the choice of architecture comes down to what you&#x27;re optimizing for — smoothness, scale, interpretability, expressiveness, or long-range reasoning.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Every architecture follows the same create/aggregate/update skeleton; only the aggregation rule differs.</li><li>GCN: a strong, simple default for smaller graphs and semi-supervised node classification.</li><li>GraphSAGE: scales to huge graphs and generalizes to unseen nodes via neighbor sampling.</li><li>GAT: attention weights make it both accurate and somewhat interpretable.</li><li>GIN: strongest structural expressiveness, closest to matching the WL test.</li><li>Graph transformers: best when relevant relationships span long range or the graph is dense and noisy.</li></ul></div>
+  <figure class="example">
+  <figcaption>A quick decision guide</figcaption>
+  <p>If the graph is small to medium and labels are sparse, start with GCN. If it has millions of nodes, use GraphSAGE. If some neighbors are clearly more relevant than others and interpretability matters, use GAT. If the task is telling graph structures apart (graph classification, molecule property prediction), use GIN. If the important signal is far from a node or the graph is dense and irregular, use a graph transformer.</p>
+  
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Graph</dt><dd>A structure made of nodes (entities) and edges (relationships between pairs of nodes), formally written as G = (V, E).</dd></div><div class="term"><dt>Node / vertex</dt><dd>A single entity in a graph, such as a person, atom, or web page.</dd></div><div class="term"><dt>Edge</dt><dd>A connection between two nodes, representing a relationship; can be directed (one-way) or undirected (two-way).</dd></div><div class="term"><dt>Adjacency matrix</dt><dd>An N×N matrix where entry (i, j) is 1 if node i connects to node j, and 0 otherwise; a complete numeric encoding of a graph&#x27;s structure.</dd></div><div class="term"><dt>Embedding</dt><dd>A dense, low-dimensional vector representation of a node, edge, or graph that captures both its features and its structural context.</dd></div><div class="term"><dt>Homogeneous graph</dt><dd>A graph with exactly one type of node and one type of edge.</dd></div><div class="term"><dt>Heterogeneous graph</dt><dd>A graph with more than one type of node and/or edge, such as a graph with both “student” and “teacher” nodes.</dd></div><div class="term"><dt>Message passing</dt><dd>The core GNN mechanism where each node repeatedly gathers information from its neighbors (create), combines it (aggregate), and folds it into its own representation (update).</dd></div><div class="term"><dt>Aggregation</dt><dd>The operation that combines multiple incoming neighbor messages into a single vector, e.g. sum, mean, max, or attention-weighted combination.</dd></div><div class="term"><dt>Graph Convolutional Network (GCN)</dt><dd>A GNN that aggregates neighbor embeddings (typically via a normalized average) and passes the result through a shared weight matrix and non-linearity, analogous to a CNN&#x27;s shared filters.</dd></div><div class="term"><dt>GraphSAGE</dt><dd>“Sample and aggregate” — a GNN that aggregates over a fixed-size random sample of each node&#x27;s neighbors rather than the full neighborhood, so it scales to very large graphs.</dd></div><div class="term"><dt>Graph Attention Network (GAT)</dt><dd>A GNN that learns a per-neighbor attention coefficient, so some neighbors contribute more to a node&#x27;s updated embedding than others.</dd></div><div class="term"><dt>Attention coefficient</dt><dd>A learned, softmax-normalized weight (denoted alpha) indicating how much one node&#x27;s message should count when updating another node&#x27;s embedding.</dd></div><div class="term"><dt>Graph Isomorphism Network (GIN)</dt><dd>A GNN that sums neighbor embeddings and passes the result through a multilayer perceptron (MLP); designed to match the discriminative power of the Weisfeiler-Lehman test.</dd></div><div class="term"><dt>Multilayer perceptron (MLP)</dt><dd>A small neural network made of one or more fully connected layers with non-linear activations between them.</dd></div><div class="term"><dt>Isomorphic graphs</dt><dd>Two graphs that are structurally identical once you allow relabeling their nodes — same connectivity pattern, just different names for the nodes.</dd></div><div class="term"><dt>Weisfeiler-Lehman (WL) test</dt><dd>A classical, purely combinatorial algorithm for checking whether two graphs are structurally identical (isomorphic), used as a benchmark for how expressive a GNN&#x27;s aggregation can be.</dd></div><div class="term"><dt>Graph transformer</dt><dd>A GNN that applies transformer-style global attention, letting any node attend to any other node, with a structural bias term added to the attention score to preserve graph topology.</dd></div><div class="term"><dt>Query, key, value (Q, K, V)</dt><dd>Three learned projections of a node&#x27;s embedding used in attention: the query is what a node looks for, the key is what it offers for comparison, and the value is what gets passed along once attention weights are computed.</dd></div><div class="term"><dt>Multi-head attention</dt><dd>Running several attention computations (heads) in parallel, each with its own Q/K/V projections, then concatenating and combining their outputs.</dd></div><div class="term"><dt>Residual connection</dt><dd>Adding a layer&#x27;s input back to its output before further processing, which helps stabilize training in deep networks.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why can&#x27;t mean or max aggregation reliably tell two different (non-isomorphic) graph neighborhoods apart, even when GIN&#x27;s sum aggregation can?</summary>
+  <div class="answer"><p>Mean and max are not injective over multisets: multiple different sets of neighbor embeddings can average or max out to the exact same value, so the model literally loses the information needed to distinguish them. Summation preserves count and magnitude information that mean and max discard, which is why GIN&#x27;s sum-then-MLP design gets closer to matching the discriminative power of the Weisfeiler-Lehman test.</p></div>
+</details><details class="q">
+  <summary>Why does GraphSAGE sample a fixed number of neighbors instead of aggregating over a node&#x27;s entire neighborhood the way GCN does?</summary>
+  <div class="answer"><p>On graphs with millions of nodes, a full neighborhood (especially two or more hops out) can be enormous, making full aggregation computationally infeasible. Sampling a fixed-size subset keeps the cost per node constant regardless of graph size, trading a small amount of information for scalability.</p></div>
+</details><details class="q">
+  <summary>In a GAT, why must the attention coefficients for a given node&#x27;s neighbors be positive and sum to 1?</summary>
+  <div class="answer"><p>They&#x27;re produced by a softmax, which normalizes raw attention scores into a probability-like weighting. That keeps the aggregated message a weighted average of neighbor features rather than a sum whose scale grows with the number of neighbors, so nodes with many neighbors aren&#x27;t automatically overweighted.</p></div>
+</details><details class="q">
+  <summary>Why is a non-linear activation applied after the weight matrix multiplication in almost every GNN layer (GCN, GraphSAGE, GAT, and GIN&#x27;s MLP)?</summary>
+  <div class="answer"><p>Without a non-linearity, stacking multiple layers of linear aggregation and linear transformation would still collapse mathematically into a single linear function of the input, no matter how many layers were stacked. The non-linearity is what lets each additional layer actually add representational power for capturing complex, non-linear relationships in the graph.</p></div>
+</details><details class="q">
+  <summary>In a graph transformer&#x27;s attention score, QK^T/sqrt(d) + B, why is the bias term B necessary given that attention is already global?</summary>
+  <div class="answer"><p>Plain QK^T similarity only compares node feature vectors and has no notion of the graph&#x27;s actual connectivity, since attention is computed between every pair of nodes regardless of whether they&#x27;re connected. The bias term injects structural information — whether two nodes are connected, how far apart they are, or what edge type links them — so the model doesn&#x27;t discard the graph&#x27;s topology just because it can attend anywhere.</p></div>
+</details><details class="q">
+  <summary>Why does stacking more message-passing layers change how much of the graph a node&#x27;s final embedding reflects?</summary>
+  <div class="answer"><p>Each layer only lets a node directly absorb information from its immediate (one-hop) neighbors, but since those neighbors already absorbed information from their own neighbors in the previous layer, stacking layers indirectly extends the reach: layer 2 effectively captures two-hop neighbors, layer 3 captures three-hop neighbors, and so on, growing the node&#x27;s receptive field by one hop per layer.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Implement a GCN on the Zachary Karate Club dataset with PyTorch Geometric or DGL, and compare its node-classification accuracy against a plain MLP baseline that ignores graph structure.</li><li>Read the original papers: Kipf &amp; Welling (2017) for GCN, Hamilton, Ying &amp; Leskovec (2017) for GraphSAGE, Veličković et al. (2018) for GAT, and Xu et al. (2019) for GIN.</li><li>Work through the Weisfeiler-Lehman test by hand on two small non-isomorphic graphs to see exactly why mean/max-based GNNs can fail to distinguish them.</li><li>Build a small heterogeneous GNN (e.g. with PyTorch Geometric&#x27;s HeteroData) on a graph with multiple node/edge types, such as a citation network with papers, authors, and venues.</li><li>Read a graph transformer survey or paper (e.g. Graphormer) to see how different implementations define the structural bias term B.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>

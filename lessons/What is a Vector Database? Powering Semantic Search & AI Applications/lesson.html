@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vector Databases: Storing Meaning Instead of Fields</title>
+<meta name="description" content="Understand embeddings, distance metrics and the approximate-nearest-neighbour indexes that make semantic search fast.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-full">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-semantic-gap-1"><span class="n">1</span>The semantic gap</a></li>
+<li><a href="#vectors-as-the-representation-2"><span class="n">2</span>Vectors as the representation</a></li>
+<li><a href="#what-a-vector-actually-encodes-3"><span class="n">3</span>What a vector actually encodes</a></li>
+<li><a href="#comparing-two-vectors-4"><span class="n">4</span>Comparing two vectors</a></li>
+<li><a href="#where-embeddings-come-from-5"><span class="n">5</span>Where embeddings come from</a></li>
+<li><a href="#similarity-search-and-why-brute-force-runs-out-6"><span class="n">6</span>Similarity search, and why brute force runs out</a></li>
+<li><a href="#ann-indexing-hnsw-and-ivf-7"><span class="n">7</span>ANN indexing: HNSW and IVF</a></li>
+<li><a href="#vector-databases-inside-rag-8"><span class="n">8</span>Vector databases inside RAG</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Advanced</span><span class="pill ghost">Vector search infrastructure</span><span class="muted">IBM Technology</span></div>
+  <h1>Vector Databases: Storing Meaning Instead of Fields</h1>
+  <p class="lede">Understand embeddings, distance metrics and the approximate-nearest-neighbour indexes that make semantic search fast.</p>
+  <p class="muted small">For engineers who need to choose, tune or debug a vector store rather than just call one · 26 July 2026</p>
+  
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=gl1r1XV0SLw" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson-summary.html">Read the condensed version</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>What a relational database does</li><li>Comfort reading Python</li><li>Knowing what a vector is — a list of numbers with a position in space</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>A relational database can store an image perfectly well — the binary blob, the file format, the creation date, whatever tags somebody typed in. What it cannot do is answer &#x27;find me pictures with a similar colour palette&#x27; or &#x27;find landscapes with mountains in the background&#x27;, because those concepts are not in any column. That mismatch between how computers store data and how humans understand it is called the semantic gap.</p>
+<p>Vector databases close it by storing meaning as geometry. Every item becomes an array of numbers positioned so that similar things sit close together, and &#x27;find similar&#x27; becomes a mathematical operation over those positions rather than a predicate over fields.</p>
+<p>The engineering interest is mostly in what happens after that idea. Comparing a query against millions of thousand-dimensional vectors exhaustively is too slow, so real systems use approximate nearest-neighbour indexes that trade a small amount of accuracy for a very large amount of speed. Understanding how HNSW and IVF make that trade — and what you give up — is the difference between using a vector database and being able to fix one.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>The semantic gap is the mismatch between structured storage and conceptual similarity — SQL predicates cannot express &#x27;looks like this&#x27;.</li><li>An embedding is an array of numbers positioned so that semantically similar items land close together and dissimilar ones land far apart.</li><li>Individual dimensions in real embeddings are almost never interpretable; the geometry as a whole carries the meaning.</li><li>Each modality has its own embedding models, and vectors from different models are never comparable.</li><li>Embedding models extract progressively more abstract features layer by layer — edges to objects, words to meaning.</li><li>Exhaustive search is O(N·d) and becomes impossible at scale, which is why vector indexes exist.</li><li>HNSW navigates a multi-layer proximity graph; IVF partitions the space into clusters and searches only the nearest few.</li><li>ANN indexes trade a small, measurable amount of recall for very large speed gains — and that recall must actually be measured.</li></ul>
+  </div>
+</section>
+<section id="the-semantic-gap-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The semantic gap</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">You can store an image in a relational database along with its metadata and tags, and still be unable to ask the questions that matter about it.</p>
+  <p>Take a photograph of a sunset over a mountain vista and put it in a relational database. You can store the binary image data. You can store basic metadata — file format, creation date, dimensions. You can add manually curated tags: sunset, landscape, orange.</p>
+<p>That gives you a basic retrieval mechanism, and it misses the image&#x27;s semantic content almost entirely. How would you query for images with a similar colour palette using those fields? Or landscapes with mountains in the background? Those concepts are not represented anywhere in the structured columns, and no amount of SQL will recover them.</p>
+<p>That disconnect between how computers store data and how humans understand it is the semantic gap. A query like `SELECT * WHERE color = &#x27;orange&#x27;` falls short because it cannot capture the nuanced, multi-dimensional nature of unstructured data. Every attribute has to be anticipated, named and populated in advance by a person — which means the questions you can ask were fixed before anyone knew what they would want to ask.</p>
+<p>Tagging looks like a solution and is not. Tags are discrete where similarity is continuous, so there is no such thing as &#x27;a bit sunset&#x27;. They are incomplete, because nobody tags for a property until someone needs it. And they are inconsistent, because two people tagging the same image will not agree. The gap is structural rather than a matter of effort.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Relational storage handles the file and its metadata but not its content.</li><li>Manual tags fix the queryable attributes before anyone knows what will be asked.</li><li>Similarity is continuous; tags are discrete, so degree cannot be expressed.</li><li>Tagging is incomplete and inconsistent at any realistic scale.</li><li>The semantic gap is structural — it cannot be closed by tagging harder.</li></ul></div>
+  <figure class="example">
+  <figcaption>What the relational row actually holds</figcaption>
+  <p>Everything here is about the file rather than the picture. Nothing in the row would let you find this image by starting from a different image that looks like it.</p>
+  <pre><code>CREATE TABLE images (
+    id          SERIAL PRIMARY KEY,
+    data        BYTEA,          -- the actual pixels, opaque to the database
+    format      TEXT,           -- &#x27;jpeg&#x27;
+    created_at  TIMESTAMP,
+    tags        TEXT[]          -- {&#x27;sunset&#x27;,&#x27;landscape&#x27;,&#x27;orange&#x27;}
+);
+
+-- answerable:   SELECT * FROM images WHERE &#x27;sunset&#x27; = ANY(tags);
+-- not answerable: &quot;images with a similar colour palette to image 42&quot;
+--                 &quot;landscapes with mountains in the background&quot;
+--                 &quot;something with this mood&quot;</code></pre>
+</figure><figure class="example">
+  <figcaption>Why more tags do not fix it</figcaption>
+  <p>The failure is not that the tag vocabulary is too small. It is that similarity is a relation between items, and tags are properties of one item — so the question &#x27;what is like this?&#x27; has no expression in the schema at all.</p>
+  <pre><code>tags are discrete      an image is &#x27;sunset&#x27; or not; never 0.83 sunset
+tags are incomplete    nobody tagged for &#x27;elevation&#x27; until someone asked
+tags are inconsistent  &#x27;orange&#x27; / &#x27;warm&#x27; / &#x27;golden&#x27; — three taggers, three words
+tags are unary         no way to express &quot;close to image 42&quot;</code></pre>
+</figure>
+</section>
+<section id="vectors-as-the-representation-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>Vectors as the representation</h2>
+      <a class="stamp" href="#" data-t="131">2:11</a>
+    </div>
+  </div>
+  <p class="summary">Represent each item as an array of numbers positioned so that similar items are near one another, and similarity search becomes arithmetic.</p>
+  <p>A vector database represents data as mathematical vector embeddings — essentially arrays of numbers. These vectors capture the semantic essence of the data: similar items are positioned close together in the vector space, and dissimilar items far apart.</p>
+<p>Once that holds, similarity search becomes a mathematical operation. Finding vector embeddings that are close to one another translates directly to finding semantically similar content. There is no vocabulary to agree on and no attribute to anticipate — the question &#x27;what is like this?&#x27; becomes &#x27;what is nearby?&#x27;, which is a well-defined geometric query.</p>
+<p>All kinds of unstructured data can live in this space. Images like the mountain sunset, text files, audio. The complex object is transformed into a vector embedding, and the embedding is what the database stores and indexes.</p>
+<p>Worth being precise about one thing: &#x27;close&#x27; requires a distance metric, and the choice is not arbitrary. Cosine similarity measures the angle between vectors and ignores their magnitude, which is what you usually want for text — a long document and a short phrase expressing the same idea point the same way. Euclidean distance measures straight-line separation and is sensitive to magnitude. Dot product combines both, rewarding alignment and length. Most text embedding models are trained with cosine in mind, and using the wrong metric quietly degrades results without producing any error.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>An embedding is an array of numbers whose position encodes semantic content.</li><li>Similar items sit close together; dissimilar ones sit far apart.</li><li>&#x27;What is similar?&#x27; becomes &#x27;what is nearby?&#x27;, a well-defined geometric query.</li><li>Images, text and audio all become vectors and share the same machinery.</li><li>The distance metric matters: cosine ignores magnitude, Euclidean does not, dot product mixes both.</li><li>Using a metric the embedding model was not trained for degrades results silently.</li></ul></div>
+  <figure class="example">
+  <figcaption>The three metrics, and when each applies</figcaption>
+  <p>If your vectors are L2-normalised, cosine and dot product rank identically and Euclidean produces the same ordering too — which is why many stores normalise on insert and stop worrying about it. If they are not normalised, the three can disagree substantially.</p>
+  <pre><code>import numpy as np
+
+def cosine(a, b):      # angle only — magnitude ignored
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+def dot(a, b):         # angle and magnitude together
+    return np.dot(a, b)
+
+def euclidean(a, b):   # straight-line distance; smaller is closer
+    return np.linalg.norm(a - b)
+
+
+# after L2 normalisation all three rank identically:
+def normalise(v):
+    return v / np.linalg.norm(v)
+
+# check what your embedding model was trained for before choosing —
+# the wrong metric produces plausible, quietly worse results</code></pre>
+</figure><figure class="example">
+  <figcaption>The interface a vector store exposes</figcaption>
+  <p>Two operations carry the whole model. Note that `search` takes a vector rather than text: embedding happens in your application, which is what makes it your responsibility to use the same model on both sides.</p>
+  <pre><code>store.upsert(id=&quot;img-42&quot;, vector=embed(image), metadata={&quot;format&quot;: &quot;jpeg&quot;})
+
+hits = store.search(vector=embed(query_image), k=10)
+# → [(id, distance, metadata), ...] ordered by proximity
+
+# there is no WHERE clause describing what &quot;similar&quot; means.
+# similarity is defined by the embedding model, not by the query.</code></pre>
+</figure>
+</section>
+<section id="what-a-vector-actually-encodes-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>What a vector actually encodes</h2>
+      <a class="stamp" href="#" data-t="218">3:38</a>
+    </div>
+  </div>
+  <p class="summary">Each position represents a learned feature. In a toy example those features are readable; in real systems they are not.</p>
+  <p>An embedding is an array of numbers where each position represents some learned feature. Take a simplified example of the mountain picture, with a vector beginning 0.91, 0.15, 0.83.</p>
+<p>Read that as: 0.91 in the first dimension indicates significant elevation changes, because these are mountains. 0.15 in the second shows few urban elements — there are no buildings in the frame, so the score is low. 0.83 in the third represents strong warm colours, the sunset. And so on through however many dimensions the model produces.</p>
+<p>Two caveats have to travel with that example, and they matter more than the example does. Real embeddings contain hundreds or thousands of dimensions, not three. And individual dimensions rarely correspond to anything so cleanly interpretable — meaning is distributed across the whole vector rather than allocated one concept per axis.</p>
+<p>That second point has practical consequences people trip over. You cannot inspect dimension 47 to find out what the model thinks about elevation. You cannot build a filter by thresholding a single coordinate. And you cannot debug an embedding by reading it — the only meaningful operations are comparisons between whole vectors. If you need a queryable attribute, extract it explicitly and store it as metadata alongside the vector.</p>
+<p>Dimensionality itself is a real trade. More dimensions capture finer distinctions and cost more memory, more bandwidth and more time in every distance computation. A million vectors at 1536 dimensions in float32 is around 6 GB before any index overhead, which is why quantisation exists.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Each position in the vector corresponds to a learned feature.</li><li>Real embeddings have hundreds or thousands of dimensions.</li><li>Individual dimensions are almost never interpretable — meaning is distributed.</li><li>You cannot filter or debug by inspecting single coordinates; only whole-vector comparisons are meaningful.</li><li>Anything you need to filter on must be stored explicitly as metadata.</li><li>Dimensionality trades expressiveness against memory, bandwidth and query time.</li></ul></div>
+  <figure class="example">
+  <figcaption>The toy vector versus the real one</figcaption>
+  <p>The left column is a teaching device. The right is what you will actually get back, and no coordinate in it has a name.</p>
+  <pre><code>toy (interpretable, 3 dims)        real (1536 dims, uninterpretable)
+────────────────────────────────────────────────────────────────────
+0.91  elevation change              [-0.0231,  0.0417, -0.0088,
+0.15  urban elements                  0.0192, -0.0364,  0.0521,
+0.83  warm colour                     0.0077,  0.0143, -0.0296,
+                                      ... 1527 more ... ]
+
+# no dimension means &quot;elevation&quot;. the concept is spread across many
+# coordinates, and no single one can be read, thresholded or filtered on.</code></pre>
+</figure><figure class="example">
+  <figcaption>Sizing a vector index before you build it</figcaption>
+  <p>Run this before choosing an embedding dimension. Memory is usually the binding constraint on vector search, and the graph index adds substantially on top of the raw vectors.</p>
+  <pre><code>def raw_bytes(n_vectors, dims, dtype_bytes=4):      # float32
+    return n_vectors * dims * dtype_bytes
+
+for dims in (384, 768, 1536, 3072):
+    gb = raw_bytes(1_000_000, dims) / 1e9
+    print(f&quot;{dims:&gt;5} dims  {gb:&gt;6.2f} GB per million vectors&quot;)
+
+#   384 dims    1.54 GB
+#   768 dims    3.07 GB
+#  1536 dims    6.14 GB
+#  3072 dims   12.29 GB
+
+# an HNSW graph adds roughly M x 8 bytes per vector on top of this</code></pre>
+</figure>
+</section>
+<section id="comparing-two-vectors-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Comparing two vectors</h2>
+      <a class="stamp" href="#" data-t="260">4:20</a>
+    </div>
+  </div>
+  <p class="summary">Two sunsets, one mountain and one beach: similar where they share meaning, different where they do not.</p>
+  <p>Put a second image next to the first — a sunset at the beach — and look at its vector: 0.12, 0.08, 0.89.</p>
+<p>The third dimension is 0.83 for the mountain and 0.89 for the beach, which is very close. Both are sunsets, both have strong warm colours. The first dimension differs sharply, 0.91 against 0.12, because a beach has minimal elevation change compared to mountains.</p>
+<p>This is the whole mechanism of semantic search, visible in three numbers. The two images share some meaning and differ in other meaning, and the vector expresses both facts simultaneously, per dimension. A tag system would have to decide whether these two images are &#x27;the same&#x27; or &#x27;different&#x27;; the vector says they are alike in one respect and unlike in another, and the distance measure aggregates that into a single number.</p>
+<p>It also shows why the query determines what counts as similar. Search with a warm sunset palette and both images are near neighbours. Search with a mountain landscape and they separate. The database is not storing a fixed notion of similarity — it stores positions, and each query cuts through that space from a different direction.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Two items can be alike in some dimensions and unlike in others simultaneously.</li><li>The distance metric aggregates per-dimension agreement into one score.</li><li>A tag system must call two items same or different; a vector expresses degree.</li><li>What counts as similar depends on where the query sits, not on stored labels.</li><li>This is why semantic search generalises to questions nobody anticipated.</li></ul></div>
+  <figure class="example">
+  <figcaption>Two sunsets, dimension by dimension</figcaption>
+  <p>Aggregate distance hides this structure — you see one number and not which dimensions produced it. Being able to picture the per-dimension view is what makes similarity results interpretable when they surprise you.</p>
+  <pre><code>                  mountain   beach    agreement
+──────────────────────────────────────────────────
+elevation           0.91      0.12     far apart
+urban elements      0.15      0.08     both low
+warm colour         0.83      0.89     nearly equal
+
+# similar overall — the sunset dominates — but clearly distinguishable
+# on the axis that separates a mountain from a shoreline</code></pre>
+</figure><figure class="example">
+  <figcaption>The query decides what similar means</figcaption>
+  <p>The same two vectors, two different queries, two different verdicts. No stored attribute changed — only the direction from which the space was queried.</p>
+  <pre><code>q1 = [0.10, 0.10, 0.90]      # &quot;a warm sunset&quot;
+  → mountain 0.87, beach 0.99     both close: the query is about colour
+
+q2 = [0.95, 0.10, 0.20]      # &quot;a mountain landscape&quot;
+  → mountain 0.93, beach 0.24     they separate: the query is about terrain</code></pre>
+</figure>
+</section>
+<section id="where-embeddings-come-from-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Where embeddings come from</h2>
+      <a class="stamp" href="#" data-t="348">5:48</a>
+    </div>
+  </div>
+  <p class="summary">Embedding models trained on massive datasets, with each layer extracting progressively more abstract features.</p>
+  <p>Embeddings are produced by embedding models trained on massive datasets, and each type of data has its own specialised model. CLIP is a common choice for images. For text you might use GloVe. For audio, Wav2vec.</p>
+<p>The process is similar across modalities. Data passes through multiple layers, and each layer extracts progressively more abstract features. For images the early layers detect basic structure like edges; deeper layers recognise entire objects. For text the early layers work at the level of individual words, while deeper layers capture context and meaning. The embedding is taken from one of those deeper layers, where the high-dimensional vector captures the essential characteristics of the input.</p>
+<p>One distinction is worth adding, because it separates older text embeddings from what you would reach for today. Static word embeddings such as GloVe assign each word one fixed vector regardless of context, so &#x27;bank&#x27; has a single representation whether the sentence is about rivers or money. Modern transformer-based sentence encoders produce a representation that depends on the surrounding text, so the same word embeds differently in different sentences — and a whole passage embeds as a unit rather than as an average of its words. For retrieval over documents this matters a great deal.</p>
+<p>The operational rule that follows from all of this: vectors are only comparable within the model that produced them. Embed your corpus with one model and your queries with another and you get numbers, distances, and results that are entirely meaningless. Changing embedding model means re-embedding everything — which makes it a migration, not a configuration change.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Different modalities use different embedding models: CLIP for images, Wav2vec for audio, text encoders for text.</li><li>Layers extract progressively more abstract features — edges to objects, words to meaning.</li><li>The embedding is read from a deep layer that captures essential characteristics.</li><li>Static word embeddings give one vector per word; contextual encoders vary by surrounding text.</li><li>Vectors are only comparable within the same model — mixing models produces meaningless results.</li><li>Changing embedding model requires re-embedding the entire corpus.</li></ul></div>
+  <figure class="example">
+  <figcaption>Abstraction increasing with depth</figcaption>
+  <p>The reason the embedding comes from a deep layer rather than an early one. Early activations describe the surface of the input; deep activations describe what it is.</p>
+  <pre><code>images                          text
+──────────────────────────────────────────────────────────
+layer 1   edges, gradients      tokens, subwords
+layer 2   textures, corners     local syntax
+   ...                             ...
+layer n   objects, scenes       context, meaning, intent
+              ↓                        ↓
+        embedding vector          embedding vector</code></pre>
+</figure><figure class="example">
+  <figcaption>Static versus contextual text embeddings</figcaption>
+  <p>The practical consequence for retrieval. A static model cannot distinguish these two sentences at the word level; a contextual encoder places them in different regions, which is exactly what a search over mixed-domain documents needs.</p>
+  <pre><code>&quot;I sat on the river bank&quot;      &quot;I deposited it at the bank&quot;
+
+GloVe (static)     : &quot;bank&quot; → the same vector in both sentences
+transformer encoder: &quot;bank&quot; → two clearly different vectors
+
+# and a sentence encoder embeds the whole passage as one unit,
+# rather than averaging independent word vectors</code></pre>
+</figure><figure class="example">
+  <figcaption>The mixed-model bug</figcaption>
+  <p>Nothing errors. The dimensions match, the distances compute, results come back ranked. They are noise. Store the model name and version alongside the index and assert on it at query time — this bug is otherwise very hard to see.</p>
+  <pre><code># indexed months ago
+store.upsert(id=doc.id, vector=model_a.embed(doc.text))
+
+# queried today, after someone changed a default
+hits = store.search(model_b.embed(question), k=5)
+
+# same dimensionality, valid distances, plausible-looking results,
+# and no relationship whatsoever to relevance.
+
+assert store.meta[&quot;embedding_model&quot;] == model.name, &quot;index/query mismatch&quot;</code></pre>
+</figure>
+</section>
+<section id="similarity-search-and-why-brute-force-runs-out-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Similarity search, and why brute force runs out</h2>
+      <a class="stamp" href="#" data-t="436">7:16</a>
+    </div>
+  </div>
+  <p class="summary">Comparing a query against every vector is exact and simple, and becomes impossible somewhere in the millions.</p>
+  <p>With embeddings in place you can perform operations that were not possible with a relational database — most importantly similarity search, finding the items closest to a query by locating the nearest vectors in the space.</p>
+<p>The obvious implementation is to compare the query against every vector and keep the best few. This is exact: it returns the true nearest neighbours by definition. For small collections it is also the correct choice, and it is worth remembering that a few hundred thousand vectors is genuinely fine on modern hardware with a vectorised dot product.</p>
+<p>But the cost is O(N·d) — every vector, every dimension. When you have millions of vectors of hundreds or thousands of dimensions each, comparing against every one simply becomes too slow. And it is not only compute: an exhaustive scan reads the entire index from memory on every query, so you are bounded by memory bandwidth as much as by arithmetic.</p>
+<p>That is what motivates vector indexing. The insight behind every ANN algorithm is the same: you rarely need the exact nearest neighbours. You need results that are almost always the nearest, returned in milliseconds instead of seconds. Giving up a small, measurable amount of accuracy buys orders of magnitude of speed — and &#x27;measurable&#x27; is the load-bearing word, because that trade is only sound if you know where you sit on it.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Exhaustive search is exact and simple, and correct for small collections.</li><li>Its cost is O(N·d) per query — every vector, every dimension.</li><li>At millions of vectors it is bounded by memory bandwidth as well as arithmetic.</li><li>ANN indexes give up exactness for orders-of-magnitude speed.</li><li>The trade is only sound if the lost recall is actually measured.</li></ul></div>
+  <figure class="example">
+  <figcaption>Exhaustive search, and where it stops working</figcaption>
+  <p>The vectorised form is much faster than a Python loop and still linear in the corpus. Somewhere between a hundred thousand and a few million vectors — depending on dimensions, hardware and your latency budget — it stops meeting a real-time requirement.</p>
+  <pre><code>import numpy as np
+
+def exact_search(query, matrix, k=10):
+    # matrix: (N, d), L2-normalised so dot product == cosine
+    scores = matrix @ query                 # (N,) — every vector, every dim
+    top = np.argpartition(-scores, k)[:k]   # cheaper than a full sort
+    return top[np.argsort(-scores[top])]
+
+# 1M vectors x 1536 dims x 4 bytes = 6.1 GB read per query
+# correctness: perfect.   latency: not interactive.</code></pre>
+</figure><figure class="example">
+  <figcaption>The bargain every ANN index offers</figcaption>
+  <p>Stated plainly, because the numbers are dramatic and the cost is real. Missing one true neighbour out of ten usually does not change an answer; waiting two seconds always changes the product.</p>
+  <pre><code>exact   : returns the true top-10, every time.       seconds.
+ANN     : returns 9 or 10 of the true top-10.        milliseconds.
+
+# the question is never &quot;is approximation acceptable?&quot; in the abstract.
+# it is &quot;what recall do I get at the latency I need?&quot; — a number you
+# measure against exact search on your own data.</code></pre>
+</figure>
+</section>
+<section id="ann-indexing-hnsw-and-ivf-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>ANN indexing: HNSW and IVF</h2>
+      <a class="stamp" href="#" data-t="480">8:00</a>
+    </div>
+  </div>
+  <p class="summary">Two ways to avoid looking at everything — navigate a proximity graph, or search only the nearest clusters.</p>
+  <p>Vector indexing uses approximate nearest neighbour algorithms. Instead of finding the exact closest match, these quickly find vectors very likely to be among the closest.</p>
+<p>HNSW — Hierarchical Navigable Small World — builds multi-layered graphs connecting similar vectors. The top layer is sparse, with long-range links; each layer down is denser. A search enters at the top, greedily walks toward the query through the sparse layer until it cannot improve, drops a level, and repeats. The upper layers act like an express network that covers distance quickly; the bottom layer does the fine-grained work. Three parameters control it: `M`, how many neighbours each node keeps, which drives memory; `ef_construction`, how thoroughly the graph is built, which drives index build time and quality; and `ef_search`, how wide the search beam is at query time, which is the dial you turn to trade recall against latency without rebuilding anything.</p>
+<p>IVF — Inverted File Index — takes a different route. It divides the vector space into clusters, typically by running k-means to find `nlist` centroids, and assigns each vector to its nearest one. At query time it compares the query against the centroids, picks the closest `nprobe` clusters, and searches only inside those. Set `nprobe` to 1 and it is very fast and misses anything sitting just across a boundary; raise it and recall climbs toward exact as latency rises.</p>
+<p>The practical differences: HNSW generally gives better recall at a given latency and uses substantially more memory, and it handles incremental inserts naturally. IVF is much more memory-efficient and pairs well with quantisation for very large collections, but needs a training pass over representative data and degrades if the distribution shifts after training. Both trade a small amount of accuracy for large improvements in search speed.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>HNSW builds a layered proximity graph and greedily navigates from sparse to dense layers.</li><li>HNSW parameters: M for connectivity and memory, ef_construction for build quality, ef_search for the recall/latency dial at query time.</li><li>IVF clusters the space with k-means and searches only the nearest nprobe clusters.</li><li>IVF needs a training pass and degrades if the data distribution shifts afterwards.</li><li>HNSW gives better recall per millisecond and costs more memory; IVF is leaner and quantises well.</li><li>Both trade a small amount of accuracy for large speed gains.</li></ul></div>
+  <figure class="example">
+  <figcaption>How an HNSW search moves</figcaption>
+  <p>The upper layers exist purely to cover distance quickly. Without them the greedy walk on the dense bottom layer would take many more hops and could get stuck in a local minimum far from the query.</p>
+  <pre><code>layer 2   ●─────────────────────●────────────────●        sparse, long hops
+              ╲                 │
+layer 1   ●────●────●───────────●────●─────●────●          denser
+                    │           │
+layer 0   ●─●─●─●─●─●─●─●─●─●─●─●─●─●─●─●─●─●─●─●          all vectors
+                              ▲
+                            query
+
+# enter at the top, greedily step toward the query, descend when no
+# neighbour improves, repeat. the bottom layer does the fine work.</code></pre>
+</figure><figure class="example">
+  <figcaption>Tuning the recall/latency dial</figcaption>
+  <p>`ef_search` is changeable per query with no rebuild, which makes it the right knob for balancing an interactive path against a batch path in the same system. Run this against exact search on your own data — the shape of the curve is dataset-specific.</p>
+  <pre><code>index = hnswlib.Index(space=&quot;cosine&quot;, dim=1536)
+index.init_index(max_elements=1_000_000, M=32, ef_construction=200)
+index.add_items(vectors, ids)
+
+for ef in (16, 32, 64, 128, 256, 512):
+    index.set_ef(ef)                       # query-time only, no rebuild
+    labels, _ = index.knn_query(queries, k=10)
+    print(f&quot;ef_search={ef:&lt;4} recall@10={recall(labels, ground_truth):.3f}&quot;)
+
+# ground_truth comes from exact search over the same vectors.
+# without it you have no idea what your index is losing.</code></pre>
+</figure><figure class="example">
+  <figcaption>IVF, and the boundary problem</figcaption>
+  <p>The failure mode is specific and worth picturing: a vector sitting just the wrong side of a cluster boundary is invisible at nprobe=1 no matter how close it is to the query. Raising nprobe is how you buy it back.</p>
+  <pre><code>nlist  = 4096      # clusters, from k-means over a training sample
+nprobe = 16        # how many to actually search
+
+#   query ●
+#         ╎ closest centroid → searched
+#    ┌────┼────┐  ┌─────────┐
+#    │    ●    │  │  ○ ←──── true nearest neighbour, just across the line
+#    └─────────┘  └─────────┘
+#                  not searched at nprobe=1
+
+# nprobe=1     fastest, lowest recall
+# nprobe=nlist equivalent to exhaustive search
+# IVF also needs index.train(sample) before adding vectors</code></pre>
+</figure><figure class="example">
+  <figcaption>Filtering plus ANN: the trap</figcaption>
+  <p>Metadata filters and approximate search interact badly, and this surprises people in production. Post-filtering can return fewer results than requested — or none — when the filter is selective. Use a store with native filtered search, or over-fetch deliberately.</p>
+  <pre><code># post-filter: search 10, then discard non-matches → often returns 2
+hits = [h for h in store.search(q, k=10) if h.meta[&quot;lang&quot;] == &quot;es&quot;]
+
+# over-fetch: crude but works when the filter is not too selective
+hits = [h for h in store.search(q, k=200) if h.meta[&quot;lang&quot;] == &quot;es&quot;][:10]
+
+# best: let the index apply the predicate during graph traversal
+hits = store.search(q, k=10, filter={&quot;lang&quot;: &quot;es&quot;})</code></pre>
+</figure>
+</section>
+<section id="vector-databases-inside-rag-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Vector databases inside RAG</h2>
+      <a class="stamp" href="#" data-t="521">8:41</a>
+    </div>
+  </div>
+  <p class="summary">Store document chunks as embeddings, find the relevant ones by similarity, hand them to a language model.</p>
+  <p>Vector databases are a core component of retrieval augmented generation. Chunks of documents, articles and knowledge bases are stored as embeddings. When a user asks a question, the system finds the relevant text chunks by comparing vector similarity, and feeds those chunks to a language model, which generates a response using the retrieved information.</p>
+<p>So a vector database is two things at once: a place to store unstructured data, and a place to retrieve it quickly and semantically. In a RAG system it is the second role that dominates — the source documents usually live somewhere else, and the vector store holds chunks and vectors in service of retrieval.</p>
+<p>Everything in this lesson shows up as a knob in that system, which is why the internals are worth knowing. Chunk size determines what a single vector has to represent. The embedding model determines what counts as similar, and cannot be changed without re-embedding everything. The distance metric has to match how that model was trained. And the ANN index parameters determine how much of the true top-k you actually receive — which is a ceiling on the whole application&#x27;s accuracy, sitting one layer below anything you can see in a prompt.</p>
+<p>That last one is the point most worth carrying away. When a RAG system gives a wrong answer, the investigation usually starts at the prompt and works backwards. It should often start at recall: measure what fraction of true nearest neighbours your index returns at your current settings, because if that number is 0.85 then fifteen percent of the time the best chunk never reached the model at all, and no prompt engineering will recover it.</p>
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>In RAG the vector store holds chunks and their embeddings for retrieval.</li><li>Chunk size decides what a single vector must represent.</li><li>The embedding model defines similarity and cannot change without a full re-index.</li><li>The distance metric must match how the embedding model was trained.</li><li>ANN recall is a hard ceiling on the whole application&#x27;s accuracy.</li><li>Debug RAG failures at the retrieval layer before touching the prompt.</li></ul></div>
+  <figure class="example">
+  <figcaption>The full path, and the knob at each stage</figcaption>
+  <p>Six stages, and five of them are decisions that silently cap what the model can do. Only the last is visible in a prompt, which is why it receives most of the attention and deserves less of it.</p>
+  <pre><code>document ──chunk──&gt; passages ──embed──&gt; vectors ──index──&gt; ANN structure
+            │                   │                    │
+         size,               which model,      M, ef_search,
+         overlap,            which metric      nprobe, recall
+         boundaries
+
+question ──embed──&gt; vector ──search──&gt; top-k chunks ──&gt; prompt ──&gt; answer
+              │                  │                          │
+        same model as       k, filters              the only part
+        the corpus                                  most teams tune</code></pre>
+</figure><figure class="example">
+  <figcaption>Measuring the ceiling</figcaption>
+  <p>Run this before any prompt work. If ANN recall against exact search is below about 0.95 at your production settings, tune the index first — everything downstream is capped by this number and no prompt will lift it.</p>
+  <pre><code>exact = exact_search(query_vecs, matrix, k=10)      # ground truth
+approx = index.knn_query(query_vecs, k=10)[0]
+
+recall = np.mean([
+    len(set(a) &amp; set(e)) / len(e) for a, e in zip(approx, exact)
+])
+print(f&quot;ANN recall@10 = {recall:.3f}&quot;)
+
+# 0.85 means the best chunk is missing roughly 15% of the time,
+# and the model never sees it. that is not a prompting problem.</code></pre>
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>Semantic gap</dt><dd>The mismatch between how computers store data — files, fields, tags — and how humans understand its meaning.</dd></div><div class="term"><dt>Vector embedding</dt><dd>An array of numbers representing an item, positioned so that semantically similar items land close together.</dd></div><div class="term"><dt>Vector database</dt><dd>A store built to hold embeddings and retrieve them by similarity, with the indexing and filtering machinery that makes that fast.</dd></div><div class="term"><dt>Cosine similarity</dt><dd>The cosine of the angle between two vectors. Ignores magnitude, which is usually what you want for text.</dd></div><div class="term"><dt>Euclidean distance</dt><dd>Straight-line distance between two points in the vector space. Sensitive to magnitude as well as direction.</dd></div><div class="term"><dt>Dot product</dt><dd>A similarity measure combining alignment and magnitude. Equivalent to cosine when vectors are normalised.</dd></div><div class="term"><dt>L2 normalisation</dt><dd>Scaling a vector to unit length, which makes cosine, dot product and Euclidean produce identical rankings.</dd></div><div class="term"><dt>Approximate nearest neighbour (ANN)</dt><dd>Algorithms that find vectors very likely to be the closest, trading a little accuracy for a large speed gain.</dd></div><div class="term"><dt>HNSW</dt><dd>Hierarchical Navigable Small World: a multi-layer proximity graph navigated greedily from sparse upper layers down to the dense base.</dd></div><div class="term"><dt>IVF</dt><dd>Inverted File Index: partitions the space into clusters and searches only the nearest few, controlled by nprobe.</dd></div><div class="term"><dt>ef_search</dt><dd>HNSW&#x27;s query-time beam width. The main dial for trading recall against latency, changeable without rebuilding the index.</dd></div><div class="term"><dt>nprobe</dt><dd>How many IVF clusters a query searches. One is fastest and least accurate; all of them is equivalent to exhaustive search.</dd></div><div class="term"><dt>Quantisation</dt><dd>Compressing vectors to fewer bits per dimension to cut memory, at some cost in precision. Often paired with IVF at large scale.</dd></div><div class="term"><dt>Recall@k</dt><dd>The fraction of true nearest neighbours an approximate index actually returns. The ceiling on any system built on it.</dd></div><div class="term"><dt>Static vs contextual embedding</dt><dd>Static models give each word one fixed vector; contextual encoders produce representations that depend on the surrounding text.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why can&#x27;t you close the semantic gap by simply adding more tags to your relational schema?</summary>
+  <div class="answer"><p>Because tags are discrete, unary properties chosen in advance, while similarity is continuous and relational. There is no way to express &#x27;somewhat sunset&#x27; or &#x27;close to image 42&#x27; as a column value, and nobody tags for an attribute until after someone needs it. The limitation is structural, not a matter of effort.</p></div>
+</details><details class="q">
+  <summary>Your embedding model was trained with cosine similarity, but your index is configured for Euclidean distance and the vectors are not normalised. What happens?</summary>
+  <div class="answer"><p>Nothing visibly. Queries succeed and results come back ranked, but the ordering is influenced by vector magnitude — which the model never intended to carry meaning — so relevance quietly degrades. The fix is to L2-normalise on insert, after which all three metrics rank identically anyway.</p></div>
+</details><details class="q">
+  <summary>Why is it impossible to build a filter by thresholding a single dimension of a real embedding?</summary>
+  <div class="answer"><p>Because meaning is distributed across the whole vector rather than allocated one concept per axis. No coordinate corresponds to &#x27;elevation&#x27; or any other nameable property, so a threshold on it selects nothing coherent. Anything you need to filter on must be extracted explicitly and stored as metadata.</p></div>
+</details><details class="q">
+  <summary>What do HNSW&#x27;s upper layers actually contribute, given that every vector lives in the bottom layer?</summary>
+  <div class="answer"><p>They cover long distances in few hops. Starting a greedy walk directly on the dense bottom layer would take many more steps and risks settling in a local minimum far from the query. The sparse upper layers act as an express network that gets the search into the right neighbourhood before the fine-grained work begins.</p></div>
+</details><details class="q">
+  <summary>Why does an IVF index with nprobe=1 miss neighbours that are extremely close to the query?</summary>
+  <div class="answer"><p>Because it searches only the single nearest cluster, and a vector sitting just across a cluster boundary is never examined regardless of its actual distance. Cluster membership is decided at index time by proximity to a centroid, not by proximity to any particular query. Raising nprobe searches neighbouring cells and recovers them.</p></div>
+</details><details class="q">
+  <summary>A RAG system gives a wrong answer. Why should you measure ANN recall before rewriting the prompt?</summary>
+  <div class="answer"><p>Because recall is a hard ceiling sitting below everything visible. If the index returns 0.85 of true nearest neighbours, then roughly fifteen percent of the time the best chunk never reaches the model at all, and no prompt can compensate for text that was never supplied. Measure against exact search on the same vectors, then work upward.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Build an exact search over 100,000 of your own vectors and use it as ground truth, then measure your production index&#x27;s recall@10 at its current settings — most teams have never seen this number.</li><li>Sweep ef_search from 16 to 512 and plot recall against p95 latency; the knee of that curve is your actual operating point, and it is rarely where the default sits.</li><li>Compare HNSW and IVF on the same data at matched recall and compare memory footprint — the gap decides which is affordable at your scale.</li><li>Take a query with a selective metadata filter and compare post-filtering, over-fetching and native filtered search; the result counts alone are usually enough to settle the design.</li><li>Re-embed a small corpus with a different model and confirm for yourself that cross-model queries return confident nonsense — the failure is much more memorable once seen.</li><li>Try product quantisation on a million-vector index and measure the three-way trade between memory, recall and latency.</li><li>Read the HNSW paper (Malkov &amp; Yashunin, 2016) for why a hierarchy of proximity graphs gives logarithmic-ish search behaviour.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>
