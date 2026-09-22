@@ -14,8 +14,8 @@ You are the judgement in this loop. The scripts handle validation and
 rendering; you decide what a lesson *means* and where it belongs.
 
 ```
-queued video  →  YOU write the lesson  →  render  →  attach to a concept  →  rebuild
-  (server.py)     (youtube-lesson skill)  (ytlesson)   (attach_lesson.py)   (build.py)
+queued video  →  YOU write the lesson  →  render  →  [new concept?]   →  attach  →  rebuild
+  (server.py)     (youtube-lesson skill)  (ytlesson)   (add_concept.py)  (attach_lesson.py) (build.py)
 ```
 
 ## Before you start — locate the pieces
@@ -28,6 +28,7 @@ ai-guide/enrichment.json   per-concept sources + hand-drawn SVG schematics
 ai-guide/glance.json       per-concept at-a-glance visual
 ai-guide/build.py          validator + data.json generator
 ai-guide/attach_lesson.py  attach a rendered lesson to a concept
+ai-guide/add_concept.py    create a new concept (and optionally a new branch)
 ai-guide/server.py         local server: the site + the queue API
 ai-guide/inbox/            queued videos awaiting a lesson
 ```
@@ -41,8 +42,20 @@ This is the common request — the user has pasted YouTube URLs into the site's
 **+ Lesson** form and now says *"procesa la cola"*.
 
 **1. Read the queue.** Each entry is `ai-guide/inbox/<video_id>/` containing
-`job.json` (the URL, the chosen `concept` id, an optional `focus` note) and
-`transcript.txt`, already fetched. If the inbox is empty, say so and stop.
+`job.json` and `transcript.txt`, already fetched. If the inbox is empty, say so
+and stop.
+
+`job.json` has a `placement` saying where the lesson should land:
+
+| placement | the job carries | what you do |
+|---|---|---|
+| `existing` | `concept` — an id already in the map | attach to it |
+| `new-concept` | `new_concept`: `label`, `parent`, `cluster`, `suggested_id` | author the node, then attach |
+| `new-cluster` | `new_cluster` (the branch) and `new_concept` | author both, then attach |
+| `auto` | nothing | decide once you have read the transcript |
+
+A job with no `placement` is an old one carrying a bare `concept` id — read it
+as `existing`. `focus`, when set, says what the user wants emphasised.
 
 **2. Read the whole transcript.** Not a skim. A lesson built from a skim is
 obvious and not worth shipping.
@@ -70,18 +83,39 @@ cp <lesson>.json "lessons/<Folder Name>/lesson.json"
 cp ai-guide/inbox/<video_id>/transcript.txt "lessons/<Folder Name>/transcript.txt"
 ```
 
-**5. Attach it and rebuild:**
+**5. Create the concept, if the job asks for one.** This covers
+`new-concept`, `new-cluster`, and an `auto` job you have decided needs a node of
+its own. Earn it first: one idea is one node, and `suggested_id` is a slug of
+what the user typed, not a judgement — check the map does not already teach this
+under another name. Then write the node (summary, teaching prose, 3–6 key
+points, an at-a-glance visual, at least one cross-link) into a spec file —
+`python3 ai-guide/add_concept.py --help` prints its shape:
+
+```bash
+python3 ai-guide/add_concept.py --from-json /tmp/new-concept.json --dry-run
+python3 ai-guide/add_concept.py --from-json /tmp/new-concept.json
+```
+
+Set `"authored": false` — the lesson you just wrote is what backs it. For a
+`new-cluster` job add the spec's `cluster` block with a `color` pair; the script
+writes `--c-<id>` into all three theme blocks of `styles.css`, the step that
+fails silently when it is done by hand. It validates ids, parents, cross-links
+and sources, runs `build.py`, and restores every file if the build rejects the
+node.
+
+**6. Attach it and rebuild:**
 
 ```bash
 python3 ai-guide/attach_lesson.py \
     --folder "<Folder Name>" --concept <concept-id> --done <video_id>
 ```
 
-That adds the lesson to the concept, clears the ✎ authored flag if the concept
-had one, rebuilds `data.json`, and removes the inbox entry. It refuses if the
-folder was never rendered or the concept id does not exist.
+Use the id the node actually got in step 5 for a job that proposed one. This
+adds the lesson to the concept, clears the ✎ authored flag if the concept had
+one, rebuilds `data.json`, and removes the inbox entry. It refuses if the folder
+was never rendered or the concept id does not exist.
 
-**6. Check the fit.** The user picked the concept from a suggestion, which is a
+**7. Check the fit.** The user picked the concept from a suggestion, which is a
 guess made before the lesson existed. Now that you have read it, say so if it
 belongs somewhere else, and offer to attach it there too — a lesson may hang off
 several concepts.
@@ -120,8 +154,11 @@ Two side files, both keyed by concept id:
   displayed, last one is the base and is drawn widest), `contrast` (a
   trade-off, with a `left` and `right` each having a `title` and `items`).
 
-Adding a cluster? Give it a `--c-<id>` colour in **all three** theme blocks of
-`styles.css`, or every `color-mix()` using it silently fails.
+A brand-new node — or a brand-new branch — goes in with `add_concept.py`
+(step 5), not by hand: it places the node among its siblings, splits the pieces
+across `concepts.json`, `glance.json` and `enrichment.json`, and gives a new
+cluster its `--c-<id>` colour in **all three** theme blocks of `styles.css`,
+which every `color-mix()` needs and none of them complain about missing.
 
 ## Rebuilding and running
 

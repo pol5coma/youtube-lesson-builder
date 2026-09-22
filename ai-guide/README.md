@@ -28,8 +28,20 @@ full lessons load in the reader pane.
 
 Click **+ Lesson**, paste a YouTube URL, and press *Fetch transcript*. The server
 downloads the transcript, parks it in `inbox/<video_id>/`, and suggests the concepts
-whose vocabulary best matches the transcript. Pick the concept it should hang off
-(and optionally a focus note), then *Add to queue*.
+whose vocabulary best matches the transcript. Then say where it goes — and if the map
+has no home for it yet, say that instead:
+
+| choice | what gets recorded |
+|---|---|
+| an existing concept | the lesson attaches to that node |
+| **＋ New concept…** | a name and the parent it should hang off — a concept, or the top of a branch |
+| **＋ New branch…** | a new top-level branch plus the first concept in it |
+| **Let Claude choose** | nothing — the placement is decided after the transcript has been read |
+
+A proposed name that looks like a node the map already has is queued with a warning
+saying so; one idea is meant to be one node. Nothing is written into the graph at
+this point: a real concept needs a summary, key points and an at-a-glance visual,
+so the node itself is authored during processing and created with `add_concept.py`.
 
 That is deliberately where the automation stops. Writing the lesson is the part that
 needs judgement, so it happens in a Claude Code session — say **"procesa la cola"**
@@ -44,6 +56,12 @@ python3 ai-guide/attach_lesson.py \
 `attach_lesson.py` adds the lesson to that concept, clears the ✎ authored flag if the
 concept had one, rebuilds `data.json`, and removes the inbox entry — refusing loudly
 if the folder was never rendered or the concept id does not exist.
+
+When the job proposed a new concept or branch, the node is written first with
+`add_concept.py --from-json <spec>` (`--help` prints the spec shape). It places the
+node among its siblings, splits it across `concepts.json`, `glance.json` and
+`enrichment.json`, gives a new branch its colour in all three theme blocks of
+`styles.css`, rebuilds, and restores every file if the build rejects the node.
 
 ## Content workflow
 
@@ -97,6 +115,7 @@ build.py           validator + data.json generator
 data.json          generated — do not edit by hand
 server.py          local server: static site + inbox API for the + Lesson form
 attach_lesson.py   attach a rendered lesson to a concept, then rebuild
+add_concept.py     create a new concept (and optionally a new branch), then rebuild
 inbox/             queued videos awaiting a lesson (transcript + job.json)
 index.html         the app shell
 styles.css         minimal, theme-aware styling

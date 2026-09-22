@@ -436,6 +436,10 @@ body.resizing { cursor: ew-resize; user-select: none; }
   line-height: 1.55; color: var(--muted); background: var(--surface-2);
   border: 1px solid var(--line); max-height: 92px; overflow: hidden; }
 .add-hint { margin-top: 6px; font-size: 12px; color: var(--muted); }
+/* The fields that describe something that does not exist yet, set in from the
+   choice that revealed them. */
+.add-sub { margin-top: 4px; padding: 2px 0 12px 14px; border-left: 2px solid var(--line-strong); }
+.add-sub .add-label { margin-top: 12px; }
 .add-queue-list { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 4px; }
 .add-jobs { display: flex; flex-direction: column; gap: 8px; }
 .add-job { display: flex; align-items: center; gap: 10px; padding: 9px 11px;

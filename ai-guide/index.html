@@ -92,7 +92,8 @@
       <div class="add-body">
         <p class="add-note">
           Paste a video URL. Its transcript is fetched and parked in the queue with the
-          concept you choose. The lesson itself is written in a Claude Code session —
+          place you choose for it — an existing concept, a new one, a whole new branch,
+          or nothing at all. The lesson itself is written in a Claude Code session —
           say <code>procesa la cola</code> — then rendered and attached to the map.
         </p>
 
@@ -107,9 +108,34 @@
         <div id="add-step2" hidden>
           <div class="add-preview" id="add-preview"></div>
 
-          <label class="add-label" for="add-concept">Attach to concept</label>
+          <label class="add-label" for="add-concept">Where it goes</label>
           <select id="add-concept"></select>
           <div class="add-hint" id="add-suggest-note"></div>
+
+          <div id="add-new" class="add-sub" hidden>
+            <div id="add-new-cluster-fields" hidden>
+              <label class="add-label" for="add-new-cluster-title">New branch name</label>
+              <input id="add-new-cluster-title" type="text" autocomplete="off"
+                     placeholder="e.g. Protocols &amp; Interop">
+              <label class="add-label" for="add-new-cluster-blurb">Branch blurb <span class="opt">(optional)</span></label>
+              <input id="add-new-cluster-blurb" type="text" autocomplete="off"
+                     placeholder="One line on what this branch covers">
+            </div>
+
+            <label class="add-label" for="add-new-label">New concept name</label>
+            <input id="add-new-label" type="text" autocomplete="off"
+                   placeholder="e.g. Model Context Protocol">
+
+            <div id="add-new-parent-field">
+              <label class="add-label" for="add-new-parent">Place it under</label>
+              <select id="add-new-parent"></select>
+            </div>
+
+            <div class="add-hint">
+              The node is written when the lesson is — summary, key points and its
+              at-a-glance visual need reading the video first.
+            </div>
+          </div>
 
           <label class="add-label" for="add-focus">Focus <span class="opt">(optional)</span></label>
           <input id="add-focus" type="text" autocomplete="off"

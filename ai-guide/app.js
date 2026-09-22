@@ -673,6 +673,9 @@ function openAdd() {
   el("add-modal").hidden = false;
   el("add-url").value = "";
   el("add-focus").value = "";
+  el("add-new-label").value = "";
+  el("add-new-cluster-title").value = "";
+  el("add-new-cluster-blurb").value = "";
   el("add-step2").hidden = true;
   setAddStatus("");
   pendingVideo = null;
@@ -690,26 +693,75 @@ function setAddStatus(msg, kind) {
   box.hidden = !msg;
 }
 
-function fillConceptSelect(suggestions) {
-  const sel = el("add-concept");
+/* The placement choices that do not name an existing concept. Kept as one map
+   so the select, the field toggling and the payload all agree. */
+const AUTO = "__auto__", NEW_CONCEPT = "__new__", NEW_CLUSTER = "__new_cluster__";
+const PLACEMENT = {
+  [AUTO]: "auto",
+  [NEW_CONCEPT]: "new-concept",
+  [NEW_CLUSTER]: "new-cluster",
+};
+
+function orderedClusters() {
+  return DATA.clusters.slice().sort((a, b) => a.order - b.order);
+}
+
+function conceptsByCluster() {
   const byCluster = {};
   DATA.concepts.forEach((c) => {
     if (c.id === "ai-root") return;
     (byCluster[c.cluster] = byCluster[c.cluster] || []).push(c);
   });
-  let html = "";
+  return byCluster;
+}
+
+function fillConceptSelect(suggestions) {
+  const sel = el("add-concept");
+  const byCluster = conceptsByCluster();
+  let html =
+    `<optgroup label="Decide later or add something new">
+       <option value="${AUTO}">Let Claude choose where it goes</option>
+       <option value="${NEW_CONCEPT}">＋ New concept…</option>
+       <option value="${NEW_CLUSTER}">＋ New branch…</option>
+     </optgroup>`;
   if (suggestions && suggestions.length) {
     html += `<optgroup label="Suggested from the transcript">${suggestions
       .map((s) => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join("")}</optgroup>`;
   }
-  DATA.clusters.slice().sort((a, b) => a.order - b.order).forEach((cl) => {
+  orderedClusters().forEach((cl) => {
     const members = byCluster[cl.id] || [];
     if (!members.length) return;
     html += `<optgroup label="${esc(cl.title)}">${members
       .map((c) => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join("")}</optgroup>`;
   });
   sel.innerHTML = html;
-  if (suggestions && suggestions.length) sel.value = suggestions[0].id;
+  sel.value = suggestions && suggestions.length ? suggestions[0].id : AUTO;
+  fillParentSelect();
+  syncPlacementFields();
+}
+
+/* A new concept can hang off another concept or off a branch — the map draws
+   both as parents (see childrenOf). */
+function fillParentSelect() {
+  const byCluster = conceptsByCluster();
+  let html = "";
+  orderedClusters().forEach((cl) => {
+    const members = byCluster[cl.id] || [];
+    html += `<optgroup label="${esc(cl.title)}">
+      <option value="${esc(cl.id)}">Top of ${esc(cl.title)}</option>
+      ${members.map((c) => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join("")}
+    </optgroup>`;
+  });
+  el("add-new-parent").innerHTML = html;
+}
+
+function syncPlacementFields() {
+  const v = el("add-concept").value;
+  const isNewConcept = v === NEW_CONCEPT, isNewCluster = v === NEW_CLUSTER;
+  el("add-new").hidden = !(isNewConcept || isNewCluster);
+  el("add-new-cluster-fields").hidden = !isNewCluster;
+  // A new branch is its own parent, so there is nothing to pick.
+  el("add-new-parent-field").hidden = !isNewConcept;
 }
 
 async function fetchTranscript() {
@@ -722,10 +774,13 @@ async function fetchTranscript() {
     const data = await api("/api/fetch", { url });
     pendingVideo = data.video_id;
     el("add-preview").textContent = data.preview;
-    fillConceptSelect(data.suggestions);
-    el("add-suggest-note").textContent = data.suggestions && data.suggestions.length
-      ? `Suggested from the transcript — change it if the topic belongs elsewhere.`
-      : `No strong match found, so pick the concept yourself.`;
+    // A weak keyword score is a hint that the map has no home for this yet.
+    const hits = data.suggestions || [];
+    const weak = !hits.length || (hits[0].score || 0) < 3;
+    fillConceptSelect(weak ? [] : hits);
+    el("add-suggest-note").textContent = weak
+      ? `Nothing in the map matches it closely — add a new concept, or let Claude decide after reading it.`
+      : `Suggested from the transcript — change it if the topic belongs elsewhere.`;
     el("add-step2").hidden = false;
     setAddStatus(`Transcript captured (${data.chars.toLocaleString()} characters).`, "ok");
   } catch (e) {
@@ -735,25 +790,72 @@ async function fetchTranscript() {
   }
 }
 
+/* Build the /api/queue body for whichever placement is selected. Returns a
+   string instead when the form is not filled in enough to send. */
+function queuePayload() {
+  const choice = el("add-concept").value;
+  const placement = PLACEMENT[choice] || "existing";
+  const body = {
+    video_id: pendingVideo,
+    placement,
+    focus: el("add-focus").value.trim(),
+  };
+  if (placement === "existing") body.concept = choice;
+  if (placement === "new-concept" || placement === "new-cluster") {
+    body.label = el("add-new-label").value.trim();
+    if (!body.label) return "Name the new concept first.";
+  }
+  if (placement === "new-concept") body.parent = el("add-new-parent").value;
+  if (placement === "new-cluster") {
+    body.title = el("add-new-cluster-title").value.trim();
+    body.blurb = el("add-new-cluster-blurb").value.trim();
+    if (!body.title) return "Name the new branch first.";
+  }
+  return body;
+}
+
 async function queueVideo() {
   if (!pendingVideo) return;
+  const payload = queuePayload();
+  if (typeof payload === "string") { setAddStatus(payload, "err"); return; }
   const btn = el("add-queue");
   btn.disabled = true;
   try {
-    await api("/api/queue", {
-      video_id: pendingVideo,
-      concept: el("add-concept").value,
-      focus: el("add-focus").value.trim(),
-    });
-    setAddStatus("Queued. Say “procesa la cola” in Claude Code to build the lesson.", "ok");
+    const res = await api("/api/queue", payload);
+    const queued = "Queued. Say “procesa la cola” in Claude Code to build the lesson.";
+    setAddStatus(res.warning ? `${res.warning} ${queued}` : queued, "ok");
     el("add-step2").hidden = true;
     el("add-url").value = "";
+    el("add-new-label").value = "";
+    el("add-new-cluster-title").value = "";
+    el("add-new-cluster-blurb").value = "";
     pendingVideo = null;
     refreshJobs();
   } catch (e) {
     setAddStatus(apiErrorMessage(e), "err");
   } finally {
     btn.disabled = false;
+  }
+}
+
+/* Where a queued job says it belongs. Jobs written before placements existed
+   carry a bare concept id and no placement — read those as "existing". */
+function jobTarget(j) {
+  const nc = j.new_concept, ncl = j.new_cluster;
+  switch (j.placement || (j.concept ? "existing" : "auto")) {
+    case "new-cluster":
+      return `new branch: ${ncl ? ncl.title : "?"} › ${nc ? nc.label : "?"}`;
+    case "new-concept": {
+      const p = conceptById[nc && nc.parent] || clusterById[nc && nc.parent];
+      const under = p ? ` (under ${p.label || p.title})` : "";
+      return `new concept: ${nc ? nc.label : "?"}${under}`;
+    }
+    case "auto":
+      return "Claude chooses the concept";
+    default: {
+      const c = conceptById[j.concept];
+      return c ? c.label : j.concept || "?";
+    }
   }
 }
 
@@ -764,11 +866,10 @@ async function refreshJobs() {
     const jobs = data.jobs || [];
     if (!jobs.length) { box.innerHTML = `<div class="add-empty">Nothing waiting.</div>`; return; }
     box.innerHTML = jobs.map((j) => {
-      const c = conceptById[j.concept];
       return `<div class="add-job">
         <div class="j-main">
           <a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.video_id)}</a>
-          <div class="j-concept">→ ${esc(c ? c.label : j.concept)} · ${esc(j.status || "queued")}</div>
+          <div class="j-concept">→ ${esc(jobTarget(j))} · ${esc(j.status || "queued")}</div>
         </div>
         <button class="j-del" data-del="${esc(j.video_id)}" title="Remove from queue">&times;</button>
       </div>`;
@@ -924,6 +1025,7 @@ function wireUI() {
   el("add-modal").addEventListener("click", (e) => { if (e.target === el("add-modal")) closeAdd(); });
   el("add-fetch").addEventListener("click", fetchTranscript);
   el("add-queue").addEventListener("click", queueVideo);
+  el("add-concept").addEventListener("change", syncPlacementFields);
   el("add-url").addEventListener("keydown", (e) => { if (e.key === "Enter") fetchTranscript(); });
 
   el("toggle-links").addEventListener("click", (e) => {

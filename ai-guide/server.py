@@ -6,9 +6,16 @@ http://localhost:8000/ai-guide/.
 
 This is the static site plus a small inbox API. Pasting a YouTube URL in the
 site fetches its transcript and parks it in `ai-guide/inbox/<video_id>/`, along
-with the concept it should hang off in the map. Nothing is written into
-`lessons/` here — the lesson itself is authored in a Claude Code session
-("procesa la cola"), rendered, and attached with attach_lesson.py.
+with where it should land in the map. Nothing is written into `lessons/` — nor
+into the concept graph — here: the lesson itself is authored in a Claude Code
+session ("procesa la cola"), rendered, and attached with attach_lesson.py.
+
+A queued job records one of four placements: an `existing` concept, a proposed
+`new-concept` under a parent you pick, a proposed `new-cluster` (a new branch
+plus its first concept), or `auto` — decide once the transcript has been read.
+The three that create something are only *intentions*: build.py will not accept
+a node without a summary, key points and a glance visual, so the node itself is
+written during processing and created with add_concept.py.
 
 Standard library only. Binds to localhost.
 """
@@ -20,6 +27,7 @@ import re
 import shutil
 import subprocess
 import sys
+import unicodedata
 from datetime import datetime, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -91,11 +99,77 @@ def extract_video_id(raw: str) -> str | None:
     return m.group(1) if m else None
 
 
-def load_concepts() -> list[dict]:
+def load_graph() -> dict:
+    """Return the built graph — concepts and clusters — or empty lists."""
     data_path = ROOT / "data.json"
     if not data_path.exists():
-        return []
-    return json.loads(data_path.read_text(encoding="utf-8")).get("concepts", [])
+        return {"concepts": [], "clusters": []}
+    d = json.loads(data_path.read_text(encoding="utf-8"))
+    return {"concepts": d.get("concepts", []), "clusters": d.get("clusters", [])}
+
+
+def load_concepts() -> list[dict]:
+    return load_graph()["concepts"]
+
+
+def clean_text(raw: str, limit: int) -> str:
+    """Collapse whitespace, drop unprintables, and cap the length."""
+    s = " ".join((raw or "").split())
+    return "".join(ch for ch in s if ch.isprintable())[:limit].strip()
+
+
+def check_name(name: str, what: str) -> str:
+    """Return an error message for a bad label, or "" if it is fine."""
+    if len(name) < 2:
+        return f"Give the {what} at least two characters."
+    if len(name) > 60:
+        return f"Keep the {what} under 60 characters."
+    return ""
+
+
+def slugify(text: str, limit: int = 40) -> str:
+    """Turn a label into an id in the same shape as the hand-written ones."""
+    s = unicodedata.normalize("NFKD", text.lower())
+    s = "".join(ch for ch in s if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z0-9]+", "-", s).strip("-")[:limit].strip("-")
+
+
+def unique_id(base: str, taken: set[str]) -> str:
+    if base not in taken:
+        return base
+    n = 2
+    while f"{base}-{n}" in taken:
+        n += 1
+    return f"{base}-{n}"
+
+
+def terms_of(label: str) -> set[str]:
+    """The words in a label that actually say what it is about."""
+    return {w for w in re.findall(r"[a-z0-9]+", label.lower())
+            if len(w) > 3 and w not in STOP}
+
+
+def similar_concept(label: str) -> dict | None:
+    """An existing concept the proposed label may be a duplicate of.
+
+    One idea is meant to be one node, so a proposal that says the same thing as
+    an existing label, in the same words, is worth flagging — as a warning, not
+    a refusal: the user is the one who watched the video.
+    """
+    terms = terms_of(label)
+    if not terms:
+        return None
+    for c in load_concepts():
+        other = terms_of(c["label"])
+        if not other:
+            continue
+        # One shared generic word ("tool", "agent") means nothing; take it as a
+        # duplicate only when the narrower label is wholly inside the other and
+        # says at least two things — or when the two say exactly the same.
+        inner, outer = sorted((terms, other), key=len)
+        if inner <= outer and (terms == other or len(inner) >= 2):
+            return c
+    return None
 
 
 def suggest_concepts(transcript: str, limit: int = 6) -> list[dict]:
@@ -148,13 +222,19 @@ class Handler(SimpleHTTPRequestHandler):
         if "/api/" in (self.path or ""):
             super().log_message(fmt, *args)
 
+    def end_headers(self):
+        # These files are being edited while the server runs. Without this the
+        # browser caches app.js and keeps showing an old form long after the
+        # server restarted — which looks exactly like the change not working.
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     # ---------------------------------------------------------------- helpers
     def _send_json(self, payload, status=200):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 
@@ -240,28 +320,92 @@ class Handler(SimpleHTTPRequestHandler):
         })
 
     def api_queue(self, body):
-        """Record which concept the fetched video should attach to."""
+        """Record where the fetched video should land in the map.
+
+        Only `existing` names something that is already in the graph. The other
+        placements are recorded as intentions — the node is authored and created
+        during processing, so nothing half-formed ever reaches concepts.json.
+        """
         video_id = (body.get("video_id") or "").strip()
         if not VIDEO_ID.match(video_id) or not (INBOX / video_id / "transcript.txt").exists():
             return self._send_json({"error": "Fetch the transcript first."}, 400)
 
-        concept = (body.get("concept") or "").strip()
-        valid = {c["id"] for c in load_concepts()}
-        if concept not in valid:
-            return self._send_json({"error": "Pick a concept from the list."}, 400)
+        graph = load_graph()
+        concept_ids = {c["id"] for c in graph["concepts"]}
+        cluster_ids = {cl["id"] for cl in graph["clusters"]}
+        taken = concept_ids | cluster_ids
 
+        placement = (body.get("placement") or "existing").strip()
         job = {
             "video_id": video_id,
             "url": f"https://www.youtube.com/watch?v={video_id}",
-            "concept": concept,
-            "focus": (body.get("focus") or "").strip()[:500],
+            "placement": placement,
+            "concept": None,
+            "new_concept": None,
+            "new_cluster": None,
+            "focus": clean_text(body.get("focus"), 500),
             "status": "queued",
             "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
+        warning = ""
+
+        if placement == "existing":
+            concept = (body.get("concept") or "").strip()
+            if concept not in concept_ids:
+                return self._send_json({"error": "Pick a concept from the list."}, 400)
+            job["concept"] = concept
+
+        elif placement in ("new-concept", "new-cluster"):
+            label = clean_text(body.get("label"), 200)
+            err = check_name(label, "concept name")
+            if err:
+                return self._send_json({"error": err}, 400)
+
+            if placement == "new-concept":
+                parent = (body.get("parent") or "").strip()
+                # A parent is a concept or a whole branch — the map draws both.
+                if parent not in taken:
+                    return self._send_json(
+                        {"error": "Pick where the new concept should hang."}, 400
+                    )
+                cluster = parent if parent in cluster_ids else next(
+                    c.get("cluster") for c in graph["concepts"] if c["id"] == parent
+                )
+            else:
+                title = clean_text(body.get("title"), 200)
+                err = check_name(title, "branch name")
+                if err:
+                    return self._send_json({"error": err}, 400)
+                cluster = unique_id(slugify(title) or "branch", taken)
+                job["new_cluster"] = {
+                    "suggested_id": cluster,
+                    "title": title,
+                    "blurb": clean_text(body.get("blurb"), 300),
+                }
+                parent = cluster
+                taken = taken | {cluster}
+
+            job["new_concept"] = {
+                "suggested_id": unique_id(slugify(label) or "concept", taken),
+                "label": label,
+                "parent": parent,
+                "cluster": cluster,
+            }
+            twin = similar_concept(label)
+            if twin:
+                warning = (f"Queued — but “{label}” looks like the existing concept "
+                           f"“{twin['label']}”. It may belong there instead.")
+
+        elif placement != "auto":
+            return self._send_json({"error": f"Unknown placement: {placement!r}"}, 400)
+
         job_path(video_id).write_text(
             json.dumps(job, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        return self._send_json({"ok": True, "job": job})
+        out = {"ok": True, "job": job}
+        if warning:
+            out["warning"] = warning
+        return self._send_json(out)
 
     def api_delete(self, body):
         video_id = (body.get("video_id") or "").strip()
