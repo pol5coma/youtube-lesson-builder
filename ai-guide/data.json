@@ -154,6 +154,82 @@
       }
     },
     {
+      "id": "specialised-vs-general",
+      "label": "Specialised vs General-Purpose Models",
+      "cluster": "foundations",
+      "parent": "kinds-of-intelligence",
+      "summary": "Not every task wants a model that writes. When the valid answers are known in advance and a machine reads the result, a model optimised for that shape beats a frontier generalist on latency and cost — and loses to it on everything else.",
+      "explanation": "The default move since 2022 has been to send every task to the biggest general-purpose language model available. That works because such a model is autoregressive and open-ended: it writes free text, so it can be bent toward almost any job. The bend is not free, though. Text is generated one token at a time, which sets a floor on how fast an answer can arrive, and the model was trained to be agreeable to a human reader, which is a strange objective for a decision nobody reads.\n\nA specialised model changes the shape rather than the size. TypeSafe's Jev — the case that made this argument concrete in 2026 — takes unstructured state and returns a value from a schema declared before the call, with a calibrated probability attached, sampling every output in a single pass instead of token by token. It cannot write a sentence, so it cannot hallucinate one; it also cannot explain itself, and its reported accuracy sits nearer mid-tier models than the frontier.\n\nWhat generalises past any one model is the diagnostic. Three questions decide it: is the set of valid answers known before the call, does a machine consume the result rather than a person, and does the call happen often enough that latency and unit cost matter? Three yeses describe a decision, and decisions are what specialised models serve. A human reader at the end almost always argues for the generalist. The two are complements — a portfolio — and the mistake the last few years encouraged is assuming one shape fits every job.",
+      "keyPoints": [
+        "Autoregressive decoding sets a latency floor: tokens come out in sequence, so a response takes as long as its length.",
+        "A schema-constrained model cannot produce a malformed or invented output, because free text is the capability it traded away.",
+        "The training objective decides the fit: RLHF optimises for human preference, RLVR for checkable correctness, calibration for decisions acted on under uncertainty.",
+        "Calibrated confidence is a control signal — threshold it, auto-apply above, escalate below — which an uncalibrated model's certainty is not.",
+        "Vendor speed multiples are measured on the vendor's shaped queries; the honest number is the one measured on your own p95.",
+        "Bounded answers, a machine consumer and high volume mean a decision; a human reader means a generalist."
+      ],
+      "authored": false,
+      "links": [
+        {
+          "to": "tokens",
+          "rel": "escapes the latency floor of"
+        },
+        {
+          "to": "reinforcement-learning",
+          "rel": "is shaped by the objectives in"
+        },
+        {
+          "to": "moe",
+          "rel": "specialises across models rather than inside one, unlike"
+        },
+        {
+          "to": "when-not-to-use-ai",
+          "rel": "applies the same restraint as"
+        }
+      ],
+      "lessons": [
+        "System One Models: Typed Decisions Instead of Generated Text"
+      ],
+      "sources": [
+        {
+          "title": "TypeSafe AI — Introducing System One Models & Jev",
+          "url": "https://typesafe.ai/blog/introducing-system-one-models-and-jev"
+        },
+        {
+          "title": "MarkTechPost — TypeSafe AI releases Jev: typed, calibrated decisions instead of text",
+          "url": "https://www.marktechpost.com/2026/09/19/typesafe-ai-releases-jev/"
+        },
+        {
+          "title": "Devlin et al. — BERT: Pre-training of Deep Bidirectional Transformers (the small specialised encoder lineage)",
+          "url": "https://arxiv.org/abs/1810.04805"
+        },
+        {
+          "title": "Rich Sutton — The Bitter Lesson (the case for general methods instead)",
+          "url": "http://www.incompleteideas.net/IncIdeas/BitterLesson.html"
+        }
+      ],
+      "glance": {
+        "kind": "contrast",
+        "left": {
+          "title": "General-purpose LLM",
+          "items": [
+            "free text — any answer shape",
+            "one token at a time",
+            "a human reads the result"
+          ]
+        },
+        "right": {
+          "title": "Specialised decision model",
+          "items": [
+            "typed value + calibrated probability",
+            "every output in one pass",
+            "software consumes the result"
+          ]
+        },
+        "caption": "generality traded for latency, cost, and an answer that cannot arrive malformed"
+      }
+    },
+    {
       "id": "machine-learning",
       "label": "Machine Learning",
       "cluster": "foundations",
@@ -6983,6 +7059,102 @@
         {
           "term": "Fine-tuning",
           "definition": "Continuing to train an existing base model on a smaller, task-specific dataset so its weights shift toward that task."
+        }
+      ],
+      "has_html": true
+    },
+    "System One Models: Typed Decisions Instead of Generated Text": {
+      "folder": "System One Models: Typed Decisions Instead of Generated Text",
+      "title": "System One Models: Typed Decisions Instead of Generated Text",
+      "subtitle": "Learn when a specialised model beats a general-purpose LLM, and exactly what you give up to get it.",
+      "topic": "Model selection",
+      "difficulty": "Intermediate",
+      "channel": "Caleb Writes Code",
+      "video_url": "https://www.youtube.com/watch?v=vj7hysh0mOI",
+      "overview": "Since ChatGPT, one shape of model has absorbed almost all the attention: an autoregressive language model, trained to be helpful to humans, that answers in free-form text. It was tuned for chat, then tuned again for coding agents. Both are open-ended tasks where a person reads the output.\n\nWorkflow automation is not that. Sorting ten thousand emails, routing a request to the right model, or checking whether a generated answer is safe are decisions, not compositions: the set of valid answers is known before the call, nobody reads the prose, and the same call happens millions of times. Running those through a model built to write sentences means paying for text generation you throw away, and waiting for tokens to come out one at a time.\n\nTypeSafe AI's Jev, released in early access in September 2026, is the clearest public argument that this is a mismatch worth fixing in the model rather than around it. It takes unstructured state in and returns a typed value with a probability attached — no sentences at all. This lesson uses it as the concrete case for a more durable idea: the training objective and the decoding scheme, not the parameter count, decide which use cases a model can actually serve.",
+      "key_takeaways": [
+        "A System One model takes unstructured state and returns a schema-constrained value with a calibrated probability, instead of free-form text.",
+        "Jev's speed is architectural rather than tuning: it samples every output in one pass, escaping the one-token-after-another floor of autoregressive decoding.",
+        "TypeSafe's headline figures — 70–500 ms end to end, 40x–200x faster than frontier LLMs — are self-reported; the most grounded public number is Vercel's 18x at p95 on a live safety-review step.",
+        "The model cannot hallucinate a fact into a sentence because it cannot produce a sentence: every output must fit a schema fixed before the call.",
+        "RLHF optimises for human preference, RLVR for verifiable reward, RLCD for calibration — the objective a model was trained against is what limits where it fits.",
+        "Giving up text is a real cost: no explanation, no chain of thought, and reported accuracy near mid-tier models rather than frontier ones.",
+        "The practical move is a portfolio, not a winner: a generalist for open-ended work, a specialist for the high-volume decisions inside a workflow."
+      ],
+      "sections": [
+        {
+          "title": "The orthodox path, and what it optimised for",
+          "summary": "Models have been tuned for the two use cases that dominated the application layer — chat, then coding agents — and the layers below reshaped themselves to serve them."
+        },
+        {
+          "title": "The gap: quick decisions under uncertainty",
+          "summary": "Workflow automation stayed out of reach not because models were not smart enough, but because they were optimised against objectives that do not transfer to it."
+        },
+        {
+          "title": "Why the speed is architectural, not tuning",
+          "summary": "An autoregressive model has a latency floor set by its decoding loop; parallel sampling removes the loop rather than making it faster."
+        },
+        {
+          "title": "Typed in, typed out: the rules of engagement change",
+          "summary": "You stop writing prompts and start declaring a schema; the model returns a value inside that schema with a probability attached."
+        },
+        {
+          "title": "Primitives you compose, like logic gates",
+          "summary": "The model offers a few decision shapes, and anything complicated is built by composing them in your own code."
+        },
+        {
+          "title": "Calibration as the training objective",
+          "summary": "RLCD optimises the probabilities against outcomes rather than against what a person prefers, which is what makes the confidence number worth branching on."
+        },
+        {
+          "title": "What you give up, and what it costs",
+          "summary": "No prose means no explanation, no chain of thought, and — on TypeSafe's own benchmark — accuracy closer to mid-tier models than to the frontier."
+        },
+        {
+          "title": "Choosing: a portfolio, not a winner",
+          "summary": "Ask what shape the task is before asking which model is best — bounded answers at volume with no human reader is a different job from open-ended generation."
+        }
+      ],
+      "glossary": [
+        {
+          "term": "System One model",
+          "definition": "TypeSafe's name for a model class that takes unstructured state and returns a typed, schema-constrained decision with a probability, rather than free-form text."
+        },
+        {
+          "term": "Autoregressive decoding",
+          "definition": "Generating output one token at a time, each conditioned on the tokens before it — the reason a language model's response time grows with its length."
+        },
+        {
+          "term": "Parallel sampling",
+          "definition": "Computing all of a request's outputs in a single pass instead of in sequence, so the number of questions barely affects latency."
+        },
+        {
+          "term": "Calibration",
+          "definition": "The property that a model's stated confidence matches its real accuracy: answers given at 0.9 confidence are right about 90% of the time."
+        },
+        {
+          "term": "RLCD",
+          "definition": "Reinforcement Learning for Calibrated Decisions — TypeSafe's training method, which optimises the model's probabilities against outcomes rather than human preference."
+        },
+        {
+          "term": "RLHF",
+          "definition": "Reinforcement Learning from Human Feedback — training a model to produce the answers human raters prefer."
+        },
+        {
+          "term": "RLVR",
+          "definition": "Reinforcement Learning with Verifiable Rewards — training against answers that can be checked automatically, such as a test suite passing."
+        },
+        {
+          "term": "Schema-constrained output",
+          "definition": "Output whose shape and allowed values are fixed before the call, so a malformed or out-of-range answer cannot be produced."
+        },
+        {
+          "term": "p95 latency",
+          "definition": "The response time that 95% of requests come in under — a truer picture of a production path than an average."
+        },
+        {
+          "term": "Pareto frontier",
+          "definition": "The set of options where improving one dimension, such as latency, requires giving up another, such as generality."
         }
       ],
       "has_html": true

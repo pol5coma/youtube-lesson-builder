@@ -124,6 +124,44 @@
       ]
     },
     {
+      "id": "specialised-vs-general",
+      "label": "Specialised vs General-Purpose Models",
+      "cluster": "foundations",
+      "parent": "kinds-of-intelligence",
+      "summary": "Not every task wants a model that writes. When the valid answers are known in advance and a machine reads the result, a model optimised for that shape beats a frontier generalist on latency and cost — and loses to it on everything else.",
+      "explanation": "The default move since 2022 has been to send every task to the biggest general-purpose language model available. That works because such a model is autoregressive and open-ended: it writes free text, so it can be bent toward almost any job. The bend is not free, though. Text is generated one token at a time, which sets a floor on how fast an answer can arrive, and the model was trained to be agreeable to a human reader, which is a strange objective for a decision nobody reads.\n\nA specialised model changes the shape rather than the size. TypeSafe's Jev — the case that made this argument concrete in 2026 — takes unstructured state and returns a value from a schema declared before the call, with a calibrated probability attached, sampling every output in a single pass instead of token by token. It cannot write a sentence, so it cannot hallucinate one; it also cannot explain itself, and its reported accuracy sits nearer mid-tier models than the frontier.\n\nWhat generalises past any one model is the diagnostic. Three questions decide it: is the set of valid answers known before the call, does a machine consume the result rather than a person, and does the call happen often enough that latency and unit cost matter? Three yeses describe a decision, and decisions are what specialised models serve. A human reader at the end almost always argues for the generalist. The two are complements — a portfolio — and the mistake the last few years encouraged is assuming one shape fits every job.",
+      "keyPoints": [
+        "Autoregressive decoding sets a latency floor: tokens come out in sequence, so a response takes as long as its length.",
+        "A schema-constrained model cannot produce a malformed or invented output, because free text is the capability it traded away.",
+        "The training objective decides the fit: RLHF optimises for human preference, RLVR for checkable correctness, calibration for decisions acted on under uncertainty.",
+        "Calibrated confidence is a control signal — threshold it, auto-apply above, escalate below — which an uncalibrated model's certainty is not.",
+        "Vendor speed multiples are measured on the vendor's shaped queries; the honest number is the one measured on your own p95.",
+        "Bounded answers, a machine consumer and high volume mean a decision; a human reader means a generalist."
+      ],
+      "authored": false,
+      "links": [
+        {
+          "to": "tokens",
+          "rel": "escapes the latency floor of"
+        },
+        {
+          "to": "reinforcement-learning",
+          "rel": "is shaped by the objectives in"
+        },
+        {
+          "to": "moe",
+          "rel": "specialises across models rather than inside one, unlike"
+        },
+        {
+          "to": "when-not-to-use-ai",
+          "rel": "applies the same restraint as"
+        }
+      ],
+      "lessons": [
+        "System One Models: Typed Decisions Instead of Generated Text"
+      ]
+    },
+    {
       "id": "machine-learning",
       "label": "Machine Learning",
       "cluster": "foundations",

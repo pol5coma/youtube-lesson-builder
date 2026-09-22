@@ -96,8 +96,15 @@ python3 ai-guide/add_concept.py --from-json /tmp/new-concept.json --dry-run
 python3 ai-guide/add_concept.py --from-json /tmp/new-concept.json
 ```
 
-Set `"authored": false` — the lesson you just wrote is what backs it. For a
-`new-cluster` job add the spec's `cluster` block with a `color` pair; the script
+Set `"authored": false` — the lesson you just wrote is what backs it — and
+list that lesson in the node's `lessons`. That second part is not optional
+once step 4 has run: the lesson is already on disk, and `build.py` refuses to
+write `data.json` while any lesson is unreachable, so a node that does not
+claim it fails the build and `add_concept.py` rolls the whole thing back. With
+it declared, the node and its lesson land together and step 6 only has to
+clear the inbox.
+
+For a `new-cluster` job add the spec's `cluster` block with a `color` pair; the script
 writes `--c-<id>` into all three theme blocks of `styles.css`, the step that
 fails silently when it is done by hand. It validates ids, parents, cross-links
 and sources, runs `build.py`, and restores every file if the build rejects the

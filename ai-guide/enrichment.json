@@ -855,5 +855,25 @@
         "url": "https://hamel.dev/blog/posts/evals/"
       }
     ]
+  },
+  "specialised-vs-general": {
+    "sources": [
+      {
+        "title": "TypeSafe AI — Introducing System One Models & Jev",
+        "url": "https://typesafe.ai/blog/introducing-system-one-models-and-jev"
+      },
+      {
+        "title": "MarkTechPost — TypeSafe AI releases Jev: typed, calibrated decisions instead of text",
+        "url": "https://www.marktechpost.com/2026/09/19/typesafe-ai-releases-jev/"
+      },
+      {
+        "title": "Devlin et al. — BERT: Pre-training of Deep Bidirectional Transformers (the small specialised encoder lineage)",
+        "url": "https://arxiv.org/abs/1810.04805"
+      },
+      {
+        "title": "Rich Sutton — The Bitter Lesson (the case for general methods instead)",
+        "url": "http://www.incompleteideas.net/IncIdeas/BitterLesson.html"
+      }
+    ]
   }
 }

@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System One Models: Typed Decisions Instead of Generated Text — Condensed</title>
+<meta name="description" content="Learn when a specialised model beats a general-purpose LLM, and exactly what you give up to get it.">
+<style>@page{size:A4;margin:16mm 14mm}
+:root{
+  --bg:#fbfaf7; --surface:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e6e2d9;
+  --accent:#0f6466; --accent-soft:#e3f0ef; --code-bg:#f4f2ec; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#16181a; --surface:#1d2023; --ink:#e8e6e1; --muted:#9a9791;
+    --line:#2c3034; --accent:#5ec8c4; --accent-soft:#16302f; --code-bg:#121517;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 17px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,figcaption,summary,dt{
+  font-family:ui-serif,Georgia,"Iowan Old Style","Times New Roman",serif;
+  font-weight:600;line-height:1.25;
+}
+a{color:var(--accent)}
+.skip{position:absolute;left:-9999px}
+.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.6rem 1rem;border-radius:6px;z-index:10}
+
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:0 1.5rem}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}}
+
+/* sidebar */
+.sidebar{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:3rem 0}
+@media (max-width:900px){.sidebar{position:static;max-height:none;padding:2rem 0 0}}
+.eyebrow{font:600 11px/1 system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 1rem}
+.toc{list-style:none;margin:0;padding:0;font-size:14.5px}
+.toc a{display:flex;gap:.6rem;padding:.4rem .6rem;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--accent-soft);color:var(--ink)}
+.toc a.active{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.toc .n{color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+main{padding:3rem 0 5rem;min-width:0;max-width:70ch}
+
+/* hero */
+.hero{border-bottom:1px solid var(--line);padding-bottom:2rem;margin-bottom:2.5rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.2rem;font-size:13px}
+.pill{background:var(--accent);color:var(--bg);padding:.25rem .7rem;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.ghost{background:var(--accent-soft);color:var(--accent)}
+h1{font-size:clamp(2rem,4.5vw,2.9rem);margin:0 0 .6rem;letter-spacing:-.02em}
+.lede{font-size:1.2rem;color:var(--muted);margin:0 0 .8rem;line-height:1.5}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.source{display:inline-block;font-size:14.5px;font-weight:600;text-decoration:none;border-bottom:1.5px solid currentColor;padding-bottom:1px}
+.links{margin:.8rem 0 0;display:flex;flex-wrap:wrap;gap:1.4rem}
+
+/* blocks */
+.block{margin:0 0 3.5rem;scroll-margin-top:1.5rem}
+h2{font-size:1.55rem;margin:0 0 1rem;letter-spacing:-.01em}
+p{margin:0 0 1.1rem}
+.callout-label{font:600 11px/1 system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem}
+
+.callout,.takeaways,.points{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:1.2rem 1.4rem;margin:1.5rem 0;box-shadow:var(--shadow);
+}
+.callout ul,.takeaways ul,.points ul{margin:0;padding-left:1.1rem}
+.callout li,.checks li,.arrows li{margin-bottom:.5rem}
+.checks,.arrows{list-style:none;padding-left:0!important}
+.checks li,.arrows li{position:relative;padding-left:1.6rem}
+.checks li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:700}
+.arrows li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+/* sections */
+.section-head{display:flex;gap:1rem;align-items:baseline;margin-bottom:.8rem}
+.num{
+  font:600 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  background:var(--accent-soft);padding:.35rem .5rem;border-radius:6px;flex-shrink:0;
+}
+.section-head h2{margin:0 0 .3rem}
+.stamp{
+  display:inline-block;font:500 12.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--muted);text-decoration:none;border:1px solid var(--line);
+  padding:.22rem .5rem;border-radius:5px;
+}
+a.stamp:hover{color:var(--accent);border-color:var(--accent)}
+.summary{font-size:1.06rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1.3rem}
+
+/* examples */
+.example{
+  margin:1.5rem 0;padding:1.2rem 1.4rem;background:var(--surface);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 10px 10px 0;box-shadow:var(--shadow);
+}
+.example figcaption{font-size:1.02rem;margin-bottom:.6rem}
+.example p:last-child{margin-bottom:0}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:.9rem 1rem;overflow-x:auto;margin:.9rem 0 0;
+}
+code{font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* section map — the highlights page's compact stand-in for full sections */
+.map{display:grid;gap:.75rem}
+.map-row{display:flex;gap:.9rem;align-items:baseline}
+.map-row strong{font-family:ui-serif,Georgia,"Iowan Old Style",serif;font-weight:600}
+.map-row p{margin:.15rem 0 0;color:var(--muted);font-size:.97rem;line-height:1.5}
+.chip{
+  font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  border:1px solid var(--line);padding:.14rem .38rem;border-radius:4px;margin-left:.4rem;
+}
+
+/* glossary */
+.glossary{display:grid;gap:.9rem;margin:0}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow)}
+dt{font-size:1.02rem;margin-bottom:.25rem}
+dd{margin:0;color:var(--muted)}
+
+/* On the highlights page the glossary is the bulk of the content, so it
+   drops the card treatment and runs as flowing definitions instead. */
+.level-highlights .glossary{gap:.45rem}
+.level-highlights .term{background:none;border:0;box-shadow:none;padding:0}
+.level-highlights .term dt{display:inline;font-size:1rem}
+.level-highlights .term dt::after{content:" — ";color:var(--muted);font-weight:400}
+.level-highlights .term dd{display:inline;color:var(--muted)}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:.7rem;box-shadow:var(--shadow)}
+.q summary{padding:.95rem 1.2rem;cursor:pointer;font-size:1.02rem;list-style:none;display:flex;gap:.7rem}
+.q summary::-webkit-details-marker{display:none}
+.q summary::before{content:"?";color:var(--accent);font-weight:700;flex-shrink:0}
+.q[open] summary{border-bottom:1px solid var(--line)}
+.answer{padding:1rem 1.2rem 0}
+.answer p:last-child{margin-bottom:1rem}
+
+.footer{border-top:1px solid var(--line);padding-top:1.5rem;font-size:14px;color:var(--muted)}
+.footer p{margin:0 0 .4rem}
+
+@media print{
+  /* The palette has to be forced back to light, not just the background: a
+     browser in dark mode still matches the dark block above, and --ink would
+     stay near-white — invisible on paper. This rule wins on source order. */
+  :root{
+    --bg:#fff; --surface:#fff; --ink:#1a1917; --muted:#55524d; --line:#d6d2c9;
+    --accent:#0b4f51; --accent-soft:#eaf2f1; --code-bg:#f5f3ed; --shadow:none;
+  }
+  /* Browsers drop background colours when printing unless told otherwise,
+     which would flatten the code blocks and callouts into bare text. */
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  .skip{display:none}
+  .layout{display:block;max-width:none;padding:0;gap:0}
+  main{max-width:none;padding:0;min-width:0}
+  body{background:#fff;color:var(--ink);font-size:10.5pt;line-height:1.5}
+
+  /* The sticky sidebar becomes a contents page — worth having in something
+     printed to study from. */
+  .sidebar{position:static;max-height:none;overflow:visible;padding:0;break-after:page}
+  .toc{font-size:10.5pt}
+  .toc a{color:var(--ink);padding:.18rem 0}
+  .toc a.active{background:none;font-weight:400}
+
+  h1{font-size:21pt;margin:0 0 .5rem}
+  h2{font-size:14pt}
+  .lede{font-size:12pt}
+  .hero{padding-bottom:1rem;margin-bottom:1.5rem}
+  .example{padding:.9rem 1rem}
+
+  /* 8.8pt fits ~89 monospace columns inside the printable width, which covers
+     every line in practice. pre-wrap is the last-resort guard so a stray long
+     line wraps instead of being cut off — overflow-x:auto clips on paper. */
+  pre{overflow:visible;padding:.55rem .7rem;margin:.6rem 0 0;break-inside:avoid}
+  pre code{font-size:8.8pt;line-height:1.42;white-space:pre-wrap;overflow-wrap:break-word}
+
+  /* Blanket break-inside:avoid on .block left half-empty pages, because a
+     section routinely runs longer than one. Restrict it to things that
+     genuinely fit. */
+  .block{margin-bottom:1.8rem;break-inside:auto}
+  .example,.term,.q,.callout,.takeaways,.points{break-inside:avoid}
+  h1,h2,h3,figcaption,.section-head,.summary,.callout-label{break-after:avoid}
+  p,li{orphans:3;widows:3}
+
+  /* A closed <details> hides its contents through the internal content
+     element, so display:block on the answer is not enough to reveal it —
+     the quiz would print as questions with no answers. */
+  details::details-content{content-visibility:visible!important;block-size:auto!important}
+  .q .answer,.q[open] .answer{display:block}
+  .q summary{cursor:auto}
+  .q summary::before{content:none}
+  a{color:var(--ink);text-decoration:none}
+  .source{color:var(--accent)}
+  .footer{break-before:avoid;margin-top:1.5rem}
+
+  /* The highlights page exists to fit on one or two sheets, so it is set
+     tighter than the long pages and drops their breathing room. */
+  /* Sized so the longest lesson in the set — 10 sections and 18 terms —
+     still lands on two sheets. */
+  .level-highlights{font-size:9.8pt}
+  .level-highlights h1{font-size:17pt}
+  .level-highlights h2{font-size:12pt;margin-bottom:.5rem}
+  .level-highlights .lede{font-size:10.5pt}
+  .level-highlights .hero{padding-bottom:.6rem;margin-bottom:.8rem}
+  .level-highlights .block{margin-bottom:.9rem}
+  .level-highlights .checks li{margin-bottom:.26rem}
+  .level-highlights .map{gap:.32rem}
+  .level-highlights .map-row p{font-size:9.2pt}
+  /* Two columns is what gets the glossary onto one sheet. Neither CSS
+     multicol nor grid can be used here: Chrome does not fragment either
+     across a page break, so the whole glossary jumps to the next sheet.
+     Inline-block items in ordinary block flow do fragment. */
+  .level-highlights .glossary{display:block}
+  .level-highlights .term{
+    display:inline-block;width:48.6%;vertical-align:top;
+    margin:0 1.2% .22rem 0;break-inside:avoid;
+  }
+
+  .level-highlights .term dt,.level-highlights .term dd{font-size:9.2pt}
+  /* On the longest lesson in the set the footer was the only thing spilling
+     onto a third sheet, so on this variant it drops its rule and the tool
+     credit. The line that matters — that this is generated text — stays. */
+  .level-highlights .footer{border-top:0;font-size:8pt;margin-top:.4rem;padding-top:0}
+  .level-highlights .footer p{margin:0}
+  .level-highlights .footer p:first-child{display:none}
+}
+</style>
+</head>
+<body class="level-summary">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <p class="eyebrow">Contents</p>
+    <nav><ol class="toc">
+      <li><a href="#overview"><span class="n">·</span>Overview</a></li>
+      <li><a href="#the-orthodox-path-and-what-it-optimised-for-1"><span class="n">1</span>The orthodox path, and what it optimised for</a></li>
+<li><a href="#the-gap-quick-decisions-under-uncertainty-2"><span class="n">2</span>The gap: quick decisions under uncertainty</a></li>
+<li><a href="#why-the-speed-is-architectural-not-tuning-3"><span class="n">3</span>Why the speed is architectural, not tuning</a></li>
+<li><a href="#typed-in-typed-out-the-rules-of-engagement-change-4"><span class="n">4</span>Typed in, typed out: the rules of engagement change</a></li>
+<li><a href="#primitives-you-compose-like-logic-gates-5"><span class="n">5</span>Primitives you compose, like logic gates</a></li>
+<li><a href="#calibration-as-the-training-objective-6"><span class="n">6</span>Calibration as the training objective</a></li>
+<li><a href="#what-you-give-up-and-what-it-costs-7"><span class="n">7</span>What you give up, and what it costs</a></li>
+<li><a href="#choosing-a-portfolio-not-a-winner-8"><span class="n">8</span>Choosing: a portfolio, not a winner</a></li>
+      <li><a href="#glossary"><span class="n">·</span>Glossary</a></li><li><a href="#quiz"><span class="n">·</span>Check yourself</a></li><li><a href="#next"><span class="n">·</span>Where to go next</a></li>
+    </ol></nav>
+  </div>
+</aside>
+<main id="content">
+<header class="hero">
+  <div class="meta"><span class="pill">Intermediate</span><span class="pill ghost">Model selection</span><span class="pill ghost">Condensed</span><span class="muted">Caleb Writes Code</span></div>
+  <h1>System One Models: Typed Decisions Instead of Generated Text</h1>
+  <p class="lede">Learn when a specialised model beats a general-purpose LLM, and exactly what you give up to get it.</p>
+  <p class="muted small">For engineers who reach for a frontier LLM by default and want to know when that is the wrong tool · 22 September 2026</p>
+  <p class="muted small">Every section, key point, term and question from the full lesson is here. The extended explanations and the additional examples are not.</p>
+  <p class="links"><a class="source" href="https://www.youtube.com/watch?v=vj7hysh0mOI" target="_blank" rel="noopener">Watch the source video</a> <a class="source" href="lesson.html">Read the full lesson</a> <a class="source" href="lesson-highlights.html">Read the highlights</a></p>
+  <div class="callout">
+  <p class="callout-label">Before you start</p><ul><li>What a large language model is, and that it generates text one token at a time</li><li>Basic familiarity with JSON schemas or typed function signatures</li></ul></div>
+</header>
+<section id="overview" class="block">
+  <h2>Overview</h2>
+  <p>Since ChatGPT, one shape of model has absorbed almost all the attention: an autoregressive language model, trained to be helpful to humans, that answers in free-form text. It was tuned for chat, then tuned again for coding agents. Both are open-ended tasks where a person reads the output.</p>
+<p>Workflow automation is not that. Sorting ten thousand emails, routing a request to the right model, or checking whether a generated answer is safe are decisions, not compositions: the set of valid answers is known before the call, nobody reads the prose, and the same call happens millions of times. Running those through a model built to write sentences means paying for text generation you throw away, and waiting for tokens to come out one at a time.</p>
+<p>TypeSafe AI&#x27;s Jev, released in early access in September 2026, is the clearest public argument that this is a mismatch worth fixing in the model rather than around it. It takes unstructured state in and returns a typed value with a probability attached — no sentences at all. This lesson uses it as the concrete case for a more durable idea: the training objective and the decoding scheme, not the parameter count, decide which use cases a model can actually serve.</p>
+  <div class="takeaways">
+    <p class="callout-label">Key takeaways</p>
+    <ul class="checks"><li>A System One model takes unstructured state and returns a schema-constrained value with a calibrated probability, instead of free-form text.</li><li>Jev&#x27;s speed is architectural rather than tuning: it samples every output in one pass, escaping the one-token-after-another floor of autoregressive decoding.</li><li>TypeSafe&#x27;s headline figures — 70–500 ms end to end, 40x–200x faster than frontier LLMs — are self-reported; the most grounded public number is Vercel&#x27;s 18x at p95 on a live safety-review step.</li><li>The model cannot hallucinate a fact into a sentence because it cannot produce a sentence: every output must fit a schema fixed before the call.</li><li>RLHF optimises for human preference, RLVR for verifiable reward, RLCD for calibration — the objective a model was trained against is what limits where it fits.</li><li>Giving up text is a real cost: no explanation, no chain of thought, and reported accuracy near mid-tier models rather than frontier ones.</li><li>The practical move is a portfolio, not a winner: a generalist for open-ended work, a specialist for the high-volume decisions inside a workflow.</li></ul>
+  </div>
+</section>
+<section id="the-orthodox-path-and-what-it-optimised-for-1" class="block section">
+  <div class="section-head">
+    <span class="num">01</span>
+    <div>
+      <h2>The orthodox path, and what it optimised for</h2>
+      <a class="stamp" href="#" data-t="0">0:00</a>
+    </div>
+  </div>
+  <p class="summary">Models have been tuned for the two use cases that dominated the application layer — chat, then coding agents — and the layers below reshaped themselves to serve them.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Chat and coding agents are both open-ended tasks with a human reader at the end.</li><li>The whole stack — serving, APIs, evals — was shaped around returning streamed text.</li><li>A use case with a different shape inherits that shaping whether it suits it or not.</li></ul></div>
+  <figure class="example">
+  <figcaption>The shape of a chat answer versus a routing decision</figcaption>
+  <p>&quot;Explain this stack trace&quot; has no bounded answer set and a person reads every word. &quot;Which of these four queues should this ticket go to?&quot; has exactly four valid answers and no reader at all — yet both are usually sent to the same model, over the same streaming API, and billed the same way.</p>
+  
+</figure>
+</section>
+<section id="the-gap-quick-decisions-under-uncertainty-2" class="block section">
+  <div class="section-head">
+    <span class="num">02</span>
+    <div>
+      <h2>The gap: quick decisions under uncertainty</h2>
+      <a class="stamp" href="#" data-t="40">0:40</a>
+    </div>
+  </div>
+  <p class="summary">Workflow automation stayed out of reach not because models were not smart enough, but because they were optimised against objectives that do not transfer to it.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>RLHF optimises for what a person prefers to read.</li><li>RLVR optimises for answers that can be checked against ground truth.</li><li>Neither produces an actionable confidence number for a fast decision under uncertainty.</li><li>Automation fails on unit economics and latency, not usually on capability.</li></ul></div>
+  <figure class="example">
+  <figcaption>The same task, two economics</figcaption>
+  <p>Classifying one support email with a frontier model might take two seconds and a few hundred tokens of invisible reasoning. That is fine for one email and ruinous for 50,000 a day — the work is identical, the bill and the wall-clock time are not.</p>
+  
+</figure>
+</section>
+<section id="why-the-speed-is-architectural-not-tuning-3" class="block section">
+  <div class="section-head">
+    <span class="num">03</span>
+    <div>
+      <h2>Why the speed is architectural, not tuning</h2>
+      <a class="stamp" href="#" data-t="124">2:04</a>
+    </div>
+  </div>
+  <p class="summary">An autoregressive model has a latency floor set by its decoding loop; parallel sampling removes the loop rather than making it faster.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Autoregressive decoding is a serial chain: each token waits for the previous one.</li><li>Parallel sampling computes every output in one pass, so more questions barely add latency.</li><li>TypeSafe reports 70–500 ms versus 3–329 seconds for frontier LLMs, and 40x–200x overall.</li><li>The best independent figure is 18x at p95 in production (Vercel), not 200x.</li><li>A functional imitation is easy; matching the latency is what the architecture buys.</li></ul></div>
+  <figure class="example">
+  <figcaption>Ten questions for the price of one</figcaption>
+  <p>Asking an autoregressive model to answer ten yes/no questions produces ten answers in sequence, and the tenth waits for the first nine. A parallel sampler evaluates all ten in the same pass, which is why batching questions into one Jev call is close to free while batching into one LLM call is not.</p>
+  
+</figure>
+</section>
+<section id="typed-in-typed-out-the-rules-of-engagement-change-4" class="block section">
+  <div class="section-head">
+    <span class="num">04</span>
+    <div>
+      <h2>Typed in, typed out: the rules of engagement change</h2>
+      <a class="stamp" href="#" data-t="248">4:08</a>
+    </div>
+  </div>
+  <p class="summary">You stop writing prompts and start declaring a schema; the model returns a value inside that schema with a probability attached.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>The answer space is declared up front, not requested in a prompt.</li><li>Schema conformance is structural, so no output parser and no retry loop.</li><li>It cannot hallucinate a fact into a sentence because it produces no sentences.</li><li>You lose the explanation; the confidence number replaces it.</li><li>Prompt-engineering intuitions mostly do not transfer.</li></ul></div>
+  <figure class="example">
+  <figcaption>The same guardrail, two shapes</figcaption>
+  <p>With an LLM you ask for a verdict and hope: the answer may be JSON, may be JSON wrapped in prose, may be a refusal — so you validate, retry, and keep a fallback. With a typed decision model the verdict and its probability are the only things that can come back, so the failure mode moves from parsing to calibration.</p>
+  <pre><code>// schematic — not TypeSafe&#x27;s actual API
+// declared before the call:
+//   verdict: choice(&quot;allow&quot;, &quot;review&quot;, &quot;block&quot;)
+// returned:
+//   { verdict: &quot;review&quot;, p: 0.81 }
+
+if (p &gt;= 0.95) autoApply(verdict);
+else escalateToHuman();</code></pre>
+</figure>
+</section>
+<section id="primitives-you-compose-like-logic-gates-5" class="block section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <div>
+      <h2>Primitives you compose, like logic gates</h2>
+      <a class="stamp" href="#" data-t="288">4:48</a>
+    </div>
+  </div>
+  <p class="summary">The model offers a few decision shapes, and anything complicated is built by composing them in your own code.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Three shapes: a categorical choice, a score, and a yes/no probability.</li><li>Complex behaviour comes from composing calls in code, not from a longer prompt.</li><li>Expressiveness moves out of the prompt and into your program&#x27;s structure.</li><li>Anything the primitives cannot express is simply out of scope for the model.</li></ul></div>
+  <figure class="example">
+  <figcaption>Sorting a long list</figcaption>
+  <p>The video&#x27;s own demo is a long list of plants sorted in a second or two. Structurally it is one categorical decision repeated across every item, batched into a single pass — the kind of map-reduce over a dataset that is unremarkable to write and prohibitively slow to run through a chat model.</p>
+  
+</figure>
+</section>
+<section id="calibration-as-the-training-objective-6" class="block section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <div>
+      <h2>Calibration as the training objective</h2>
+      <a class="stamp" href="#" data-t="371">6:11</a>
+    </div>
+  </div>
+  <p class="summary">RLCD optimises the probabilities against outcomes rather than against what a person prefers, which is what makes the confidence number worth branching on.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>RLCD optimises probabilities against outcomes, not against human preference.</li><li>Calibration means 0.9 should be right about nine times in ten, in aggregate.</li><li>A calibrated number is a control signal: threshold, auto-apply, escalate the rest.</li><li>The method is not fully disclosed — treat the calibration claim as untested.</li><li>Small encoder-style models have done narrow classification for years.</li></ul></div>
+  <figure class="example">
+  <figcaption>A threshold you can defend</figcaption>
+  <p>With calibrated confidence, choosing 0.97 as the auto-apply cutoff is an argument about acceptable error rate: at that threshold roughly three in a hundred auto-applied decisions are wrong, and you decide whether that is tolerable. With an uncalibrated model the same number is superstition.</p>
+  
+</figure>
+</section>
+<section id="what-you-give-up-and-what-it-costs-7" class="block section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <div>
+      <h2>What you give up, and what it costs</h2>
+      <a class="stamp" href="#" data-t="331">5:31</a>
+    </div>
+  </div>
+  <p class="summary">No prose means no explanation, no chain of thought, and — on TypeSafe&#x27;s own benchmark — accuracy closer to mid-tier models than to the frontier.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Reported accuracy is near mid-tier models, not frontier ones.</li><li>No explanation, no chain of thought, nothing to audit when it errs.</li><li>Anything outside the declared schema has no representation at all.</li><li>Vendor benchmarks compare on the queries the vendor&#x27;s model is shaped for.</li></ul></div>
+  <figure class="example">
+  <figcaption>Where it cannot go</figcaption>
+  <p>&quot;Draft a reply to this complaint&quot; has no typed answer set — the output is the text. No amount of speed helps, because the thing being asked for is the very capability that was traded away.</p>
+  
+</figure>
+</section>
+<section id="choosing-a-portfolio-not-a-winner-8" class="block section">
+  <div class="section-head">
+    <span class="num">08</span>
+    <div>
+      <h2>Choosing: a portfolio, not a winner</h2>
+      <a class="stamp" href="#" data-t="413">6:53</a>
+    </div>
+  </div>
+  <p class="summary">Ask what shape the task is before asking which model is best — bounded answers at volume with no human reader is a different job from open-ended generation.</p>
+  
+  <div class="points"><p class="callout-label">Key points</p><ul class="arrows"><li>Three yeses — bounded answers, machine consumer, high volume — mean it is a decision.</li><li>A human reader at the end almost always argues for a general model.</li><li>Measure your own p95 before believing any speedup multiple.</li><li>Specialist and generalist are complements; the mistake is assuming one shape fits everything.</li></ul></div>
+  <figure class="example">
+  <figcaption>Applying the test to three calls</figcaption>
+  <p>Routing a ticket to one of four queues: bounded, machine-consumed, high volume — a decision. Summarising the ticket for an agent to read: unbounded and human-read — a general model. Checking a generated answer against a safety policy before it ships: bounded, machine-consumed, on the hot path — a decision, and the case Vercel measured.</p>
+  
+</figure>
+</section>
+<section id="glossary" class="block">
+  <h2>Glossary</h2>
+  <dl class="glossary"><div class="term"><dt>System One model</dt><dd>TypeSafe&#x27;s name for a model class that takes unstructured state and returns a typed, schema-constrained decision with a probability, rather than free-form text.</dd></div><div class="term"><dt>Autoregressive decoding</dt><dd>Generating output one token at a time, each conditioned on the tokens before it — the reason a language model&#x27;s response time grows with its length.</dd></div><div class="term"><dt>Parallel sampling</dt><dd>Computing all of a request&#x27;s outputs in a single pass instead of in sequence, so the number of questions barely affects latency.</dd></div><div class="term"><dt>Calibration</dt><dd>The property that a model&#x27;s stated confidence matches its real accuracy: answers given at 0.9 confidence are right about 90% of the time.</dd></div><div class="term"><dt>RLCD</dt><dd>Reinforcement Learning for Calibrated Decisions — TypeSafe&#x27;s training method, which optimises the model&#x27;s probabilities against outcomes rather than human preference.</dd></div><div class="term"><dt>RLHF</dt><dd>Reinforcement Learning from Human Feedback — training a model to produce the answers human raters prefer.</dd></div><div class="term"><dt>RLVR</dt><dd>Reinforcement Learning with Verifiable Rewards — training against answers that can be checked automatically, such as a test suite passing.</dd></div><div class="term"><dt>Schema-constrained output</dt><dd>Output whose shape and allowed values are fixed before the call, so a malformed or out-of-range answer cannot be produced.</dd></div><div class="term"><dt>p95 latency</dt><dd>The response time that 95% of requests come in under — a truer picture of a production path than an average.</dd></div><div class="term"><dt>Pareto frontier</dt><dd>The set of options where improving one dimension, such as latency, requires giving up another, such as generality.</dd></div></dl>
+</section>
+<section id="quiz" class="block">
+  <h2>Check yourself</h2>
+  <p class="muted">Answer first, then open each one.</p>
+  <details class="q">
+  <summary>Why can&#x27;t a frontier LLM simply be tuned to match Jev&#x27;s latency?</summary>
+  <div class="answer"><p>Because the limit is structural, not a matter of tuning: an autoregressive model emits tokens in sequence, each conditioned on the last, so a response takes as long as its length. Parallel sampling removes the sequence rather than speeding it up.</p></div>
+</details><details class="q">
+  <summary>The claim is that Jev &#x27;cannot hallucinate&#x27;. What exactly does that mean, and what does it not mean?</summary>
+  <div class="answer"><p>It means it cannot produce a wrong-shaped or invented output, because it generates no free text — every answer must be a value from a schema fixed before the call. It does not mean the answer is right: it can confidently pick the wrong option from that schema.</p></div>
+</details><details class="q">
+  <summary>What makes a calibrated probability more useful than an LLM saying it is confident?</summary>
+  <div class="answer"><p>Calibration ties the number to observed accuracy, so 0.9 means roughly nine in ten. That makes it a control signal you can threshold against the cost of being wrong. A preference-trained model learned that sounding certain is rewarded, so its confidence carries no such guarantee.</p></div>
+</details><details class="q">
+  <summary>A step in your pipeline takes 400 ms and runs 200 times a day, and a vendor offers a 200x speedup. What is wrong with taking that at face value?</summary>
+  <div class="answer"><p>Two things. The multiple comes from the vendor&#x27;s own shaped benchmark — the best independent figure is 18x at p95 in production — and at that volume even a real 200x saves under two minutes a day, so the speedup buys nothing regardless of whether it is true.</p></div>
+</details><details class="q">
+  <summary>Your task is to write a customer-facing apology email. Why is a System One model the wrong tool, no matter how fast it is?</summary>
+  <div class="answer"><p>The deliverable is the text itself, and generating text is precisely the capability traded away for speed and type safety. The answer set is unbounded and a person reads it — two of the three signs that the job belongs to a general model.</p></div>
+</details>
+</section>
+<section id="next" class="block">
+  <h2>Where to go next</h2>
+  <ul class="arrows"><li>Take the highest-volume model call in your system and write down every answer it is allowed to return; if you can enumerate them, it is a decision wearing a generation&#x27;s clothes.</li><li>Measure that call&#x27;s current p95 latency and daily volume before evaluating any speedup claim — the multiple only matters against your own numbers.</li><li>Try the same classification with a fine-tuned encoder-style model of a few hundred million parameters: it may be cheaper still and run on hardware you already own.</li><li>Design one confidence threshold end to end — pick the cutoff, decide what happens below it, and work out what an error above it costs you.</li><li>Read TypeSafe&#x27;s System One announcement alongside a sceptical write-up, and note which figures are self-reported and which were measured by someone else.</li></ul>
+</section>
+<footer class="footer">
+  <p>Lesson generated from a YouTube transcript with
+     <a href="https://github.com/pol5coma/youtube-lesson-builder">YouTube Lesson Builder</a>.</p>
+  <p class="muted">Explanations are AI-generated. Check anything you intend to rely on.</p>
+</footer>
+</main>
+</div>
+<script>
+// Highlight the section currently in view, and make timestamps deep-link into
+// the video at the right moment.
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links
+    .map(function (a) { return document.getElementById(a.hash.slice(1)); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.classList.toggle('active', a.hash === '#' + entry.target.id);
+        });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    targets.forEach(function (t) { observer.observe(t); });
+  }
+
+  // Older browsers do not support ::details-content, so the print stylesheet
+  // alone would leave the quiz answers hidden on paper. Open them for the
+  // duration of the print and put them back afterwards.
+  var forced = [];
+  window.addEventListener('beforeprint', function () {
+    forced = Array.prototype.filter.call(
+      document.querySelectorAll('details'), function (d) { return !d.open; }
+    );
+    forced.forEach(function (d) { d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    forced.forEach(function (d) { d.open = false; });
+    forced = [];
+  });
+
+  var source = document.querySelector('.source');
+  document.querySelectorAll('.stamp[data-t]').forEach(function (stamp) {
+    stamp.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (!source) return;
+      var base = source.getAttribute('href').split('&t=')[0];
+      window.open(base + '&t=' + stamp.dataset.t + 's', '_blank', 'noopener');
+    });
+  });
+})();
+</script>
+</body>
+</html>
